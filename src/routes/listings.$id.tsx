@@ -219,7 +219,7 @@ function ListingPage() {
                 >
                   <span className="text-sm font-medium">
                     {index + 1}. {choice.label}
-                    {choice.id === "partner" ? <span className="ml-2 text-xs font-medium opacity-80">Default</span> : null}
+                    {choice.id === "partner" ? <span className="text-xs font-medium opacity-80"> · Default</span> : null}
                   </span>
                   <span className={selected ? "mt-0.5 text-xs text-primary-fg/80" : "mt-0.5 text-xs text-muted"}>
                     {choice.hint}

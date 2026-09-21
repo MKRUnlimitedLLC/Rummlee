@@ -391,7 +391,7 @@ function ModePicks({
           >
             <span className="text-sm font-medium text-fg">
               {index + 1}. {m.label}
-              {m.badge ? <span className="ml-2 text-xs font-medium text-primary-ink">{m.badge}</span> : null}
+              {m.badge ? <span className="text-xs font-medium text-primary-ink"> · {m.badge}</span> : null}
             </span>
             <span className="mt-0.5 text-xs text-muted">{m.hint}</span>
           </button>
