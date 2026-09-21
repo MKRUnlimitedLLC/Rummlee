@@ -1,7 +1,7 @@
 import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 
-const SEED_VERSION = "v6-fee-handoff";
+const SEED_VERSION = "v7-plains";
 
 type SeedListing = {
   id: string;
@@ -38,6 +38,7 @@ export async function ensureSeed(sql: Sql) {
     { id: "seed-maple-haven", handle: "maple_haven", neighborhood: "Capitol Hill, Seattle" },
     { id: "seed-dune-studio", handle: "dune_studio", neighborhood: "Scottsdale, Phoenix" },
     { id: "seed-quiet-willow", handle: "quiet_willow", neighborhood: "Bethesda, DC" },
+    { id: "seed-prairie-row", handle: "prairie_row", neighborhood: "West Fargo, Fargo–Moorhead" },
   ];
 
   for (const s of sellers) {
@@ -74,6 +75,8 @@ export async function ensureSeed(sql: Sql) {
     { id: "public-harvard", name: "Cambridge Public Library", area: "Cambridge, Boston", hint: "Broadway lot, near the main doors.", kind: "public" },
     { id: "public-scottsdale", name: "Scottsdale Civic Center", area: "Scottsdale, Phoenix", hint: "West plaza, daylight hours.", kind: "public" },
     { id: "public-naperville", name: "Naper Settlement lot", area: "Naperville, Chicago", hint: "Visitor lot off Aurora Ave.", kind: "public" },
+    { id: "partner-westfargo", name: "13th Avenue Market", area: "West Fargo, Fargo–Moorhead", hint: "Official Rummlee partner. Front lot, locker by customer service. Store hours.", kind: "partner" },
+    { id: "public-westfargo", name: "West Fargo Library", area: "West Fargo, Fargo–Moorhead", hint: "Front lot, library hours. Daylight handoff.", kind: "public" },
   ];
   for (const s of spots) {
     await sql`
@@ -154,12 +157,23 @@ export async function ensureSeed(sql: Sql) {
       ends: sat,
       spot: "partner-bethesda",
     },
+    {
+      id: "sale-westfargo",
+      sellerId: "seed-prairie-row",
+      name: "West Fargo moving sale",
+      kind: "moving",
+      neighborhood: "West Fargo, Fargo–Moorhead",
+      starts: fri,
+      ends: sun,
+      spot: "partner-westfargo",
+      modes: "official,public",
+    },
   ];
 
   for (const s of sales) {
     await sql`
       insert into sales (id, seller_id, name, kind, neighborhood, starts_on, ends_on, handoff_modes, handoff_spot_id, status)
-      values (${s.id}, ${s.sellerId}, ${s.name}, ${s.kind}, ${s.neighborhood}, ${s.starts}::date, ${s.ends}::date, ${"official"}, ${s.spot}, ${"live"})
+      values (${s.id}, ${s.sellerId}, ${s.name}, ${s.kind}, ${s.neighborhood}, ${s.starts}::date, ${s.ends}::date, ${"modes" in s ? s.modes : "official"}, ${s.spot}, ${"live"})
       on conflict (id) do nothing
     `;
   }
@@ -211,7 +225,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "two",
       neighborhood: "East Austin, Austin",
       photo: "/listings/olive-tree.jpg",
-      modes: "official,porch",
+      modes: "official,public",
     },
     {
       id: "mixer",
@@ -227,7 +241,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "one",
       neighborhood: "Park Slope, Brooklyn",
       photo: "/listings/mixer.jpg",
-      modes: "official,porch",
+      modes: "official,public",
     },
     {
       id: "linen-duvet",
@@ -243,7 +257,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "bag",
       neighborhood: "Capitol Hill, Seattle",
       photo: "/listings/linen-duvet.jpg",
-      modes: "official,porch",
+      modes: "official,public",
     },
     {
       id: "stoneware",
@@ -275,7 +289,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "bag",
       neighborhood: "Capitol Hill, Seattle",
       photo: "/listings/merino.jpg",
-      modes: "official,porch",
+      modes: "official,public",
     },
     {
       id: "lounge-chair",
@@ -307,7 +321,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "two",
       neighborhood: "Lincoln Park, Chicago",
       photo: "/listings/play-kitchen.jpg",
-      modes: "official,porch",
+      modes: "official,public",
     },
     {
       id: "beauty-tray",
@@ -355,7 +369,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "one",
       neighborhood: "Lincoln Park, Chicago",
       photo: "/listings/kids-bike.jpg",
-      modes: "official,porch",
+      modes: "official,public",
     },
     {
       id: "cashmere",
@@ -371,7 +385,119 @@ export async function ensureSeed(sql: Sql) {
       haul: "bag",
       neighborhood: "Bethesda, DC",
       photo: "/listings/cashmere.jpg",
-      modes: "official,porch",
+      modes: "official,public",
+    },
+    {
+      id: "fm-couch",
+      saleId: "sale-westfargo",
+      sellerId: "seed-prairie-row",
+      title: "Cream two-seat sofa",
+      description: "Soft cream sofa from a West Fargo move. One cushion is a little sat. Two-person carry. Partner store on 13th.",
+      priceCents: 9000,
+      buyNowCents: 9000,
+      originalCents: 64000,
+      category: "furniture",
+      condition: "Good",
+      haul: "two",
+      neighborhood: "West Fargo, Fargo–Moorhead",
+      photo: "/listings/couch.svg",
+      modes: "official,public",
+    },
+    {
+      id: "fm-desk",
+      saleId: "sale-westfargo",
+      sellerId: "seed-prairie-row",
+      title: "White desk, 48 inch",
+      description: "Simple white desk from a spare room. A scuff on one leg. Fits a laptop and a lamp. Two-person carry.",
+      priceCents: 12000,
+      buyNowCents: 12000,
+      originalCents: 28000,
+      category: "furniture",
+      condition: "Good",
+      haul: "two",
+      neighborhood: "West Fargo, Fargo–Moorhead",
+      photo: "/listings/desk.svg",
+      modes: "official,public",
+    },
+    {
+      id: "fm-microwave",
+      saleId: "sale-westfargo",
+      sellerId: "seed-prairie-row",
+      title: "Used counter microwave",
+      description: "Works. Interior wiped clean. Turntable included. One-person carry from the partner store.",
+      priceCents: 3500,
+      buyNowCents: 3500,
+      originalCents: 12000,
+      category: "kitchen",
+      condition: "Loved",
+      haul: "one",
+      neighborhood: "West Fargo, Fargo–Moorhead",
+      photo: "/listings/microwave.svg",
+      modes: "official",
+    },
+    {
+      id: "fm-trailer",
+      saleId: "sale-westfargo",
+      sellerId: "seed-prairie-row",
+      title: "Utility trailer, 5x8",
+      description: "Open utility trailer. Lights work. You’ll need a hitch and a truck. Meet at the partner lot.",
+      priceCents: 14000,
+      buyNowCents: 14000,
+      originalCents: 89000,
+      category: "outdoor",
+      condition: "Good",
+      haul: "truck",
+      neighborhood: "West Fargo, Fargo–Moorhead",
+      photo: "/listings/trailer.svg",
+      modes: "official,public",
+    },
+    {
+      id: "fm-tools",
+      saleId: "sale-westfargo",
+      sellerId: "seed-prairie-row",
+      title: "Rolling tool chest",
+      description: "Metal chest with drawers. A few sockets missing. Heavy — bring a truck or a ramp.",
+      priceCents: 8500,
+      buyNowCents: 8500,
+      originalCents: 32000,
+      category: "outdoor",
+      condition: "Good",
+      haul: "truck",
+      neighborhood: "West Fargo, Fargo–Moorhead",
+      photo: "/listings/tool-chest.svg",
+      modes: "official",
+    },
+    {
+      id: "fm-garden",
+      saleId: "sale-westfargo",
+      sellerId: "seed-prairie-row",
+      title: "Garden tools and wheelbarrow",
+      description: "Spade, rake, and a wheelbarrow from a yard clearout. Dirt washed off. Needs a truck.",
+      priceCents: 4500,
+      buyNowCents: 4500,
+      originalCents: 16000,
+      category: "outdoor",
+      condition: "Loved",
+      haul: "truck",
+      neighborhood: "West Fargo, Fargo–Moorhead",
+      photo: "/listings/garden-tools.jpg",
+      modes: "official,public",
+    },
+    {
+      id: "fm-ladder",
+      saleId: "sale-westfargo",
+      sellerId: "seed-prairie-row",
+      title: "Extension ladder, 24 ft",
+      description: "Aluminum extension ladder. Locks hold. Long — it will not fit in a sedan.",
+      priceCents: 5500,
+      buyNowCents: 5500,
+      originalCents: 22000,
+      category: "outdoor",
+      condition: "Good",
+      haul: "truck",
+      neighborhood: "West Fargo, Fargo–Moorhead",
+      photo: "/listings/ladder.svg",
+      modes: "official",
     },
   ];
 

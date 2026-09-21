@@ -18,6 +18,7 @@ export const NEIGHBORHOODS = [
   "Cambridge, Boston",
   "Brookline, Boston",
   "Scottsdale, Phoenix",
+  "West Fargo, Fargo–Moorhead",
 ] as const;
 
 export const CITIES = [
@@ -32,6 +33,7 @@ export const CITIES = [
   "Dallas",
   "Boston",
   "Phoenix",
+  "Fargo–Moorhead",
 ] as const;
 
 export const CATEGORIES = [
@@ -62,7 +64,8 @@ export const SALE_KINDS = [
 ] as const;
 
 export const HANDOFF_MODES = [
-  { id: "official", label: "Partner store", hint: "Official Rummlee partner. Locker or pickup desk, store hours." },
+  { id: "official", label: "Partner store", hint: "Default. Official Rummlee partner. Locker or pickup desk, store hours." },
+  { id: "public", label: "Public place", hint: "Backup. Park, library, or civic lot. Still no home address." },
   { id: "porch", label: "Person to person", hint: "Optional. Still a handle — still no home address posted." },
 ] as const;
 

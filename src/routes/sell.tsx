@@ -3,12 +3,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { GuestGate, useAuthGate } from "@/components/guest-gate";
+import { ModePicks } from "@/components/mode-picks";
 import { PhotoInput } from "@/components/photo-input";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { CATEGORIES, CONDITIONS, HAULS, NEIGHBORHOODS, SALE_KINDS } from "@/lib/rummlee/constants";
 import { errMessage } from "@/lib/rummlee/errors";
 import { addDaysIso, cityOf, nextSaturdayIso, saleWindow } from "@/lib/rummlee/format";
+import type { HandoffMode } from "@/lib/rummlee/types";
 import { addListing, bootstrapPublic, createSale, getMe } from "@/lib/rummlee/server";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +40,7 @@ function SellPage() {
     neighborhood: NEIGHBORHOODS[0] as string,
     startsOn: nextSaturdayIso(),
     endsOn: nextSaturdayIso(),
-    modes: ["official"] as ("porch" | "official")[],
+    modes: ["official"] as HandoffMode[],
     handoffSpotId: "",
   });
 
@@ -50,7 +52,7 @@ function SellPage() {
     condition: "Good",
     haul: "one",
     photoUrl: "",
-    modes: ["official"] as ("porch" | "official")[],
+    modes: ["official"] as HandoffMode[],
   });
 
   const liveSales = meQ.data?.sales.filter((s) => s.status === "live") ?? [];
@@ -120,6 +122,11 @@ function SellPage() {
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">List it</h1>
       <p className="mt-1 text-muted">
         Photo, price, and a partner store. Public place is backup. Address stays off the listing.
+      </p>
+      <p className="mt-2 text-sm">
+        <Link to="/listings/new" className="font-medium text-primary-ink">
+          Paste a moving or clearout list
+        </Link>
       </p>
 
       {needSale || step === "sale" ? (
@@ -200,7 +207,7 @@ function SellPage() {
                 </optgroup>
               ) : null}
             </select>
-            <p className="mt-1 text-xs text-subtle">Partner store first. Public place if you need it. Never a home address.</p>
+            <p className="mt-1 text-sm text-muted">Partner store first. Public place if you need it. Never a home address.</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -260,7 +267,7 @@ function SellPage() {
           <div>
             <Label htmlFor="price">Asking price</Label>
             <Input id="price" inputMode="decimal" value={item.price} onChange={(e) => setItem((s) => ({ ...s, price: e.target.value }))} required placeholder="40" />
-            <p className="mt-1 text-xs text-subtle">$5 minimum. Neighbors can offer under asking.</p>
+            <p className="mt-1 text-sm text-muted">$5 minimum. Neighbors can offer under asking.</p>
           </div>
           <div>
             <Label htmlFor="desc">Describe it to a neighbor</Label>
@@ -307,7 +314,7 @@ function SellPage() {
           <Button type="submit" className="w-full" disabled={addMut.isPending || !item.photoUrl}>
             {addMut.isPending ? "Listing…" : "List this item"}
           </Button>
-          <p className="text-center text-xs text-subtle">
+          <p className="text-center text-sm text-muted">
             Free to list. Fees when it sells. <Link to="/you">Wallet</Link>
           </p>
         </form>
@@ -322,81 +329,24 @@ function SellGuest() {
       title="List it"
       body="Photo, price, and a partner store. A public place is backup. A home address never goes on the listing."
     >
+      <Button asChild className="mt-5 w-full">
+        <Link to="/listings/new">Start a photo and asking draft</Link>
+      </Button>
+      <p className="mt-2 text-sm text-muted">Save it on this device, then sign in to publish. You can paste a moving or clearout list.</p>
       <ol className="mt-6 space-y-2">
         <li className="rounded-2xl bg-primary-soft px-4 py-3">
           <p className="text-sm font-medium">1. Partner store</p>
-          <p className="mt-0.5 text-xs text-muted">Default. Locker or pickup desk, store hours.</p>
+          <p className="mt-0.5 text-sm text-muted">Default. Locker or pickup desk, store hours.</p>
         </li>
         <li className="rounded-2xl bg-surface px-4 py-3 shadow-[0_0_0_1px_rgba(22,20,18,0.08)]">
           <p className="text-sm font-medium">2. Public place</p>
-          <p className="mt-0.5 text-xs text-muted">Backup. Park, library, or civic lot.</p>
+          <p className="mt-0.5 text-sm text-muted">Backup. Park, library, or civic lot.</p>
         </li>
         <li className="rounded-2xl bg-surface px-4 py-3 shadow-[0_0_0_1px_rgba(22,20,18,0.08)]">
           <p className="text-sm font-medium">3. Person to person</p>
-          <p className="mt-0.5 text-xs text-muted">Optional. Still no home address.</p>
+          <p className="mt-0.5 text-sm text-muted">Optional. Still no home address.</p>
         </li>
       </ol>
     </GuestGate>
-  );
-}
-
-function ModePicks({
-  value,
-  onChange,
-}: {
-  value: ("porch" | "official")[];
-  onChange: (v: ("porch" | "official")[]) => void;
-}) {
-  const personOn = value.includes("porch");
-  const rows = [
-    {
-      key: "partner",
-      label: "Partner store",
-      hint: "Default. Locker or pickup desk, store hours.",
-      badge: "Default",
-      on: true,
-    },
-    {
-      key: "public",
-      label: "Public place",
-      hint: "Backup. Park, library, or civic lot if a partner store doesn’t work.",
-      badge: "Backup",
-      on: true,
-    },
-    {
-      key: "person",
-      label: "Person to person",
-      hint: "Optional. Still a handle — still no home address.",
-      badge: null,
-      on: personOn,
-    },
-  ];
-  return (
-    <div>
-      <p className="mb-1.5 text-sm font-medium">How you hand off</p>
-      <div className="space-y-2">
-        {rows.map((m, index) => (
-          <button
-            key={m.key}
-            type="button"
-            onClick={() => {
-              if (m.key !== "person") return;
-              const next = personOn ? value.filter((x) => x !== "porch") : [...value, "porch" as const];
-              onChange(next.includes("official") ? next : ["official", ...next]);
-            }}
-            className={cn(
-              "flex w-full flex-col items-start rounded-2xl px-4 py-3 text-left",
-              m.on ? "bg-primary-soft text-fg" : "bg-surface text-muted shadow-[0_0_0_1px_rgba(22,20,18,0.08)]",
-            )}
-          >
-            <span className="text-sm font-medium text-fg">
-              {index + 1}. {m.label}
-              {m.badge ? <span className="text-xs font-medium text-primary-ink"> · {m.badge}</span> : null}
-            </span>
-            <span className="mt-0.5 text-xs text-muted">{m.hint}</span>
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }

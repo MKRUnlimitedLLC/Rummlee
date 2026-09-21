@@ -516,7 +516,7 @@ const saleInput = z.object({
   neighborhood: z.string().min(2).max(80),
   startsOn: z.string(),
   endsOn: z.string(),
-  handoffModes: z.array(z.enum(["porch", "official"])).min(1),
+  handoffModes: z.array(z.enum(["official", "public", "porch"])).min(1),
   handoffSpotId: z.string().nullable().optional(),
 });
 
@@ -562,7 +562,7 @@ const listingInput = z.object({
   condition: z.string(),
   haul: z.string(),
   photoUrl: z.string().min(4),
-  handoffModes: z.array(z.enum(["porch", "official"])).min(1),
+  handoffModes: z.array(z.enum(["official", "public", "porch"])).min(1),
 });
 
 export const addListing = createServerFn({ method: "POST" })
@@ -584,7 +584,7 @@ export const addListing = createServerFn({ method: "POST" })
         ${id}, ${data.saleId}, ${context.userId}, ${data.title}, ${data.description ?? ""},
         ${data.priceCents}, ${data.buyNowCents ?? data.priceCents}, ${null},
         ${data.category}, ${data.condition}, ${data.haul}, ${sale[0].neighborhood},
-        ${data.handoffModes.join(",")}, ${data.photoUrl}, ${"live"}
+        ${splitModes(data.handoffModes.join(",")).join(",")}, ${data.photoUrl}, ${"live"}
       )
     `;
     return { id };

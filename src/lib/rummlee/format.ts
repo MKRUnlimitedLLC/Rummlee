@@ -77,13 +77,16 @@ export function placeName(neighborhood: string) {
   return i === -1 ? neighborhood : neighborhood.slice(0, i).trim();
 }
 
+const MODE_ORDER: HandoffMode[] = ["official", "public", "porch"];
+
 export function splitModes(raw: string | null | undefined): HandoffMode[] {
+  const allowed = new Set<string>(MODE_ORDER);
   const modes = (raw ?? "official")
     .split(",")
     .map((s) => s.trim())
-    .filter((s): s is HandoffMode => s === "porch" || s === "official");
+    .filter((s): s is HandoffMode => allowed.has(s));
   const unique = [...new Set(modes.length ? modes : (["official"] as HandoffMode[]))];
-  return unique.sort((a, b) => Number(b === "official") - Number(a === "official"));
+  return unique.sort((a, b) => MODE_ORDER.indexOf(a) - MODE_ORDER.indexOf(b));
 }
 
 export function makeHandle() {

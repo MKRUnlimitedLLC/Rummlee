@@ -19,6 +19,7 @@ import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as YouRouteImport } from './routes/you'
 import { Route as ListingsIdRouteImport } from './routes/listings.$id'
+import { Route as ListingsNewRouteImport } from './routes/listings.new'
 import { Route as PickupIdRouteImport } from './routes/pickup.$id'
 import { Route as SalesIndexRouteImport } from './routes/sales.index'
 import { Route as SalesIdRouteImport } from './routes/sales.$id'
@@ -74,6 +75,11 @@ const ListingsIdRoute = ListingsIdRouteImport.update({
   path: '/listings/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ListingsNewRoute = ListingsNewRouteImport.update({
+  id: '/listings/new',
+  path: '/listings/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PickupIdRoute = PickupIdRouteImport.update({
   id: '/pickup/$id',
   path: '/pickup/$id',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/you': typeof YouRoute
   '/listings/$id': typeof ListingsIdRoute
+  '/listings/new': typeof ListingsNewRoute
   '/pickup/$id': typeof PickupIdRoute
   '/sales/$id': typeof SalesIdRoute
   '/sales/': typeof SalesIndexRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/you': typeof YouRoute
   '/listings/$id': typeof ListingsIdRoute
+  '/listings/new': typeof ListingsNewRoute
   '/pickup/$id': typeof PickupIdRoute
   '/sales/$id': typeof SalesIdRoute
   '/sales': typeof SalesIndexRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/you': typeof YouRoute
   '/listings/$id': typeof ListingsIdRoute
+  '/listings/new': typeof ListingsNewRoute
   '/pickup/$id': typeof PickupIdRoute
   '/sales/$id': typeof SalesIdRoute
   '/sales/': typeof SalesIndexRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/you'
     | '/listings/$id'
+    | '/listings/new'
     | '/pickup/$id'
     | '/sales/$id'
     | '/sales/'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/you'
     | '/listings/$id'
+    | '/listings/new'
     | '/pickup/$id'
     | '/sales/$id'
     | '/sales'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/you'
     | '/listings/$id'
+    | '/listings/new'
     | '/pickup/$id'
     | '/sales/$id'
     | '/sales/'
@@ -206,6 +218,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   YouRoute: typeof YouRoute
   ListingsIdRoute: typeof ListingsIdRoute
+  ListingsNewRoute: typeof ListingsNewRoute
   PickupIdRoute: typeof PickupIdRoute
   SalesIdRoute: typeof SalesIdRoute
   SalesIndexRoute: typeof SalesIndexRoute
@@ -284,6 +297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/listings/new': {
+      id: '/listings/new'
+      path: '/listings/new'
+      fullPath: '/listings/new'
+      preLoaderRoute: typeof ListingsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pickup/$id': {
       id: '/pickup/$id'
       path: '/pickup/$id'
@@ -326,6 +346,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   YouRoute: YouRoute,
   ListingsIdRoute: ListingsIdRoute,
+  ListingsNewRoute: ListingsNewRoute,
   PickupIdRoute: PickupIdRoute,
   SalesIdRoute: SalesIdRoute,
   SalesIndexRoute: SalesIndexRoute,

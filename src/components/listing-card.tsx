@@ -2,8 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { MapPin } from "lucide-react";
 import type { Listing } from "@/lib/rummlee/types";
 import { saleWindow, spotKindLabel } from "@/lib/rummlee/format";
-import { FeeLine } from "./fee-line";
-import { PriceTag } from "./price-tag";
+import { CardPay } from "./fee-line";
 
 export function ListingCard({ listing, premium = false }: { listing: Listing; premium?: boolean }) {
   const partner = listing.handoffSpotKind === "partner";
@@ -37,8 +36,7 @@ export function ListingCard({ listing, premium = false }: { listing: Listing; pr
         <h3 className="font-display text-base font-semibold leading-snug tracking-[-0.02em] text-fg">
           {listing.title}
         </h3>
-        <PriceTag cents={listing.priceCents} original={listing.originalCents} size="sm" />
-        <FeeLine baseCents={listing.priceCents} premium={premium} className="text-xs" />
+        <CardPay baseCents={listing.priceCents} premium={premium} />
         <p className="flex items-center gap-1 text-xs text-muted">
           <MapPin className="size-3.5" strokeWidth={1.75} />
           {listing.handoffSpotName ?? listing.neighborhood}
