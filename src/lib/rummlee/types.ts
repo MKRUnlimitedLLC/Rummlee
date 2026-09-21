@@ -1,5 +1,5 @@
-/** `porch` is the legacy id for person to person. Never show that word. */
-export type HandoffMode = "official" | "public" | "porch";
+/** Person to person. Legacy DB rows may still say `porch`; canonicalize on read. */
+export type HandoffMode = "official" | "public" | "person";
 export type ListingStatus = "live" | "sold" | "held";
 export type OfferStatus = "pending" | "countered" | "accepted" | "declined";
 export type OrderStatus = "escrow" | "picked_up" | "cancelled";

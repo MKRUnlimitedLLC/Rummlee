@@ -1,4 +1,4 @@
-import { CATEGORIES, HANDLE_ADJ, HANDLE_NOUN, HAULS, HANDOFF_MODES } from "./constants";
+import { CATEGORIES, HANDLE_ADJ, HANDLE_NOUN, HAULS, HANDOFF_MODES, HOLD_LINE } from "./constants";
 import type { HandoffMode, SpotKind } from "./types";
 
 export function money(cents: number) {
@@ -77,14 +77,22 @@ export function placeName(neighborhood: string) {
   return i === -1 ? neighborhood : neighborhood.slice(0, i).trim();
 }
 
-const MODE_ORDER: HandoffMode[] = ["official", "public", "porch"];
+export { HOLD_LINE };
+
+export function canonicalizeMode(raw: string | null | undefined): HandoffMode | null {
+  const id = (raw ?? "").trim();
+  if (id === "official" || id === "public" || id === "person") return id;
+  if (id === "porch" || id === "p2p") return "person";
+  return null;
+}
+
+const MODE_ORDER: HandoffMode[] = ["official", "public", "person"];
 
 export function splitModes(raw: string | null | undefined): HandoffMode[] {
-  const allowed = new Set<string>(MODE_ORDER);
   const modes = (raw ?? "official")
     .split(",")
-    .map((s) => s.trim())
-    .filter((s): s is HandoffMode => allowed.has(s));
+    .map((s) => canonicalizeMode(s))
+    .filter((s): s is HandoffMode => Boolean(s));
   const unique = [...new Set(modes.length ? modes : (["official"] as HandoffMode[]))];
   return unique.sort((a, b) => MODE_ORDER.indexOf(a) - MODE_ORDER.indexOf(b));
 }

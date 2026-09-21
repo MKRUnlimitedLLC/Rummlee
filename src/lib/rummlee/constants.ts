@@ -1,6 +1,8 @@
 export const FEE_RATE = 0.1;
 export const PREMIUM_FEE_RATE = 0.05;
 export const MIN_PRICE_CENTS = 500;
+export const PASTE_CAP = 40;
+export const HOLD_LINE = "Held until you both confirm.";
 
 export const NEIGHBORHOODS = [
   "Park Slope, Brooklyn",
@@ -66,7 +68,7 @@ export const SALE_KINDS = [
 export const HANDOFF_MODES = [
   { id: "official", label: "Partner store", hint: "Default. Official Rummlee partner. Locker or pickup desk, store hours." },
   { id: "public", label: "Public place", hint: "Backup. Park, library, or civic lot. Still no home address." },
-  { id: "porch", label: "Person to person", hint: "Optional. Still a handle — still no home address posted." },
+  { id: "person", label: "Person to person", hint: "Optional. Still a handle — still no home address posted." },
 ] as const;
 
 export const HANDLE_ADJ = [

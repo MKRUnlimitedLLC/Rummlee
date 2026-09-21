@@ -1,7 +1,10 @@
+import { PASTE_CAP } from "./constants";
+import { splitModes } from "./format";
 import type { HandoffMode } from "./types";
 
 const DRAFT_KEY = "rummlee.listingDraft.v1";
 const AFTER_LOGIN_KEY = "rummlee.afterLogin";
+const LAST_CITY_KEY = "rummlee.lastCity";
 
 export type DraftLine = {
   id: string;
@@ -42,7 +45,10 @@ export function loadDraft(): ListingDraft | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as ListingDraft;
     if (!parsed || !Array.isArray(parsed.lines)) return null;
-    return parsed;
+    return {
+      ...parsed,
+      modes: splitModes((parsed.modes ?? ["official"]).join(",")),
+    };
   } catch {
     return null;
   }
@@ -75,7 +81,7 @@ export function parsePasteList(text: string): { title: string; price: string }[]
     } else {
       rows.push({ title: line, price: "" });
     }
-    if (rows.length >= 12) break;
+    if (rows.length >= PASTE_CAP) break;
   }
   return rows;
 }
@@ -109,4 +115,20 @@ export function takeAfterLogin() {
     /* ignore */
   }
   return path;
+}
+
+export function rememberCity(city: string) {
+  try {
+    sessionStorage.setItem(LAST_CITY_KEY, city);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function lastCity() {
+  try {
+    return sessionStorage.getItem(LAST_CITY_KEY) ?? "all";
+  } catch {
+    return "all";
+  }
 }

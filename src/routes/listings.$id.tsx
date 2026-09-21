@@ -5,10 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { PriceTag } from "@/components/price-tag";
+import { PdpPay } from "@/components/fee-line";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
-import { FeeLine } from "@/components/fee-line";
 import { categoryLabel, haulLabel, money, payBaseCents, payQuote, saleWindow } from "@/lib/rummlee/format";
 import { buyNow, getListing, sendMessage, sendOffer, toggleSaved } from "@/lib/rummlee/server";
 
@@ -36,7 +35,7 @@ function ListingPage() {
   if (!data?.listing) {
     return (
       <main className="py-16 text-center">
-        <p className="text-muted">That listing isn’t here anymore.</p>
+        <p className="text-muted">That listing isn’t here.</p>
         <Link to="/" className="mt-3 inline-block text-sm font-medium text-primary-ink">
           Back to browse
         </Link>
@@ -49,7 +48,7 @@ function ListingPage() {
   const base = payBaseCents(asking, data.myOffer);
   const premium = Boolean(data.buyerPremium);
   const quote = payQuote(base, premium);
-  const personOk = listing.handoffModes.includes("porch");
+  const personOk = listing.handoffModes.includes("person");
   const publicSpot = data.publicSpot;
   const mine = user?.id === listing.sellerId;
 
@@ -93,13 +92,13 @@ function ListingPage() {
         data: {
           listingId: listing.id,
           amountCents: base,
-          handoffType: meet === "person" ? "porch" : "official",
+          handoffType: meet === "person" ? "person" : "official",
           meet,
           handoffSpotId: meet === "public" ? publicSpot?.id ?? null : null,
         },
       }),
     onSuccess: (res) => {
-      toast.success("Paid. Pickup is held in escrow until you both scan.");
+      toast.success("Paid. Held until you both confirm.");
       void navigate({ to: "/pickup/$id", params: { id: res.orderId } });
     },
     onError: (e) => {
@@ -161,8 +160,7 @@ function ListingPage() {
         <div className="space-y-4 p-5">
           <div className="flex flex-col gap-2">
             <h1 className="font-display text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">{listing.title}</h1>
-            <PriceTag cents={listing.priceCents} original={listing.originalCents} size="lg" />
-            <FeeLine baseCents={base} premium={premium} agreed={base !== asking} />
+            <PdpPay baseCents={base} premium={premium} originalCents={listing.originalCents} />
             <p className="flex items-center gap-1 text-sm text-muted">
               <MapPin className="size-3.5" />
               {listing.handoffSpotName ?? listing.neighborhood} · @{listing.sellerHandle}
@@ -200,7 +198,7 @@ function ListingPage() {
         <section className="mt-5 space-y-4 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
           <h2 className="font-display text-xl font-semibold">Take it home</h2>
           <p className="text-sm text-muted">
-            You deal as a handle. Pay is held until you both scan. Partner store is the default.
+            You deal as a handle. Held until you both confirm. Partner store is the default.
           </p>
           <div className="space-y-2">
             {meetChoices.map((choice, index) => {

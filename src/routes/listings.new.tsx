@@ -7,10 +7,11 @@ import { PhotoInput } from "@/components/photo-input";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { useAuthGate } from "@/components/guest-gate";
-import { CATEGORIES, CONDITIONS, HAULS, MIN_PRICE_CENTS, NEIGHBORHOODS, SALE_KINDS } from "@/lib/rummlee/constants";
+import { CATEGORIES, CONDITIONS, HAULS, MIN_PRICE_CENTS, NEIGHBORHOODS, PASTE_CAP, SALE_KINDS } from "@/lib/rummlee/constants";
 import {
   blankLine,
   clearDraft,
+  lastCity,
   loadDraft,
   parsePasteList,
   rememberAfterLogin,
@@ -30,9 +31,10 @@ export const Route = createFileRoute("/listings/new")({
 });
 
 function freshDraft(): ListingDraft {
+  const fm = lastCity() === "Fargo–Moorhead";
   return {
     kind: "moving",
-    neighborhood: NEIGHBORHOODS[0],
+    neighborhood: fm ? "West Fargo, Fargo–Moorhead" : NEIGHBORHOODS[0],
     modes: ["official"],
     handoffSpotId: "",
     lines: [blankLine({ id: "draft-line" })],
@@ -96,7 +98,7 @@ function NewListingPage() {
           haul: current.kind === "moving" ? "two" : "one",
         }),
       );
-      return { ...current, lines: empty ? nextLines : [...current.lines, ...nextLines].slice(0, 12) };
+      return { ...current, lines: empty ? nextLines : [...current.lines, ...nextLines].slice(0, PASTE_CAP) };
     });
     setPaste("");
     toast.success(parsed.length === 1 ? "Added 1 item." : `Added ${parsed.length} items.`);
@@ -149,7 +151,7 @@ function NewListingPage() {
       clearDraft();
       void qc.invalidateQueries({ queryKey: ["bootstrap"] });
       void qc.invalidateQueries({ queryKey: ["me"] });
-      toast.success(ids.length === 1 ? "Listed." : `Listed ${ids.length} items.`);
+      toast.success(ids.length === 1 ? "Published & visible on Browse." : `Published ${ids.length} items. Visible on Browse.`);
       if (ids.length === 1) void navigate({ to: "/listings/$id", params: { id: ids[0] } });
       else void navigate({ to: "/sales/$id", params: { id: saleId } });
     },
@@ -158,14 +160,21 @@ function NewListingPage() {
 
   function onSaveDraft() {
     const named = draft.lines.some((line) => line.title.trim() || line.price.trim() || line.photoUrl);
+    const askingFilled = draft.lines.some((line) => line.price.trim());
+    const photoMissing = draft.lines.every((line) => !line.photoUrl);
+    if (askingFilled && photoMissing) {
+      toast.error("Add a photo to save this draft.");
+      return;
+    }
     if (!named) {
-      toast.error("Add a photo or an asking price first.");
+      toast.error("Add a photo to save this draft.");
       return;
     }
     try {
       saveDraft(draft);
       rememberAfterLogin("/listings/new");
       setSaved(true);
+      toast.success("Draft saved on this device.");
     } catch {
       toast.error("This draft is too big for this browser. Remove a photo and try again.");
     }
@@ -273,7 +282,7 @@ function NewListingPage() {
 
         <div className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
           <Label htmlFor="paste">Paste a list</Label>
-          <p className="mt-1 text-sm text-muted">Moving or clearout. One item per line, price at the end. Up to 12.</p>
+          <p className="mt-1 text-sm text-muted">Moving or clearout. One item per line, price at the end. Up to {PASTE_CAP}.</p>
           <Textarea
             id="paste"
             className="mt-2"
@@ -380,7 +389,7 @@ function NewListingPage() {
         <button
           type="button"
           className="text-sm font-medium text-primary-ink"
-          onClick={() => setDraft((current) => ({ ...current, lines: [...current.lines, blankLine()].slice(0, 12) }))}
+          onClick={() => setDraft((current) => ({ ...current, lines: [...current.lines, blankLine()].slice(0, PASTE_CAP) }))}
         >
           Add another item
         </button>
@@ -404,7 +413,7 @@ function NewListingPage() {
       {saved && !user ? (
         <div className="mt-4 rounded-[24px] bg-primary-soft p-5">
           <p className="font-medium">Draft saved on this device.</p>
-          <p className="mt-1 text-sm text-muted">Sign in to publish. The draft stays on this device.</p>
+          <p className="mt-1 text-sm text-muted">Draft on this device — sign in to publish.</p>
           <Button asChild className="mt-4 w-full">
             <Link to="/login">Sign in to publish</Link>
           </Button>
