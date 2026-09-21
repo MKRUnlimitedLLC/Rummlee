@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rummlee</string>
+    <string name="title_activity_main">Rummlee</string>
+    <string name="package_name">com.mkrunlimited.rummlee</string>
+    <string name="custom_url_scheme">com.mkrunlimited.rummlee</string>
+</resources>

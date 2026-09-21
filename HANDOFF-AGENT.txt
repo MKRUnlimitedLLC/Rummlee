@@ -125,14 +125,19 @@ Apple / PWA
   Legal pages: /privacy /terms /support
   Account deletion: You → Delete account (App Store requirement).
   Home Screen: Safari → Share → Add to Home Screen.
-  App Store listing is a later step. Category Shopping, age 12+.
-  Real card payments / IAP are NOT built. Do not submit the store until that story is explicit.
+  Native shells: Capacitor, bundle `com.mkrunlimited.rummlee`. See native/STORE.md.
+  iOS: run native/ios-setup.sh on a Mac, Archive to TestFlight. Android: android/ project + GitHub Action Native Android.
+  Real card payments / IAP are NOT built. Review notes must say email sign-in, partner-store handoff, no home addresses.
 
 ================================================================================
 3. BOUNDARIES
 ================================================================================
 
-- Never pause, delete, or tell Matthew to cancel Replit until rummlee.com is serving the new app and he confirms.
+- Never pause, delete, or tell Matthew to cancel Replit until rummlee.com is serving the new app and he confirms. (Cutover completed 21 Sep 2026 — HTTPS live on Vercel. Replit may already be paused.)
+- Never cut DNS onto a 404. rummlee.vercel.app must show the new home first.
+- Never create a second Vercel project named rummlee or a second GitHub repo. Use the ones in section 8.
+- Never write a .env file. Never print BETTER_AUTH_SECRET or DATABASE_URL.
+- Never add GitHub / Apple / Discord OAuth. Sign-in is Google, X, and email/password only.
 - Never cut DNS onto a 404. rummlee.vercel.app must show the new home first.
 - Never create a second Vercel project named rummlee or a second GitHub repo. Use the ones in section 8.
 - Never write a .env file. Never print BETTER_AUTH_SECRET or DATABASE_URL.
@@ -381,11 +386,7 @@ THIS WORKSPACE (NEW — source of truth)
 GITHUB
   Account: MKRUnlimitedLLC   https://github.com/MKRUnlimitedLLC
   Repo:    https://github.com/MKRUnlimitedLLC/Rummlee
-  Status:  EXISTS. Created 21 Sep 2026. Public. Default branch main.
-  Contents: README.md only (9 bytes). THIS APP HAS NOT BEEN PUSHED.
-  Earlier create_repository via connector returned 403; Matthew created the empty repo himself.
-  Push here. Do not create a second rummlee repo.
-  Other repos on the account (unrelated): kaiden-cooks, mkr-unlimited-site, mkr-connect-site, maam, twenty-block-media-site, three-pillars-holdings, diamond-book.
+  Status:  Source + native Capacitor on main. Push native updates here. Do not create a second rummlee repo.
 
 VERCEL
   Project name: rummlee
@@ -393,71 +394,43 @@ VERCEL
   Account/team: team_e52SQJHC8UEBJ75MkslYUcQk   scope mkr-unlimited
   Framework:    tanstack-start
   Node:         22.x
-  live:         false
-  latestDeployment: null
-  https://rummlee.vercel.app → 404 DEPLOYMENT_NOT_FOUND until first deploy.
+  Production:   READY (dpl_ESHAyY9zJaDV7QvtKyaNGon88SQD). https://rummlee.com and https://rummlee.vercel.app serve the rewrite.
 
   Domains already attached and verified:
-    rummlee.com              production, verified true
+    rummlee.com              production, verified true, live HTTPS
     www.rummlee.com          308 redirect to rummlee.com, verified true
     rummlee.vercel.app       verified true
 
   Env set:
     BETTER_AUTH_SECRET     sensitive, production + preview + development. Do not print.
-    BETTER_AUTH_URL        https://rummlee.com   production only.
-
-  Env NOT set (blocker):
-    DATABASE_URL           missing. Without it, deploy falls back to PGLite and listings vanish on every cold start.
-
-  Connector note: some Vercel team-scoped calls 403 unless Vercel is reconnected to mkr-unlimited. Listing projects without teamId worked. If you 403, reconnect Vercel, then retry. Do not create a second project named rummlee.
+    BETTER_AUTH_URL        https://rummlee.com   production; preview https://rummlee.vercel.app
+    DATABASE_URL           Neon store_BkomDVvhKPfSHV2L, production + preview. Do not print.
 
 NEON
-  Intended production Postgres.
-  Marketplace integration seen: icfg_f50cSt2qv81TRqq0pR6FbOHF, plan free_v3.
-  Not selected for this Vercel project yet.
-  Action: Vercel → rummlee → Storage → add Neon → inject DATABASE_URL for production AND preview.
+  Attached to Vercel rummlee (store_BkomDVvhKPfSHV2L, integration icfg_f50cSt2qv81TRqq0pR6FbOHF, free_v3).
   npm run build / Vercel build runs db:migrate.
   Never commit the connection string. Never write it into a sandbox .env.
 
 DNS
-  “Verified” on Vercel does not mean traffic. rummlee.com still serves Replit until nameservers or A/CNAME actually point at Vercel.
-  After first successful rummlee.vercel.app deploy, follow Vercel’s rummlee.com DNS instructions (A for apex, CNAME www, or nameservers — use what the dashboard shows; do not guess IPs).
-  Keep Replit up during TTL. Verify the new site on rummlee.vercel.app FIRST.
+  Cloudflare nameservers (garrett / anahi.ns.cloudflare.com). GoDaddy is registrar only.
+  Apex A → 76.76.21.21. www CNAME → cname.vercel-dns.com. Proxy MUST be DNS only (grey cloud).
+  rummlee.com HTTPS live 21 Sep 2026 (Let’s Encrypt). Do not point it back at Replit.
 
 ================================================================================
-9. CUTOVER PLAYBOOK — THIS IS THE JOB
+9. CUTOVER PLAYBOOK — COMPLETED 21 SEP 2026
 ================================================================================
 
-Execute in order. If a step fails, stop. Leave DNS and Replit alone.
+rummlee.com serves the rewrite. Remaining work is native store binaries (native/STORE.md) and playtest bugs.
 
-1. Workspace health
-   Confirm the App Builder preview is the new national home (lifestyle hero, listings above the partner strip, Sales tab). Typecheck and build. Leave :8080 up.
+1. Workspace health — done.
+2. GitHub MKRUnlimitedLLC/Rummlee main — done (keep pushing native/ here).
+3. Neon attached — done.
+4. Vercel production dpl_ESHAyY9zJaDV7QvtKyaNGon88SQD READY — done.
+5. DNS Cloudflare → Vercel — done. SSL issued.
+6. Replit — Matthew may pause. Old Replit DB was not migrated.
+7. Native iOS/Android — Capacitor shells in this repo. Cannot sign IPA in the Linux sandbox; Mac + Apple Developer for TestFlight. Android via Android Studio or GitHub Action.
 
-2. GitHub
-   Push this workspace to MKRUnlimitedLLC/Rummlee, branch main. Keep THIS file in the repo so the next bot finds it. Repo is empty aside from README — do not force-push over unrelated history.
-
-3. Neon
-   Attach Neon to Vercel project rummlee. Confirm DATABASE_URL exists for production and preview.
-
-4. First Vercel deploy
-   Link the GitHub repo to EXISTING project prj_Xubg2WZzVX7Lr5VHsunrg9VIbclN so rummlee.com stays attached.
-   Build is npm run build (vite + db:migrate).
-   Confirm https://rummlee.vercel.app/ returns the new home — “The good stuff, before Saturday.” — with listings, not 404, not Replit.
-   Add BETTER_AUTH_URL for preview = https://rummlee.vercel.app so OAuth works before DNS cutover. Production stays https://rummlee.com.
-
-5. DNS cutover
-   Only after step 4 is green.
-   Point rummlee.com at Vercel per the dashboard.
-   Check rummlee.com shows the new app. www should 308 to apex (already configured).
-
-6. Replit
-   After rummlee.com has served the new app for a full TTL and Matthew confirms: pause Replit Agent + hosting. Do not delete until a day of clean traffic.
-   Old Replit DB is not migrated. That is acceptable.
-
-7. App Store — later, not this cutover
-   PWA + legal pages are ready. Payments are not. Do not submit unless he asks again.
-
-If you only have time for one thing: deploy to rummlee.vercel.app so DNS has somewhere to point. The workspace preview is not the public site.
+If you only have time for one thing: do not rebuild the site. Ship TestFlight from native/ios-setup.sh.
 
 ================================================================================
 10. FOUNDER LINES TO HONOR (RAW)
