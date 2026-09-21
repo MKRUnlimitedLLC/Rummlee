@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Bookmark, BookmarkCheck, MapPin, MessageCircle, ScanLine } from "lucide-react";
+import { Bookmark, BookmarkCheck, MapPin, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { PriceTag } from "@/components/price-tag";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
-import { categoryLabel, feeOn, haulLabel, handoffLabel, money, saleWindow, spotKindLabel } from "@/lib/rummlee/format";
+import { FeeLine } from "@/components/fee-line";
+import { categoryLabel, haulLabel, money, payBaseCents, payQuote, saleWindow } from "@/lib/rummlee/format";
 import { buyNow, getListing, sendMessage, sendOffer, toggleSaved } from "@/lib/rummlee/server";
 
 export const Route = createFileRoute("/listings/$id")({
@@ -21,7 +22,7 @@ function ListingPage() {
   const initial = Route.useLoaderData();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user, isPending } = useCurrentUserState();
+  const { user } = useCurrentUserState();
   const { data } = useQuery({
     queryKey: ["listing", id],
     queryFn: () => getListing({ data: id }),
@@ -30,7 +31,7 @@ function ListingPage() {
   const [offer, setOffer] = useState("");
   const [note, setNote] = useState("");
   const [ask, setAsk] = useState("");
-  const [handoff, setHandoff] = useState<"porch" | "official">("official");
+  const [meet, setMeet] = useState<"partner" | "public" | "person">("partner");
 
   if (!data?.listing) {
     return (
@@ -44,7 +45,12 @@ function ListingPage() {
   }
 
   const listing = data.listing;
-  const askPrice = listing.buyNowCents ?? listing.priceCents;
+  const asking = listing.priceCents;
+  const base = payBaseCents(asking, data.myOffer);
+  const premium = Boolean(data.buyerPremium);
+  const quote = payQuote(base, premium);
+  const personOk = listing.handoffModes.includes("porch");
+  const publicSpot = data.publicSpot;
   const mine = user?.id === listing.sellerId;
 
   const saveMut = useMutation({
@@ -86,12 +92,10 @@ function ListingPage() {
       buyNow({
         data: {
           listingId: listing.id,
-          amountCents: data.myOffer?.status === "accepted"
-            ? (data.myOffer.counterCents ?? data.myOffer.amountCents)
-            : data.myOffer?.status === "countered"
-              ? (data.myOffer.counterCents ?? askPrice)
-              : askPrice,
-          handoffType: listing.handoffModes.includes(handoff) ? handoff : listing.handoffModes[0] ?? "official",
+          amountCents: base,
+          handoffType: meet === "person" ? "porch" : "official",
+          meet,
+          handoffSpotId: meet === "public" ? publicSpot?.id ?? null : null,
         },
       }),
     onSuccess: (res) => {
@@ -116,13 +120,26 @@ function ListingPage() {
     },
   });
 
-  const payAmount =
-    data.myOffer?.status === "accepted"
-      ? (data.myOffer.counterCents ?? data.myOffer.amountCents)
-      : data.myOffer?.status === "countered"
-        ? (data.myOffer.counterCents ?? askPrice)
-        : askPrice;
-  const fee = feeOn(payAmount, false);
+  const meetChoices = [
+    {
+      id: "partner" as const,
+      label: "Partner store",
+      hint: listing.handoffSpotName ?? "Locker or pickup desk, store hours.",
+      enabled: true,
+    },
+    {
+      id: "public" as const,
+      label: "Public place",
+      hint: publicSpot ? publicSpot.name : "No public place in this neighborhood yet.",
+      enabled: Boolean(publicSpot),
+    },
+    {
+      id: "person" as const,
+      label: "Person to person",
+      hint: personOk ? "Optional. Still no home address." : "Not offered on this item.",
+      enabled: personOk,
+    },
+  ];
 
   return (
     <article className="py-5">
@@ -144,7 +161,8 @@ function ListingPage() {
         <div className="space-y-4 p-5">
           <div className="flex flex-col gap-2">
             <h1 className="font-display text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">{listing.title}</h1>
-            <PriceTag cents={listing.priceCents} original={listing.originalCents} size="lg" className="block" />
+            <PriceTag cents={listing.priceCents} original={listing.originalCents} size="lg" />
+            <FeeLine baseCents={base} premium={premium} agreed={base !== asking} />
             <p className="flex items-center gap-1 text-sm text-muted">
               <MapPin className="size-3.5" />
               {listing.handoffSpotName ?? listing.neighborhood} · @{listing.sellerHandle}
@@ -157,20 +175,15 @@ function ListingPage() {
             <Meta label="Haul" value={haulLabel(listing.haul)} />
             <Meta label="Sale" value={listing.saleName} />
           </dl>
-          <div className="flex flex-wrap gap-2">
-            {listing.handoffModes.map((m) => (
-              <span key={m} className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary-ink">
-                <ScanLine className="size-3.5" />
-                {handoffLabel(m)}
-              </span>
-            ))}
-          </div>
+          <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary-ink">
+              Partner store
+            </span>
           <Link to="/sales/$id" params={{ id: listing.saleId }} className="block text-sm font-medium text-primary-ink">
             See the rest of this sale
           </Link>
           <p className="text-xs text-subtle">
             Neighbors see @{listing.sellerHandle} — never a real name or home address.
-            {listing.handoffSpotKind ? ` ${spotKindLabel(listing.handoffSpotKind)} handoff.` : ""}
+            {listing.handoffSpotKind === "partner" ? " Partner store handoff." : ""}
           </p>
         </div>
       </div>
@@ -187,35 +200,55 @@ function ListingPage() {
         <section className="mt-5 space-y-4 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
           <h2 className="font-display text-xl font-semibold">Take it home</h2>
           <p className="text-sm text-muted">
-            You deal as a handle. Meet at a partner store unless you pick a public place or person to person.
-            Pay is held until you both scan. Fee {money(fee)} on top of {money(payAmount)}.
+            You deal as a handle. Pay is held until you both scan. Partner store is the default.
           </p>
-          {listing.handoffSpotName && listing.handoffModes.includes("official") ? (
+          <div className="space-y-2">
+            {meetChoices.map((choice, index) => {
+              const selected = meet === choice.id;
+              return (
+                <button
+                  key={choice.id}
+                  type="button"
+                  disabled={!choice.enabled}
+                  onClick={() => setMeet(choice.id)}
+                  className={
+                    selected
+                      ? "flex w-full flex-col items-start rounded-2xl bg-fg px-4 py-3 text-left text-primary-fg"
+                      : "flex w-full flex-col items-start rounded-2xl bg-bg px-4 py-3 text-left disabled:opacity-50"
+                  }
+                >
+                  <span className="text-sm font-medium">
+                    {index + 1}. {choice.label}
+                    {choice.id === "partner" ? <span className="text-xs font-medium opacity-80"> · Default</span> : null}
+                  </span>
+                  <span className={selected ? "mt-0.5 text-xs text-primary-fg/80" : "mt-0.5 text-xs text-muted"}>
+                    {choice.hint}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {meet === "partner" && listing.handoffSpotName ? (
             <div className="rounded-xl bg-bg px-3.5 py-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">
-                {listing.handoffSpotKind === "public" ? "Public place" : "Partner store"}
-              </p>
+              <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">Partner store</p>
               <p className="mt-1 font-medium">{listing.handoffSpotName}</p>
               <p className="text-sm text-muted">{listing.handoffSpotArea}</p>
               {listing.handoffSpotHint ? <p className="mt-1 text-sm text-subtle">{listing.handoffSpotHint}</p> : null}
             </div>
           ) : null}
-          <div className="flex gap-2">
-            {listing.handoffModes.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setHandoff(m)}
-                className={
-                  handoff === m
-                    ? "h-10 flex-1 rounded-full bg-fg text-sm font-medium text-primary-fg"
-                    : "h-10 flex-1 rounded-full bg-bg text-sm font-medium text-muted"
-                }
-              >
-                {handoffLabel(m)}
-              </button>
-            ))}
-          </div>
+          {meet === "public" && publicSpot ? (
+            <div className="rounded-xl bg-bg px-3.5 py-3">
+              <p className="text-xs font-medium uppercase tracking-wider text-subtle">Public place</p>
+              <p className="mt-1 font-medium">{publicSpot.name}</p>
+              <p className="text-sm text-muted">{publicSpot.area}</p>
+              <p className="mt-1 text-sm text-subtle">{publicSpot.hint}</p>
+            </div>
+          ) : null}
+          {meet === "person" ? (
+            <p className="rounded-xl bg-bg px-3.5 py-3 text-sm text-muted">
+              Optional. You still meet as handles. No home address is posted.
+            </p>
+          ) : null}
           {data.myOffer ? (
             <p className="rounded-xl bg-primary-soft px-3 py-2 text-sm text-primary-ink">
               Your offer: {money(data.myOffer.amountCents)} · {data.myOffer.status}
@@ -224,11 +257,11 @@ function ListingPage() {
           ) : null}
           {data.myOffer?.status === "accepted" || data.myOffer?.status === "countered" ? (
             <Button className="w-full" disabled={buyMut.isPending} onClick={() => buyMut.mutate()}>
-              {buyMut.isPending ? "Paying…" : `Pay ${money(payAmount + fee)}`}
+              {buyMut.isPending ? "Paying…" : `Pay ${money(quote.youPayCents)}`}
             </Button>
           ) : (
             <Button className="w-full" disabled={buyMut.isPending} onClick={() => (user ? buyMut.mutate() : navigate({ to: "/login" }))}>
-              Buy now · {money(askPrice + fee)}
+              Buy now · {money(quote.youPayCents)}
             </Button>
           )}
 

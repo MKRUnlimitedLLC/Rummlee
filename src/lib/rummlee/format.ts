@@ -14,6 +14,22 @@ export function feeOn(amountCents: number, premium: boolean) {
   return Math.round(amountCents * rate);
 }
 
+/** Agreed offer price when one is open; otherwise the listing's asking price. */
+export function payBaseCents(
+  askingCents: number,
+  offer?: { status: string; amountCents: number; counterCents: number | null } | null,
+) {
+  if (offer?.status === "accepted") return offer.counterCents ?? offer.amountCents;
+  if (offer?.status === "countered" && offer.counterCents != null) return offer.counterCents;
+  return askingCents;
+}
+
+/** One base. Fee is 10% of that base, or 5% when the buyer has Premium. */
+export function payQuote(baseCents: number, premium: boolean) {
+  const feeCents = feeOn(baseCents, premium);
+  return { baseCents, feeCents, youPayCents: baseCents + feeCents };
+}
+
 export function saleWindow(startsOn: string, endsOn: string) {
   const a = parseDay(startsOn);
   const b = parseDay(endsOn);

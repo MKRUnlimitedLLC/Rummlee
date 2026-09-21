@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { UserButton, RedirectToSignIn } from "@/lib/auth/gates";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { GuestGate, useAuthGate } from "@/components/guest-gate";
+import { UserButton } from "@/lib/auth/gates";
 import { signOut } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount } fro
 export const Route = createFileRoute("/you")({ component: YouPage });
 
 function YouPage() {
-  const { user, isPending } = useCurrentUserState();
+  const { user, showGuest, showLoading } = useAuthGate();
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["me"],
@@ -63,8 +63,23 @@ function YouPage() {
     onError: (e) => toast.error(errMessage(e)),
   });
 
-  if (isPending) return <div className="py-16 text-center text-muted">Loading…</div>;
-  if (!user) return <RedirectToSignIn />;
+  if (showGuest) {
+    return (
+      <GuestGate
+        title="You"
+        body="Your handle, wallet, and neighborhood live here. Neighbors see the handle — never your real name."
+      >
+        <ul className="mt-6 space-y-2 text-sm text-muted">
+          <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">A handle, not your name</li>
+          <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
+            Wallet held until both of you scan
+          </li>
+          <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">Fees 10% · Premium 5%</li>
+        </ul>
+      </GuestGate>
+    );
+  }
+  if (showLoading || !user) return <div className="py-16 text-center text-muted">Loading…</div>;
   const me = q.data?.me;
 
   return (

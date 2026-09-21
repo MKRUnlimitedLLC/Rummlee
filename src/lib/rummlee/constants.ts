@@ -58,7 +58,7 @@ export const HAULS = [
 export const SALE_KINDS = [
   { id: "garage", label: "Neighborhood sale", blurb: "List this week. Neighbors offer before Saturday." },
   { id: "moving", label: "Moving sale", blurb: "Clear the house before the truck." },
-  { id: "clearout", label: "Home clearout", blurb: "Closet, garage, and the extra dresser." },
+  { id: "clearout", label: "Home clearout", blurb: "Closet, spare room, and the extra dresser." },
 ] as const;
 
 export const HANDOFF_MODES = [
@@ -75,7 +75,7 @@ export const HANDLE_ADJ = [
   "maple",
   "quiet",
   "sunny",
-  "stoop",
+  "sage",
   "loft",
 ] as const;
 

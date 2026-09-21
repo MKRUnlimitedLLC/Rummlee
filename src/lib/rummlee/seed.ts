@@ -1,7 +1,7 @@
 import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 
-const SEED_VERSION = "v5-lifestyle";
+const SEED_VERSION = "v6-fee-handoff";
 
 type SeedListing = {
   id: string;
@@ -65,6 +65,7 @@ export async function ensureSeed(sql: Sql) {
     { id: "partner-naperville", name: "Ogden Market", area: "Naperville, Chicago", hint: "Official Rummlee partner. Side lot, store hours.", kind: "partner" },
     { id: "public-prospect", name: "Prospect Park — 9th St", area: "Park Slope, Brooklyn", hint: "Circle lot by the 9th Street entrance, daylight.", kind: "public" },
     { id: "public-meadows", name: "Silver Lake Meadows", area: "Silver Lake, Los Angeles", hint: "West lot off Silver Lake Blvd.", kind: "public" },
+    { id: "public-austin", name: "Mueller Lake Park", area: "East Austin, Austin", hint: "North lot, daylight hours.", kind: "public" },
     { id: "public-lincoln", name: "Lincoln Park Conservatory", area: "Lincoln Park, Chicago", hint: "South lot, stay near the greenhouse doors.", kind: "public" },
     { id: "public-calanderson", name: "Cal Anderson Park", area: "Capitol Hill, Seattle", hint: "North lawn, by the shelterhouse.", kind: "public" },
     { id: "public-citypark", name: "City Park — Ferril Lake", area: "LoHi, Denver", hint: "East lot, stay near the pavilion.", kind: "public" },
@@ -158,7 +159,7 @@ export async function ensureSeed(sql: Sql) {
   for (const s of sales) {
     await sql`
       insert into sales (id, seller_id, name, kind, neighborhood, starts_on, ends_on, handoff_modes, handoff_spot_id, status)
-      values (${s.id}, ${s.sellerId}, ${s.name}, ${s.kind}, ${s.neighborhood}, ${s.starts}::date, ${s.ends}::date, ${"official,porch"}, ${s.spot}, ${"live"})
+      values (${s.id}, ${s.sellerId}, ${s.name}, ${s.kind}, ${s.neighborhood}, ${s.starts}::date, ${s.ends}::date, ${"official"}, ${s.spot}, ${"live"})
       on conflict (id) do nothing
     `;
   }
@@ -171,7 +172,7 @@ export async function ensureSeed(sql: Sql) {
       title: "Bouclé lounge chair",
       description: "Cream bouclé, tapered walnut legs. One faint mark on the left arm. Two-person carry.",
       priceCents: 18500,
-      buyNowCents: 21000,
+      buyNowCents: 18500,
       originalCents: 89000,
       category: "furniture",
       condition: "Good",
@@ -187,7 +188,7 @@ export async function ensureSeed(sql: Sql) {
       title: "White oak coffee table",
       description: "Low, tapered legs, no wobble. Fits a small living room. Meet at Clark Street Market — official partner, store hours.",
       priceCents: 12000,
-      buyNowCents: 13500,
+      buyNowCents: 12000,
       originalCents: 42000,
       category: "furniture",
       condition: "Like new",
@@ -201,7 +202,7 @@ export async function ensureSeed(sql: Sql) {
       saleId: "sale-austin",
       sellerId: "seed-cedar-nook",
       title: "Olive tree in terracotta",
-      description: "About four feet, healthy, been on a bright stoop. Pot is heavy — bring a friend or a wagon.",
+      description: "About four feet, healthy, been in a bright window. Pot is heavy — bring a friend or a wagon.",
       priceCents: 6500,
       buyNowCents: 6500,
       originalCents: 18000,
@@ -235,7 +236,7 @@ export async function ensureSeed(sql: Sql) {
       title: "Oatmeal linen duvet",
       description: "Queen set, washed once. Pillowcases included. Soft, a little rumpled on purpose.",
       priceCents: 4200,
-      buyNowCents: 4800,
+      buyNowCents: 4200,
       originalCents: 16000,
       category: "home",
       condition: "Like new",
@@ -267,7 +268,7 @@ export async function ensureSeed(sql: Sql) {
       title: "Camel merino crewneck",
       description: "Women’s M. No pills. From a closet edit — worn a handful of times.",
       priceCents: 2800,
-      buyNowCents: 3200,
+      buyNowCents: 2800,
       originalCents: 14800,
       category: "clothing",
       condition: "Like new",
@@ -283,7 +284,7 @@ export async function ensureSeed(sql: Sql) {
       title: "Teak lounge chair",
       description: "Outdoor teak with a cream cushion. Lived on a covered patio. Cushion has light sun fade.",
       priceCents: 14000,
-      buyNowCents: 15500,
+      buyNowCents: 14000,
       originalCents: 48000,
       category: "outdoor",
       condition: "Good",
@@ -331,7 +332,7 @@ export async function ensureSeed(sql: Sql) {
       title: "Six-drawer dresser",
       description: "White oak, brass knobs, no warp. You’ll want a truck or two strong friends.",
       priceCents: 22000,
-      buyNowCents: 25000,
+      buyNowCents: 22000,
       originalCents: 79000,
       category: "furniture",
       condition: "Good",
@@ -363,7 +364,7 @@ export async function ensureSeed(sql: Sql) {
       title: "Camel cashmere crewneck",
       description: "Women’s M. Soft, no pills. From a closet edit — worn a handful of times.",
       priceCents: 4800,
-      buyNowCents: 5400,
+      buyNowCents: 4800,
       originalCents: 19800,
       category: "clothing",
       condition: "Like new",

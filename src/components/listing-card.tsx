@@ -2,9 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { MapPin } from "lucide-react";
 import type { Listing } from "@/lib/rummlee/types";
 import { saleWindow, spotKindLabel } from "@/lib/rummlee/format";
+import { FeeLine } from "./fee-line";
 import { PriceTag } from "./price-tag";
 
-export function ListingCard({ listing }: { listing: Listing }) {
+export function ListingCard({ listing, premium = false }: { listing: Listing; premium?: boolean }) {
   const partner = listing.handoffSpotKind === "partner";
   return (
     <Link
@@ -37,13 +38,13 @@ export function ListingCard({ listing }: { listing: Listing }) {
           {listing.title}
         </h3>
         <PriceTag cents={listing.priceCents} original={listing.originalCents} size="sm" />
+        <FeeLine baseCents={listing.priceCents} premium={premium} className="text-xs" />
         <p className="flex items-center gap-1 text-xs text-muted">
           <MapPin className="size-3.5" strokeWidth={1.75} />
           {listing.handoffSpotName ?? listing.neighborhood}
         </p>
         <p className="text-xs text-subtle">
-          {listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : listing.handoffModes.includes("official") ? "Partner store" : "Person to person"}
-          {listing.handoffModes.includes("porch") ? " · person to person optional" : ""}
+          {listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : "Partner store"}
           {" · "}@{listing.sellerHandle}
         </p>
       </div>
