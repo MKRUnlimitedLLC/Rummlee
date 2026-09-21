@@ -3,9 +3,10 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureSeed } from "./seed";
-import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes } from "./format";
+import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes, canonicalizeMode } from "./format";
 import { MIN_PRICE_CENTS } from "./constants";
 import type {
+  HandoffMode,
   HandoffSpot,
   InboxPayload,
   Listing,
@@ -516,7 +517,7 @@ const saleInput = z.object({
   neighborhood: z.string().min(2).max(80),
   startsOn: z.string(),
   endsOn: z.string(),
-  handoffModes: z.array(z.enum(["official", "public", "porch"])).min(1),
+  handoffModes: z.array(z.enum(["official", "public", "person", "porch"])).min(1),
   handoffSpotId: z.string().nullable().optional(),
 });
 
@@ -562,7 +563,7 @@ const listingInput = z.object({
   condition: z.string(),
   haul: z.string(),
   photoUrl: z.string().min(4),
-  handoffModes: z.array(z.enum(["official", "public", "porch"])).min(1),
+  handoffModes: z.array(z.enum(["official", "public", "person", "porch"])).min(1),
 });
 
 export const addListing = createServerFn({ method: "POST" })
@@ -749,7 +750,7 @@ export const buyNow = createServerFn({ method: "POST" })
       .object({
         listingId: z.string(),
         amountCents: z.number().int().min(100),
-        handoffType: z.enum(["porch", "official"]),
+        handoffType: z.enum(["official", "person", "porch"]),
         meet: z.enum(["partner", "public", "person"]).optional(),
         handoffSpotId: z.string().nullable().optional(),
       })
@@ -796,14 +797,14 @@ export const buyNow = createServerFn({ method: "POST" })
     );
     const fee = feeOn(base, me.isPremium);
     const total = base + fee;
-    const meet = data.meet ?? (data.handoffType === "porch" ? "person" : "partner");
-    let handoffType: "porch" | "official" = "official";
+    const meet = data.meet ?? (canonicalizeMode(data.handoffType) === "person" ? "person" : "partner");
+    let handoffType: HandoffMode = "official";
     let spotId: string | null = item.handoff_spot_id;
     if (meet === "person") {
-      if (!splitModes(item.handoff_modes).includes("porch")) {
+      if (!splitModes(item.handoff_modes).includes("person")) {
         throw new Error("Person to person isn’t offered on this item. Meet at the partner store.");
       }
-      handoffType = "porch";
+      handoffType = "person";
       spotId = null;
     } else if (meet === "public") {
       handoffType = "official";
@@ -1006,7 +1007,7 @@ export const getInbox = createServerFn({ method: "GET" })
         pickupCode: o.pickup_code,
         buyerConfirmed: Boolean(o.buyer_confirmed),
         sellerConfirmed: Boolean(o.seller_confirmed),
-        handoffType: o.handoff_type,
+        handoffType: canonicalizeMode(o.handoff_type) ?? "official",
         createdAt: o.created_at,
       })),
       messages: messages.map((m) => ({

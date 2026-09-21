@@ -18,7 +18,7 @@ const ROWS: { id: HandoffMode; label: string; hint: string; badge: string | null
     locked: false,
   },
   {
-    id: "porch",
+    id: "person",
     label: "Person to person",
     hint: "Optional. Still a handle — still no home address.",
     badge: null,

@@ -6,7 +6,8 @@ import { ListingCard } from "@/components/listing-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { bootstrapPublic } from "@/lib/rummlee/server";
-import { CATEGORIES, CITIES } from "@/lib/rummlee/constants";
+import { CATEGORIES, CITIES, HOLD_LINE } from "@/lib/rummlee/constants";
+import { rememberCity } from "@/lib/rummlee/draft";
 import { cityOf } from "@/lib/rummlee/format";
 import type { HandoffSpot } from "@/lib/rummlee/types";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ function Home() {
   const listings = useMemo(() => {
     if (!data?.listings) return [];
     const query = q.trim().toLowerCase();
-    return data.listings.filter((l) => {
+    const filtered = data.listings.filter((l) => {
       if (cat !== "all" && l.category !== cat) return false;
       if (city !== "all" && cityOf(l.neighborhood) !== city) return false;
       if (!query) return true;
@@ -44,6 +45,10 @@ function Home() {
         l.neighborhood.toLowerCase().includes(query)
       );
     });
+    if (city !== "Fargo–Moorhead") return filtered;
+    const contractor = (l: (typeof filtered)[number]) =>
+      l.category === "outdoor" || l.haul === "truck" ? 0 : 1;
+    return [...filtered].sort((a, b) => contractor(a) - contractor(b));
   }, [data?.listings, q, cat, city]);
 
   if (!data?.listings) {
@@ -66,7 +71,7 @@ function Home() {
           placeholder="Search sofas, mixers, linen…"
           aria-label="Search listings"
         />
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+        <div className="-mx-4 flex flex-wrap gap-2 px-4 pb-1 md:mx-0">
           <Chip active={cat === "all"} onClick={() => setCat("all")}>
             All
           </Chip>
@@ -76,12 +81,25 @@ function Home() {
             </Chip>
           ))}
         </div>
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-          <Chip active={city === "all"} onClick={() => setCity("all")}>
+        <div className="-mx-4 flex flex-wrap gap-2 px-4 pb-1 md:mx-0">
+          <Chip
+            active={city === "all"}
+            onClick={() => {
+              setCity("all");
+              rememberCity("all");
+            }}
+          >
             Nationwide
           </Chip>
           {CITIES.map((c) => (
-            <Chip key={c} active={city === c} onClick={() => setCity(c)}>
+            <Chip
+              key={c}
+              active={city === c}
+              onClick={() => {
+                setCity(c);
+                rememberCity(c);
+              }}
+            >
               {c}
             </Chip>
           ))}
@@ -137,13 +155,13 @@ function GuestHero() {
           <Perk icon={Store} title="Meet at a store" body="Grocery or home store with a locker. Lit lot, store hours. Never a home address." />
         </div>
         <p className="inline-flex rounded-full bg-primary-soft px-3 py-1.5 text-sm font-medium text-primary-ink">
-          Pay held until you both confirm
+          {HOLD_LINE}
         </p>
         <Button asChild className="w-full">
           <a href="#finds">Browse this weekend</a>
         </Button>
         <p className="text-center text-sm text-muted">
-          <Link to="/sell" className="font-medium text-primary-ink">
+          <Link to="/listings/new" className="font-medium text-primary-ink">
             Sell
           </Link>
           <span className="mx-2">·</span>
@@ -184,7 +202,7 @@ function SignedHero() {
       <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">The good stuff is already listed</h1>
       <p className="mt-1 text-sm text-muted">Offer now. Meet at a partner store — never a home address.</p>
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
-        Pay held until you both confirm
+        {HOLD_LINE}
       </p>
     </section>
   );
