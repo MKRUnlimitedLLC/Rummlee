@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureSeed } from "./seed";
-import { feeOn, isSeedUser, makeHandle, parseSpotKind, pickupCode, splitModes } from "./format";
+import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes } from "./format";
 import { MIN_PRICE_CENTS } from "./constants";
 import type {
   HandoffSpot,
@@ -53,7 +53,8 @@ function mapListing(row: ListingRow, saved = false): Listing {
     title: row.title,
     description: row.description,
     priceCents: Number(row.price_cents),
-    buyNowCents: row.buy_now_cents == null ? null : Number(row.buy_now_cents),
+    // Buy-now uses the asking price. A higher stored buy_now_cents is not a second fee base.
+    buyNowCents: Number(row.price_cents),
     originalCents: row.original_cents == null ? null : Number(row.original_cents),
     category: row.category,
     condition: row.condition,
@@ -80,6 +81,12 @@ async function optionalUserId() {
   } catch {
     return null;
   }
+}
+
+async function viewerPremium(sql: Awaited<ReturnType<typeof getSql>>, userId: string | null) {
+  if (!userId) return false;
+  const rows = await sql<{ is_premium: boolean }>`select is_premium from profiles where id = ${userId}`;
+  return Boolean(rows[0]?.is_premium);
 }
 
 async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: string): Promise<Profile> {
@@ -139,6 +146,7 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
   const sql = await getSql();
   await ensureSeed(sql);
   const userId = await optionalUserId();
+  const buyerPremium = await viewerPremium(sql, userId);
   const rows = await sql.query<ListingRow>(
     listingSelect + " where l.status = 'live' order by l.created_at desc",
   );
@@ -191,6 +199,7 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
     ),
     spots,
     signedIn: Boolean(userId),
+    buyerPremium,
   };
 });
 
@@ -203,6 +212,17 @@ export const getListing = createServerFn({ method: "GET" })
     const row = rows[0];
     if (!row) return null;
     const userId = await optionalUserId();
+    const buyerPremium = await viewerPremium(sql, userId);
+    const publicRows = await sql<{ id: string; name: string; area: string; hint: string }>`
+      select id, name, area, hint from handoff_spots
+      where kind = ${"public"} and area = ${row.neighborhood}
+      order by name
+      limit 1
+    `;
+    const pub = publicRows[0];
+    const publicSpot: HandoffSpot | null = pub
+      ? { id: pub.id, name: pub.name, area: pub.area, hint: pub.hint, kind: "public" }
+      : null;
     let saved = false;
     let myOffer: Offer | null = null;
     if (userId) {
@@ -275,6 +295,8 @@ export const getListing = createServerFn({ method: "GET" })
     return {
       listing: mapListing(row, saved),
       myOffer,
+      buyerPremium,
+      publicSpot,
       messages: thread.map(
         (m): Message => ({
           id: m.id,
@@ -603,7 +625,7 @@ export const sendOffer = createServerFn({ method: "POST" })
     const id = crypto.randomUUID();
     let status: Offer["status"] = "pending";
     let counter: number | null = null;
-    const ask = Number(item.buy_now_cents ?? item.price_cents);
+    const ask = Number(item.price_cents);
     if (isSeedUser(item.seller_id)) {
       if (data.amountCents >= ask) status = "accepted";
       else if (data.amountCents >= Math.round(ask * 0.75)) {
@@ -728,6 +750,8 @@ export const buyNow = createServerFn({ method: "POST" })
         listingId: z.string(),
         amountCents: z.number().int().min(100),
         handoffType: z.enum(["porch", "official"]),
+        meet: z.enum(["partner", "public", "person"]).optional(),
+        handoffSpotId: z.string().nullable().optional(),
       })
       .parse(data),
   )
@@ -740,13 +764,68 @@ export const buyNow = createServerFn({ method: "POST" })
       title: string;
       status: string;
       price_cents: number;
-      buy_now_cents: number | null;
-    }>`select id, seller_id, title, status, price_cents, buy_now_cents from listings where id = ${data.listingId}`;
+      handoff_modes: string;
+      neighborhood: string;
+      handoff_spot_id: string | null;
+    }>`
+      select l.id, l.seller_id, l.title, l.status, l.price_cents, l.handoff_modes, l.neighborhood,
+             s.handoff_spot_id
+      from listings l
+      join sales s on s.id = l.sale_id
+      where l.id = ${data.listingId}
+    `;
     const item = listing[0];
     if (!item || item.status !== "live") throw new Error("This item isn’t available.");
     if (item.seller_id === context.userId) throw new Error("That’s your listing.");
-    const fee = feeOn(data.amountCents, me.isPremium);
-    const total = data.amountCents + fee;
+    const offerRows = await sql<{ status: string; amount_cents: number; counter_cents: number | null }>`
+      select status, amount_cents, counter_cents from offers
+      where listing_id = ${item.id} and buyer_id = ${context.userId}
+      order by created_at desc limit 1
+    `;
+    const offer = offerRows[0];
+    const asking = Number(item.price_cents);
+    const base = payBaseCents(
+      asking,
+      offer
+        ? {
+            status: offer.status,
+            amountCents: Number(offer.amount_cents),
+            counterCents: offer.counter_cents == null ? null : Number(offer.counter_cents),
+          }
+        : null,
+    );
+    const fee = feeOn(base, me.isPremium);
+    const total = base + fee;
+    const meet = data.meet ?? (data.handoffType === "porch" ? "person" : "partner");
+    let handoffType: "porch" | "official" = "official";
+    let spotId: string | null = item.handoff_spot_id;
+    if (meet === "person") {
+      if (!splitModes(item.handoff_modes).includes("porch")) {
+        throw new Error("Person to person isn’t offered on this item. Meet at the partner store.");
+      }
+      handoffType = "porch";
+      spotId = null;
+    } else if (meet === "public") {
+      handoffType = "official";
+      const wanted = data.handoffSpotId ?? null;
+      const chosen = wanted
+        ? await sql<{ id: string }>`
+            select id from handoff_spots
+            where id = ${wanted} and kind = ${"public"} and area = ${item.neighborhood}
+            limit 1
+          `
+        : [];
+      const fallback = chosen[0]
+        ? chosen
+        : await sql<{ id: string }>`
+            select id from handoff_spots
+            where kind = ${"public"} and area = ${item.neighborhood}
+            order by name
+            limit 1
+          `;
+      spotId = fallback[0]?.id ?? null;
+      if (!spotId) throw new Error("No public place in this neighborhood yet. Meet at the partner store.");
+    }
     if (me.walletCents < total) {
       throw new Error(`Add ${Math.ceil((total - me.walletCents) / 100)} more to your wallet to pay.`);
     }
@@ -754,8 +833,8 @@ export const buyNow = createServerFn({ method: "POST" })
     const orderId = crypto.randomUUID();
     await sql`update listings set status = ${"sold"} where id = ${item.id} and status = ${"live"}`;
     await sql`
-      insert into orders (id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, status, pickup_code, handoff_type, buyer_confirmed, seller_confirmed)
-      values (${orderId}, ${item.id}, ${context.userId}, ${item.seller_id}, ${data.amountCents}, ${fee}, ${"escrow"}, ${code}, ${data.handoffType}, ${false}, ${isSeedUser(item.seller_id)})
+      insert into orders (id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, status, pickup_code, handoff_type, handoff_spot_id, buyer_confirmed, seller_confirmed)
+      values (${orderId}, ${item.id}, ${context.userId}, ${item.seller_id}, ${base}, ${fee}, ${"escrow"}, ${code}, ${handoffType}, ${spotId}, ${false}, ${isSeedUser(item.seller_id)})
     `;
     await sql`update profiles set wallet_cents = wallet_cents - ${total} where id = ${context.userId}`;
     await sql`

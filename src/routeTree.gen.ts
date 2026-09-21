@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
@@ -23,6 +24,11 @@ import { Route as SalesIndexRouteImport } from './routes/sales.index'
 import { Route as SalesIdRouteImport } from './routes/sales.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const BrowseRoute = BrowseRouteImport.update({
+  id: '/browse',
+  path: '/browse',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -90,6 +96,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/browse': typeof BrowseRoute
   '/': typeof IndexRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
+  '/browse': typeof BrowseRoute
   '/': typeof IndexRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -121,6 +129,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/browse': typeof BrowseRoute
   '/': typeof IndexRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -138,6 +147,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/browse'
     | '/'
     | '/inbox'
     | '/login'
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/browse'
     | '/'
     | '/inbox'
     | '/login'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
   id:
     | '__root__'
+    | '/browse'
     | '/'
     | '/inbox'
     | '/login'
@@ -184,6 +196,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  BrowseRoute: typeof BrowseRoute
   IndexRoute: typeof IndexRoute
   InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
@@ -201,6 +214,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/browse': {
+      id: '/browse'
+      path: '/browse'
+      fullPath: '/browse'
+      preLoaderRoute: typeof BrowseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -296,6 +316,7 @@ declare module '@tanstack/react-router' {
 }
 
 const rootRouteChildren: RootRouteChildren = {
+  BrowseRoute: BrowseRoute,
   IndexRoute: IndexRoute,
   InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,

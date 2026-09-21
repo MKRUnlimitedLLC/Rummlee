@@ -9,7 +9,7 @@ import { SALE_KINDS } from "@/lib/rummlee/constants";
 export const Route = createFileRoute("/sales/$id")({
   loader: async ({ params }) => {
     const [sale, boot] = await Promise.all([getSale({ data: params.id }), bootstrapPublic()]);
-    return { sale, spots: boot.spots };
+    return { sale, spots: boot.spots, buyerPremium: boot.buyerPremium };
   },
   component: SaleDetail,
 });
@@ -53,14 +53,11 @@ function SaleDetail() {
           </p>
           <p className="mt-1 font-medium">{spot.name}</p>
           <p className="text-sm text-muted">{spot.hint}</p>
-          {data.sale.handoffModes.includes("porch") ? (
-            <p className="mt-1 text-sm text-subtle">Person to person is optional on some items.</p>
-          ) : null}
         </div>
       ) : null}
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {data.listings.map((l) => (
-          <ListingCard key={l.id} listing={l} />
+          <ListingCard key={l.id} listing={l} premium={initial.buyerPremium} />
         ))}
       </div>
     </main>

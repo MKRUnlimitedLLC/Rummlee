@@ -78,7 +78,7 @@ function Home() {
         </div>
       </div>
 
-      <section className="mt-6">
+      <section id="finds" className="mt-6 scroll-mt-20">
         <div className="mb-3 flex items-end justify-between">
           <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">This weekend</h2>
           <Link to="/sales" className="text-sm font-medium text-primary-ink">
@@ -92,7 +92,7 @@ function Home() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {listings.map((l) => (
-              <ListingCard key={l.id} listing={l} />
+              <ListingCard key={l.id} listing={l} premium={data.buyerPremium} />
             ))}
           </div>
         )}
@@ -125,12 +125,20 @@ function GuestHero() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button asChild className="sm:flex-1">
-            <Link to="/login">Join to offer or list</Link>
+            <a href="#finds">Browse</a>
           </Button>
-          <Button asChild variant="secondary" className="sm:flex-1">
+          <Button asChild className="sm:flex-1">
             <Link to="/sales">This weekend</Link>
           </Button>
         </div>
+        <Button asChild variant="secondary" className="w-full">
+          <Link to="/sell">Sell</Link>
+        </Button>
+        <p className="text-center text-sm">
+          <Link to="/login" className="font-medium text-primary-ink">
+            Sign in or create account
+          </Link>
+        </p>
         <p className="text-center text-xs text-subtle">Browse free. Fee 10% · Premium 5%.</p>
         <p className="text-center text-xs text-subtle">
           <Link to="/privacy" className="underline-offset-4 hover:underline">

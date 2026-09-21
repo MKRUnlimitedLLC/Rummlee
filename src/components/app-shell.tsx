@@ -95,7 +95,7 @@ function AuthChip() {
       to="/login"
       className="inline-flex h-9 items-center rounded-full bg-primary px-3.5 text-sm font-medium text-primary-fg"
     >
-      Join
+      Sign in or create account
     </Link>
   );
 }

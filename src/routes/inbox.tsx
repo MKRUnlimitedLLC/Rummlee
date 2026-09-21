@@ -1,9 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { GuestGate, useAuthGate } from "@/components/guest-gate";
 import { Button } from "@/components/ui/button";
-import { RedirectToSignIn } from "@/lib/auth/gates";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { errMessage } from "@/lib/rummlee/errors";
 import { money } from "@/lib/rummlee/format";
 import { getInbox, respondOffer } from "@/lib/rummlee/server";
@@ -11,7 +10,7 @@ import { getInbox, respondOffer } from "@/lib/rummlee/server";
 export const Route = createFileRoute("/inbox")({ component: InboxPage });
 
 function InboxPage() {
-  const { user, isPending } = useCurrentUserState();
+  const { user, showGuest, showLoading } = useAuthGate();
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["inbox"],
@@ -29,8 +28,15 @@ function InboxPage() {
     onError: (e) => toast.error(errMessage(e)),
   });
 
-  if (isPending) return <div className="py-16 text-center text-muted">Loading…</div>;
-  if (!user) return <RedirectToSignIn />;
+  if (showGuest) {
+    return (
+      <GuestGate
+        title="Inbox"
+        body="Offers, pickup holds, and neighbor notes show up here after you sign in."
+      />
+    );
+  }
+  if (showLoading || !user) return <div className="py-16 text-center text-muted">Loading…</div>;
   if (q.isPending) return <div className="py-16 text-center text-muted">Loading inbox…</div>;
   const data = q.data;
   if (!data) return null;

@@ -36,7 +36,7 @@ function Login() {
   return (
     <main className="mx-auto max-w-sm py-10">
       <Wordmark className="mb-8 justify-center" />
-      <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Join Rummlee</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Sign in or create account</h1>
       <p className="mt-2 text-pretty text-muted">
         Browse free. Sign in to offer, list, or pay. You deal as a handle. Meet at a partner store — never a home address.
       </p>

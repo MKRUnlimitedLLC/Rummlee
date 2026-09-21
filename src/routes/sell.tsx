@@ -2,12 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { GuestGate, useAuthGate } from "@/components/guest-gate";
 import { PhotoInput } from "@/components/photo-input";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
-import { RedirectToSignIn } from "@/lib/auth/gates";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { CATEGORIES, CONDITIONS, HAULS, HANDOFF_MODES, NEIGHBORHOODS, SALE_KINDS } from "@/lib/rummlee/constants";
+import { CATEGORIES, CONDITIONS, HAULS, NEIGHBORHOODS, SALE_KINDS } from "@/lib/rummlee/constants";
 import { errMessage } from "@/lib/rummlee/errors";
 import { addDaysIso, cityOf, nextSaturdayIso, saleWindow } from "@/lib/rummlee/format";
 import { addListing, bootstrapPublic, createSale, getMe } from "@/lib/rummlee/server";
@@ -16,7 +15,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/sell")({ component: SellPage });
 
 function SellPage() {
-  const { user, isPending } = useCurrentUserState();
+  const { user, showGuest, showLoading } = useAuthGate();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const meQ = useQuery({
@@ -107,8 +106,8 @@ function SellPage() {
     onError: (e) => toast.error(errMessage(e)),
   });
 
-  if (isPending) return <div className="py-16 text-center text-muted">Loading…</div>;
-  if (!user) return <RedirectToSignIn />;
+  if (showGuest) return <SellGuest />;
+  if (showLoading || !user) return <div className="py-16 text-center text-muted">Loading…</div>;
 
   const needSale = liveSales.length === 0 && !saleId;
   const spots = bootQ.data?.spots ?? [];
@@ -317,6 +316,30 @@ function SellPage() {
   );
 }
 
+function SellGuest() {
+  return (
+    <GuestGate
+      title="List it"
+      body="Photo, price, and a partner store. A public place is backup. A home address never goes on the listing."
+    >
+      <ol className="mt-6 space-y-2">
+        <li className="rounded-2xl bg-primary-soft px-4 py-3">
+          <p className="text-sm font-medium">1. Partner store</p>
+          <p className="mt-0.5 text-xs text-muted">Default. Locker or pickup desk, store hours.</p>
+        </li>
+        <li className="rounded-2xl bg-surface px-4 py-3 shadow-[0_0_0_1px_rgba(22,20,18,0.08)]">
+          <p className="text-sm font-medium">2. Public place</p>
+          <p className="mt-0.5 text-xs text-muted">Backup. Park, library, or civic lot.</p>
+        </li>
+        <li className="rounded-2xl bg-surface px-4 py-3 shadow-[0_0_0_1px_rgba(22,20,18,0.08)]">
+          <p className="text-sm font-medium">3. Person to person</p>
+          <p className="mt-0.5 text-xs text-muted">Optional. Still no home address.</p>
+        </li>
+      </ol>
+    </GuestGate>
+  );
+}
+
 function ModePicks({
   value,
   onChange,
@@ -324,34 +347,55 @@ function ModePicks({
   value: ("porch" | "official")[];
   onChange: (v: ("porch" | "official")[]) => void;
 }) {
+  const personOn = value.includes("porch");
+  const rows = [
+    {
+      key: "partner",
+      label: "Partner store",
+      hint: "Default. Locker or pickup desk, store hours.",
+      badge: "Default",
+      on: true,
+    },
+    {
+      key: "public",
+      label: "Public place",
+      hint: "Backup. Park, library, or civic lot if a partner store doesn’t work.",
+      badge: "Backup",
+      on: true,
+    },
+    {
+      key: "person",
+      label: "Person to person",
+      hint: "Optional. Still a handle — still no home address.",
+      badge: null,
+      on: personOn,
+    },
+  ];
   return (
     <div>
       <p className="mb-1.5 text-sm font-medium">How you hand off</p>
       <div className="space-y-2">
-        {HANDOFF_MODES.map((m) => {
-          const on = value.includes(m.id);
-          const recommended = m.id === "official";
-          return (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => {
-                const next = on ? value.filter((x) => x !== m.id) : [...value, m.id];
-                if (next.length) onChange(next);
-              }}
-              className={cn(
-                "flex w-full flex-col items-start rounded-2xl px-4 py-3 text-left",
-                on ? "bg-primary-soft text-fg" : "bg-surface text-muted shadow-[0_0_0_1px_rgba(22,20,18,0.08)]",
-              )}
-            >
-              <span className="text-sm font-medium text-fg">
-                {m.label}
-                {recommended ? <span className="ml-2 text-xs font-medium text-primary-ink">Default</span> : null}
-              </span>
-              <span className="mt-0.5 text-xs text-muted">{m.hint}</span>
-            </button>
-          );
-        })}
+        {rows.map((m, index) => (
+          <button
+            key={m.key}
+            type="button"
+            onClick={() => {
+              if (m.key !== "person") return;
+              const next = personOn ? value.filter((x) => x !== "porch") : [...value, "porch" as const];
+              onChange(next.includes("official") ? next : ["official", ...next]);
+            }}
+            className={cn(
+              "flex w-full flex-col items-start rounded-2xl px-4 py-3 text-left",
+              m.on ? "bg-primary-soft text-fg" : "bg-surface text-muted shadow-[0_0_0_1px_rgba(22,20,18,0.08)]",
+            )}
+          >
+            <span className="text-sm font-medium text-fg">
+              {index + 1}. {m.label}
+              {m.badge ? <span className="ml-2 text-xs font-medium text-primary-ink">{m.badge}</span> : null}
+            </span>
+            <span className="mt-0.5 text-xs text-muted">{m.hint}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

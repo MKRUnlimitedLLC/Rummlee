@@ -13,7 +13,7 @@ export function PriceTag({
   size?: "sm" | "md" | "lg";
 }) {
   return (
-    <span className={cn("inline-flex items-baseline gap-1.5 tabular-nums", className)}>
+    <span className={cn("inline-flex max-w-full flex-wrap items-baseline gap-x-2 tabular-nums", className)}>
       <span
         className={cn(
           "font-display font-semibold tracking-[-0.03em] text-primary-ink",
@@ -25,7 +25,7 @@ export function PriceTag({
         {money(cents)}
       </span>
       {original != null && original > cents ? (
-        <span className="text-sm text-subtle line-through">{money(original)}</span>
+        <span className="ml-2 text-sm font-normal text-subtle line-through">{money(original)}</span>
       ) : null}
     </span>
   );
