@@ -25,12 +25,13 @@ function Home() {
     initialData: initial,
   });
   const { user, isPending } = useCurrentUserState();
-  const signedIn = isPending ? data.signedIn : Boolean(user);
+  const signedIn = isPending ? Boolean(data?.signedIn) : Boolean(user);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
   const [city, setCity] = useState<string>("all");
 
   const listings = useMemo(() => {
+    if (!data?.listings) return [];
     const query = q.trim().toLowerCase();
     return data.listings.filter((l) => {
       if (cat !== "all" && l.category !== cat) return false;
@@ -43,7 +44,16 @@ function Home() {
         l.neighborhood.toLowerCase().includes(query)
       );
     });
-  }, [data.listings, q, cat, city]);
+  }, [data?.listings, q, cat, city]);
+
+  if (!data?.listings) {
+    return (
+      <main className="py-16 text-center">
+        <p className="font-display text-2xl font-semibold tracking-[-0.03em]">The good stuff, before Saturday.</p>
+        <p className="mt-2 text-sm text-muted">Listings are loading.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="pt-5">
@@ -79,9 +89,12 @@ function Home() {
       </div>
 
       <section id="finds" className="mt-6 scroll-mt-20">
-        <div className="mb-3 flex items-end justify-between">
-          <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">This weekend</h2>
-          <Link to="/sales" className="text-sm font-medium text-primary-ink">
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">This weekend</h2>
+            <p className="text-sm text-muted">Same listings as Browse — this weekend first.</p>
+          </div>
+          <Link to="/sales" className="shrink-0 text-sm font-medium text-primary-ink">
             All sales
           </Link>
         </div>
@@ -121,25 +134,28 @@ function GuestHero() {
         <div className="grid gap-3 sm:grid-cols-3">
           <Perk icon={CalendarDays} title="Offers before Saturday" body="Browse while she’s still editing the closet. Lock it in before the weekend." />
           <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors see @linen_lark. Email, legal name, and home stay off the listing." />
-          <Perk icon={Store} title="Meet at a store" body="Grocery or home store with a locker. Lit lot, store hours. Never your driveway." />
+          <Perk icon={Store} title="Meet at a store" body="Grocery or home store with a locker. Lit lot, store hours. Never a home address." />
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button asChild className="sm:flex-1">
-            <a href="#finds">Browse</a>
-          </Button>
-          <Button asChild className="sm:flex-1">
-            <Link to="/sales">This weekend</Link>
-          </Button>
-        </div>
-        <Button asChild variant="secondary" className="w-full">
-          <Link to="/sell">Sell</Link>
+        <p className="inline-flex rounded-full bg-primary-soft px-3 py-1.5 text-sm font-medium text-primary-ink">
+          Pay held until you both confirm
+        </p>
+        <Button asChild className="w-full">
+          <a href="#finds">Browse this weekend</a>
         </Button>
-        <p className="text-center text-sm">
-          <Link to="/login" className="font-medium text-primary-ink">
-            Sign in or create account
+        <p className="text-center text-sm text-muted">
+          <Link to="/sell" className="font-medium text-primary-ink">
+            Sell
+          </Link>
+          <span className="mx-2">·</span>
+          <Link to="/sales" className="font-medium text-fg">
+            This weekend
+          </Link>
+          <span className="mx-2">·</span>
+          <Link to="/login" className="font-medium text-fg">
+            Sign in
           </Link>
         </p>
-        <p className="text-center text-xs text-subtle">Browse free. Fee 10% · Premium 5%.</p>
+        <p className="text-center text-sm text-muted">Browse free. Fee 10% · Premium 5%.</p>
         <p className="text-center text-xs text-subtle">
           <Link to="/privacy" className="underline-offset-4 hover:underline">
             Privacy
@@ -167,6 +183,9 @@ function SignedHero() {
       </p>
       <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">The good stuff is already listed</h1>
       <p className="mt-1 text-sm text-muted">Offer now. Meet at a partner store — never a home address.</p>
+      <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
+        Pay held until you both confirm
+      </p>
     </section>
   );
 }
@@ -219,7 +238,7 @@ function Perk({
     <div className="rounded-xl bg-bg px-3.5 py-3">
       <Icon className="mb-2 size-4 text-primary-ink" strokeWidth={1.8} />
       <p className="text-sm font-medium text-fg">{title}</p>
-      <p className="mt-0.5 text-xs leading-snug text-muted">{body}</p>
+      <p className="mt-0.5 text-sm leading-snug text-muted">{body}</p>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Wordmark } from "@/components/logo";
 import { toast } from "sonner";
+import { peekAfterLogin, takeAfterLogin } from "@/lib/rummlee/draft";
 import { errMessage } from "@/lib/rummlee/errors";
 
 export const Route = createFileRoute("/login")({ component: Login });
@@ -26,7 +27,7 @@ function Login() {
         const res = await authClient.signIn.email({ email, password });
         if (res.error) throw new Error(res.error.message ?? "Could not sign in");
       }
-      window.location.assign("/");
+      window.location.assign(takeAfterLogin());
     } catch (err) {
       toast.error(errMessage(err));
       setBusy(false);
@@ -49,7 +50,7 @@ function Login() {
               type="button"
               variant="secondary"
               className="w-full"
-              onClick={() => signIn(p.providerId, { callbackURL: "/" })}
+              onClick={() => signIn(p.providerId, { callbackURL: peekAfterLogin() })}
             >
               Continue with {p.label}
             </Button>

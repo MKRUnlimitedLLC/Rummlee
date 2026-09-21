@@ -41,14 +41,15 @@ export function GuestGate({
         <Button asChild className="mt-4 w-full">
           <Link to="/login">Sign in or create account</Link>
         </Button>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <Button asChild variant="secondary">
-            <Link to="/">Browse</Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <Link to="/sales">This weekend</Link>
-          </Button>
-        </div>
+        <p className="mt-3 text-center text-sm text-muted">
+          <Link to="/" className="font-medium text-fg">
+            Browse
+          </Link>
+          <span className="mx-2">·</span>
+          <Link to="/sales" className="font-medium text-fg">
+            This weekend
+          </Link>
+        </p>
       </div>
     </main>
   );

@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
 const TABS = [
-  { to: "/", label: "Browse", icon: Home, match: (p: string) => p === "/" || p.startsWith("/listings") },
+  { to: "/", label: "Browse", icon: Home, match: (p: string) => p === "/" || (p.startsWith("/listings") && p !== "/listings/new") },
   { to: "/sales", label: "Sales", icon: CalendarDays, match: (p: string) => p.startsWith("/sales") },
-  { to: "/sell", label: "Sell", icon: Plus, match: (p: string) => p.startsWith("/sell") },
+  { to: "/sell", label: "Sell", icon: Plus, match: (p: string) => p.startsWith("/sell") || p === "/listings/new" },
   { to: "/inbox", label: "Inbox", icon: Inbox, match: (p: string) => p.startsWith("/inbox") || p.startsWith("/pickup") },
   { to: "/you", label: "You", icon: UserRound, match: (p: string) => p.startsWith("/you") || p.startsWith("/login") },
 ] as const;
