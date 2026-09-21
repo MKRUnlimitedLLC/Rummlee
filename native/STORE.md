@@ -17,35 +17,30 @@ The web app stays the source of truth. Store binaries load rummlee.com, so copy 
 
 This Linux sandbox cannot produce a signed App Store IPA (needs a Mac + your Apple Developer certs). Android Studio / GitHub Actions produce the Play upload.
 
-## iOS (App Store / TestFlight)
+## iOS on MacinCloud (TestFlight)
 
-On a Mac with Xcode 16+ and your Apple Developer account:
+Matthew uses MacinCloud. Plan must include **Xcode** (not a headless-only Mac).
+
+1. In a browser (your iPad is fine): [developer.apple.com/account](https://developer.apple.com/account) → Identifiers → App IDs → Register `com.mkrunlimited.rummlee`. Then [appstoreconnect.apple.com](https://appstoreconnect.apple.com) → Apps → New → Rummlee, bundle `com.mkrunlimited.rummlee`, SKU `rummlee`, category Shopping.
+2. Connect the MacinCloud Mac. Open **Terminal**. Paste:
 
 ```
 git clone https://github.com/MKRUnlimitedLLC/Rummlee.git
 cd Rummlee
-npm install
-npx cap add ios
-npx cap sync ios
-npx cap open ios
+chmod +x native/ios-setup.sh
+./native/ios-setup.sh
 ```
 
-In Xcode:
+3. Xcode opens. Signing & Capabilities → Team = MKR Unlimited (your Apple Developer team). Bundle Identifier `com.mkrunlimited.rummlee`. Version 1.0, Build 1.
+4. Product → Destination → Any iOS Device. Product → Archive. Distribute App → App Store Connect → Upload.
+5. App Store Connect → TestFlight → add testers. Listing screenshots and privacy nutrition can wait until after internal TestFlight.
 
-1. Signing & Capabilities → Team = your Apple Developer team.
-2. Bundle Identifier = `com.mkrunlimited.rummlee` (register it at developer.apple.com if new).
-3. Version 1.0, Build 1.
-4. Add usage strings if Xcode did not pick them up:
-   - Privacy - Camera Usage Description: `Rummlee uses the camera so you can photograph an item you’re listing.`
-   - Privacy - Photo Library Usage Description: `Rummlee uses your photos so you can list an item.`
-5. Product → Archive → Distribute App → App Store Connect → Upload.
-6. In App Store Connect: create the app, attach this bundle id, add screenshots (6.7" and 6.1" iPhone), privacy nutrition labels (User Content, Photos — linked to the user), review notes below.
-
-ITSAppUsesNonExemptEncryption: No (HTTPS only).
+Camera / photo usage strings are written by the script. Encryption: No.
 
 Review notes for Apple:
 
 > Rummlee is a neighborhood resale marketplace. Buyers and sellers never share a home address. Handoff is at official partner stores (primary), public places (secondary), or person-to-person. Sign in with email. Test account: create one in-app. Privacy: rummlee.com/privacy. Delete account: You → delete.
+
 
 ## Android (Play Console)
 
