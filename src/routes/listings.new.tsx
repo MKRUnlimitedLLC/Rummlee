@@ -74,7 +74,15 @@ function NewListingPage() {
 
   useEffect(() => {
     const savedDraft = loadDraft();
-    if (savedDraft?.lines?.length) setDraft(savedDraft);
+    const city = lastCity();
+    const fromCity = neighborhoodForCity(city);
+    if (!savedDraft?.lines?.length) return;
+    const draftCity = cityOf(savedDraft.neighborhood);
+    if (fromCity && city !== "all" && draftCity !== city) {
+      setDraft({ ...savedDraft, neighborhood: fromCity });
+      return;
+    }
+    setDraft(savedDraft);
   }, []);
 
   useEffect(() => {

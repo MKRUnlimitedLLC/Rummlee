@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, EyeOff, Store } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
 import { Button } from "@/components/ui/button";
@@ -29,10 +29,11 @@ function Home() {
   const signedIn = isPending ? Boolean(data?.signedIn) : Boolean(user);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
-  const [city, setCity] = useState<string>(() => {
+  const [city, setCity] = useState<string | null>(null);
+  useEffect(() => {
     const saved = lastCity();
-    return saved && saved !== "all" ? saved : "all";
-  });
+    setCity(saved && saved !== "all" ? saved : "all");
+  }, []);
   const [haul, setHaul] = useState<string>("all");
   const [size, setSize] = useState<string>("all");
   const [storeOnly, setStoreOnly] = useState(false);
@@ -43,11 +44,11 @@ function Home() {
     const query = q.trim().toLowerCase();
     const filtered = data.listings.filter((l) => {
       if (cat !== "all" && l.category !== cat) return false;
-      if (city !== "all" && cityOf(l.neighborhood) !== city) return false;
+      if (city && city !== "all" && cityOf(l.neighborhood) !== city) return false;
       if (haul !== "all" && l.haul !== haul) return false;
       if (size !== "all" && (l.sizeLabel ?? "") !== size) return false;
       if (storeOnly && !l.handoffModes.includes("official")) return false;
-      if (lotOk && l.haul !== "truck" && !l.handoffModes.includes("public")) return false;
+      if (lotOk && !l.handoffModes.includes("public")) return false;
       if (!query) return true;
       return (
         l.title.toLowerCase().includes(query) ||
@@ -148,7 +149,7 @@ function Home() {
             Official store only
           </Chip>
           <Chip active={lotOk} onClick={() => setLotOk((v) => !v)}>
-            Truck or parking lot
+            Parking lot
           </Chip>
         </div>
         {sizeOptions.length > 0 ? (
@@ -176,10 +177,28 @@ function Home() {
             All sales
           </Link>
         </div>
-        {listings.length === 0 ? (
+        {city === null ? (
           <p className="rounded-2xl bg-surface px-4 py-10 text-center text-muted shadow-[var(--shadow-card)]">
-            Nothing in that city yet. Try another filter — or list yours.
+            Finding listings for your city…
           </p>
+        ) : listings.length === 0 ? (
+          <div className="rounded-2xl bg-surface px-4 py-10 text-center shadow-[var(--shadow-card)]">
+            <p className="text-muted">
+              {city === "all" ? "Nothing matched those filters." : `Nothing in ${city} this weekend.`}
+            </p>
+            {city !== "all" ? (
+              <button
+                type="button"
+                className="mt-3 text-sm font-medium text-primary-ink"
+                onClick={() => {
+                  setCity("all");
+                  rememberCity("all");
+                }}
+              >
+                Show every city
+              </button>
+            ) : null}
+          </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {listings.map((l) => (
@@ -189,7 +208,7 @@ function Home() {
         )}
       </section>
 
-      <HandoffStrip spots={data.spots} city={city} />
+      <HandoffStrip spots={data.spots} city={city ?? "all"} />
     </main>
   );
 }

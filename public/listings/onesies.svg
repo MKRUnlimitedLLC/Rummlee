@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Folded cotton onesies">
+  <rect width="800" height="600" fill="#F4EFE8"/>
+  <rect x="210" y="120" width="170" height="280" rx="28" fill="#F7F3EE" stroke="#9C4454" stroke-width="8"/>
+  <path d="M250 150h90v36H250z" fill="#E7D3C4"/>
+  <circle cx="295" cy="250" r="10" fill="#9C4454"/>
+  <circle cx="295" cy="290" r="10" fill="#9C4454"/>
+  <circle cx="295" cy="330" r="10" fill="#9C4454"/>
+  <rect x="400" y="160" width="170" height="280" rx="28" fill="#EADFD4" stroke="#9C4454" stroke-width="8"/>
+  <path d="M440 190h90v36H440z" fill="#D7C4B4"/>
+  <circle cx="485" cy="290" r="10" fill="#9C4454"/>
+  <circle cx="485" cy="330" r="10" fill="#9C4454"/>
+  <circle cx="485" cy="370" r="10" fill="#9C4454"/>
+</svg>

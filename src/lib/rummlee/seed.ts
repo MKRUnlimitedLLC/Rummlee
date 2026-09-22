@@ -2,7 +2,7 @@ import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 import { DEFAULT_FEES } from "./fees";
 
-const SEED_VERSION = "v12-recs";
+const SEED_VERSION = "v13-r16";
 
 type SeedListing = {
   id: string;
@@ -82,6 +82,8 @@ export async function ensureSeed(sql: Sql) {
     { id: "seed-north-loft", handle: "north_loft", neighborhood: "Uptown, Minneapolis" },
     { id: "seed-lohi-row", handle: "lohi_row", neighborhood: "LoHi, Denver" },
     { id: "seed-naper-bin", handle: "naper_bin", neighborhood: "Naperville, Chicago" },
+    { id: "seed-ponce", handle: "ponce_row", neighborhood: "Decatur, Atlanta" },
+    { id: "seed-harvard", handle: "harvard_row", neighborhood: "Cambridge, Boston" },
   ];
 
   for (const s of sellers) {
@@ -106,11 +108,11 @@ export async function ensureSeed(sql: Sql) {
     { id: "partner-austin", name: "Mueller Market", area: "East Austin, Austin", hint: "Official store. East lot, locker by customer service. Step-free entrance, curb cut. Store hours.", kind: "partner" },
     { id: "partner-lincoln", name: "Clark Street Market", area: "Lincoln Park, Chicago", hint: "Official Rummlee partner. Rear lot, store hours only.", kind: "partner" },
     { id: "partner-seattle", name: "Pike Home", area: "Capitol Hill, Seattle", hint: "Official Rummlee partner. Alley lot, locker by the garden center.", kind: "partner" },
-    { id: "partner-decatur", name: "Ponce Market", area: "Decatur, Atlanta", hint: "Official Rummlee partner. North lot, grocery hours.", kind: "partner" },
+    { id: "partner-decatur", name: "Ponce Market", area: "Decatur, Atlanta", hint: "Official store. North lot. Open 8am–8pm. Step-free entrance, curb cut.", kind: "partner" },
     { id: "partner-denver", name: "Platte Market", area: "LoHi, Denver", hint: "Official Rummlee partner. Front lot, locker near the florist.", kind: "partner" },
     { id: "partner-bethesda", name: "Wisconsin Market", area: "Bethesda, DC", hint: "Official Rummlee partner. Garage level P1, pickup desk.", kind: "partner" },
     { id: "partner-plano", name: "Preston Home", area: "Plano, Dallas", hint: "Official Rummlee partner. Garden-center lot, store hours.", kind: "partner" },
-    { id: "partner-cambridge", name: "Harvard Square Market", area: "Cambridge, Boston", hint: "Official Rummlee partner. Rear lot, locker by the cafe.", kind: "partner" },
+    { id: "partner-cambridge", name: "Harvard Square Market", area: "Cambridge, Boston", hint: "Official store. Rear lot, locker by the cafe. Open 8am–9pm. Step-free entrance.", kind: "partner" },
     { id: "partner-scottsdale", name: "Scottsdale Home", area: "Scottsdale, Phoenix", hint: "Official Rummlee partner. Covered lot, pickup desk inside.", kind: "partner" },
     { id: "partner-naperville", name: "Ogden Market", area: "Naperville, Chicago", hint: "Official Rummlee partner. Side lot, store hours.", kind: "partner" },
     { id: "public-prospect", name: "Prospect Park — 9th St", area: "Park Slope, Brooklyn", hint: "Circle lot by the 9th Street entrance, daylight.", kind: "public" },
@@ -118,7 +120,7 @@ export async function ensureSeed(sql: Sql) {
     { id: "public-austin", name: "Mueller Lake Park", area: "East Austin, Austin", hint: "North lot, daylight hours.", kind: "public" },
     { id: "public-lincoln", name: "Lincoln Park Conservatory", area: "Lincoln Park, Chicago", hint: "South lot, stay near the greenhouse doors.", kind: "public" },
     { id: "public-calanderson", name: "Cal Anderson Park", area: "Capitol Hill, Seattle", hint: "North lawn, by the shelterhouse.", kind: "public" },
-    { id: "public-citypark", name: "City Park — Ferril Lake", area: "LoHi, Denver", hint: "East lot, stay near the pavilion.", kind: "public" },
+    { id: "public-decatur", name: "Decatur civic lot", area: "Decatur, Atlanta", hint: "Parking lot off Ponce. Daylight. Open 8am–6pm.", kind: "public" },
     { id: "public-bethesda", name: "Bethesda Library", area: "Bethesda, DC", hint: "Front lot, library hours.", kind: "public" },
     { id: "public-plano", name: "Arbor Hills Nature Preserve", area: "Plano, Dallas", hint: "Main lot, by the trailhead kiosk.", kind: "public" },
     { id: "public-harvard", name: "Cambridge Public Library", area: "Cambridge, Boston", hint: "Broadway lot, near the main doors.", kind: "public" },
@@ -251,6 +253,28 @@ export async function ensureSeed(sql: Sql) {
       ends: sat,
       spot: "partner-naperville",
       modes: "official",
+    },
+    {
+      id: "sale-decatur",
+      sellerId: "seed-ponce",
+      name: "Decatur kitchen clearout",
+      kind: "clearout",
+      neighborhood: "Decatur, Atlanta",
+      starts: sat,
+      ends: sat,
+      spot: "partner-decatur",
+      modes: "official,public",
+    },
+    {
+      id: "sale-cambridge",
+      sellerId: "seed-harvard",
+      name: "Cambridge move-out",
+      kind: "moving",
+      neighborhood: "Cambridge, Boston",
+      starts: sat,
+      ends: sun,
+      spot: "partner-cambridge",
+      modes: "official,public",
     },
   ];
 
@@ -553,7 +577,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "West Fargo, Fargo–Moorhead",
       photo: "/listings/tool-chest.svg",
-      modes: "official",
+      modes: "official,public",
     },
     {
       id: "fm-garden",
@@ -576,7 +600,7 @@ export async function ensureSeed(sql: Sql) {
       saleId: "sale-westfargo",
       sellerId: "seed-prairie-row",
       title: "Extension ladder, 24 ft",
-      description: "Aluminum extension ladder. Locks hold. Long — it will not fit in a sedan.",
+      description: "Aluminum extension ladder. Locks hold. Official store or the West Fargo Library lot. It will not fit in a sedan.",
       priceCents: 5500,
       buyNowCents: 5500,
       originalCents: 22000,
@@ -585,7 +609,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "West Fargo, Fargo–Moorhead",
       photo: "/listings/ladder.svg",
-      modes: "official",
+      modes: "official,public",
     },
     {
       id: "coffee-maker",
@@ -713,7 +737,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "bag",
       sizeLabel: "12–18 mo",
       neighborhood: "Naperville, Chicago",
-      photo: "/listings/kids-bike.jpg",
+      photo: "/listings/onesies.svg",
       modes: "official",
     },
     {
@@ -730,6 +754,38 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "Scottsdale, Phoenix",
       photo: "/listings/ladder.svg",
+      modes: "official,public",
+    },
+    {
+      id: "atl-skillet",
+      saleId: "sale-decatur",
+      sellerId: "seed-ponce",
+      title: "Cast-iron skillet",
+      description: "10-inch skillet, seasoned. Fits in a bag. Ponce Market, open 8am–8pm, or the City of Decatur lot.",
+      priceCents: 2800,
+      buyNowCents: 2800,
+      originalCents: 6000,
+      category: "kitchen",
+      condition: "Good",
+      haul: "bag",
+      neighborhood: "Decatur, Atlanta",
+      photo: "/listings/skillet.jpg",
+      modes: "official,public",
+    },
+    {
+      id: "bos-table",
+      saleId: "sale-cambridge",
+      sellerId: "seed-harvard",
+      title: "Oak side table",
+      description: "Small oak table from a Cambridge move-out. One-person carry. Harvard Square Market, open 8am–9pm.",
+      priceCents: 4500,
+      buyNowCents: 4500,
+      originalCents: 18000,
+      category: "furniture",
+      condition: "Good",
+      haul: "one",
+      neighborhood: "Cambridge, Boston",
+      photo: "/listings/oak-table.jpg",
       modes: "official,public",
     },
   ];
