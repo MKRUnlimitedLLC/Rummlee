@@ -1095,6 +1095,7 @@ export const sendOffer = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     await ensureProfile(sql, context.userId);
+    const listingId = resolveListingId(data.listingId);
     const listing = await sql<{
       id: string;
       seller_id: string;
@@ -1102,12 +1103,12 @@ export const sendOffer = createServerFn({ method: "POST" })
       floor_cents: number | null;
       status: string;
       title: string;
-    }>`select id, seller_id, price_cents, floor_cents, status, title from listings where id = ${data.listingId}`;
+    }>`select id, seller_id, price_cents, floor_cents, status, title from listings where id = ${listingId}`;
     const item = listing[0];
     if (!item || item.status !== "live") throw new Error("This item isn’t available.");
     if (item.seller_id === context.userId) throw new Error("You can’t offer on your own listing.");
     const existing = await sql<{ id: string; status: string }>`
-      select id, status from offers where listing_id = ${data.listingId} and buyer_id = ${context.userId}
+      select id, status from offers where listing_id = ${listingId} and buyer_id = ${context.userId}
       order by created_at desc limit 1
     `;
     if (existing[0]) {
@@ -1129,13 +1130,13 @@ export const sendOffer = createServerFn({ method: "POST" })
     }
     await sql`
       insert into offers (id, listing_id, buyer_id, seller_id, amount_cents, counter_cents, status, declined_by, note)
-      values (${id}, ${data.listingId}, ${context.userId}, ${item.seller_id}, ${data.amountCents}, ${null}, ${status}, ${declinedBy}, ${data.note ?? null})
+      values (${id}, ${listingId}, ${context.userId}, ${item.seller_id}, ${data.amountCents}, ${null}, ${status}, ${declinedBy}, ${data.note ?? null})
     `;
     if (status === "accepted") {
       await sql`
         insert into messages (id, listing_id, from_id, to_id, body)
         values (
-          ${crypto.randomUUID()}, ${data.listingId}, ${item.seller_id}, ${context.userId},
+          ${crypto.randomUUID()}, ${listingId}, ${item.seller_id}, ${context.userId},
           ${"Yes. Pay to hold it, then we’ll confirm at the handoff location."}
         )
       `;
@@ -1246,15 +1247,16 @@ export const sendMessage = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     await ensureProfile(sql, context.userId);
+    const listingId = resolveListingId(data.listingId);
     const listing = await sql<{ id: string; seller_id: string }>`
-      select id, seller_id from listings where id = ${data.listingId}
+      select id, seller_id from listings where id = ${listingId}
     `;
     const item = listing[0];
     if (!item) throw new Error("Listing not found.");
     const toId = item.seller_id === context.userId
       ? (
           await sql<{ buyer_id: string }>`
-            select buyer_id from offers where listing_id = ${data.listingId} and seller_id = ${context.userId}
+            select buyer_id from offers where listing_id = ${listingId} and seller_id = ${context.userId}
             order by created_at desc limit 1
           `
         )[0]?.buyer_id
@@ -1263,13 +1265,13 @@ export const sendMessage = createServerFn({ method: "POST" })
     if (toId === context.userId) throw new Error("That’s you.");
     await sql`
       insert into messages (id, listing_id, from_id, to_id, body)
-      values (${crypto.randomUUID()}, ${data.listingId}, ${context.userId}, ${toId}, ${data.body.trim()})
+      values (${crypto.randomUUID()}, ${listingId}, ${context.userId}, ${toId}, ${data.body.trim()})
     `;
     if (isSeedUser(toId)) {
       await sql`
         insert into messages (id, listing_id, from_id, to_id, body)
         values (
-          ${crypto.randomUUID()}, ${data.listingId}, ${toId}, ${context.userId},
+          ${crypto.randomUUID()}, ${listingId}, ${toId}, ${context.userId},
           ${"Still available. Meet at an official store handoff — locker or pickup desk, store hours. A public place or in person is optional if we both want it."}
         )
       `;
@@ -1294,6 +1296,7 @@ export const buyNow = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     const me = await ensureProfile(sql, context.userId);
+    const listingId = resolveListingId(data.listingId);
     const listing = await sql<{
       id: string;
       seller_id: string;
@@ -1308,7 +1311,7 @@ export const buyNow = createServerFn({ method: "POST" })
              s.handoff_spot_id
       from listings l
       join sales s on s.id = l.sale_id
-      where l.id = ${data.listingId}
+      where l.id = ${listingId}
     `;
     const item = listing[0];
     if (!item || item.status !== "live") throw new Error("This item isn’t available.");

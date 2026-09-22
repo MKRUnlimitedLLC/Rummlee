@@ -427,7 +427,7 @@ function NewListingPage() {
                   id={`size-${line.id}`}
                   value={line.sizeLabel}
                   onChange={(event) => updateLine(line.id, { sizeLabel: event.target.value })}
-                  placeholder={line.category === "kids" ? "16\" / ages 4–6" : "Women’s M"}
+                  placeholder={line.category === "kids" ? "16\" / ages 4–6" : "M / L / 32×30"}
                 />
               </div>
             ) : null}

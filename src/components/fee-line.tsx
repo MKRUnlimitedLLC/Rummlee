@@ -52,6 +52,16 @@ export function CheckoutPay({
         <span className="text-muted">Fees</span>
         <span className="tabular-nums">{money(quote.feesTotalCents)}</span>
       </p>
+      {quote.feesTotalCents > 0 ? (
+        <p className="text-sm text-muted">
+          {[
+            quote.buyerFeeCents > 0 ? `${buyer?.unit === "percent" ? `${(buyer.percentBps / 100).toFixed(buyer.percentBps % 100 === 0 ? 0 : 1)}%` : money(quote.buyerFeeCents)} buyer` : null,
+            official && quote.handoffFeeCents > 0 ? `${money(quote.handoffFeeCents)} official store` : null,
+          ]
+            .filter(Boolean)
+            .join(" + ") || "See details"}
+        </p>
+      ) : null}
       <button
         type="button"
         className="text-sm font-medium text-primary-ink"
@@ -108,7 +118,7 @@ export function CheckoutPay({
         {quote.salesTaxCents > 0
           ? "On asking, at this handoff. Not a Rummlee fee."
           : taxRow?.enabled
-            ? "Always shown. $0 until a rate is set for this handoff — see Fees."
+            ? "None on this beta listing. A rate will show here when tax applies — never mixed into fees."
             : "Not charged on this handoff."}
       </p>
       <p className="flex justify-between font-display text-xl font-semibold tracking-[-0.03em] text-primary-ink">
@@ -133,7 +143,7 @@ function SplitHint({ youPayCents }: { youPayCents: number }) {
   return (
     <div className="text-sm">
       <button type="button" className="font-medium text-primary-ink" onClick={() => setOpen((v) => !v)}>
-        Split this with someone
+        Estimate a split — you still pay the full amount here
       </button>
       {open ? (
         <p className="mt-1 text-muted">

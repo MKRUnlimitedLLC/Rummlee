@@ -2,7 +2,7 @@ import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 import { DEFAULT_FEES } from "./fees";
 
-const SEED_VERSION = "v10-love";
+const SEED_VERSION = "v11-play15";
 
 type SeedListing = {
   id: string;
@@ -199,7 +199,7 @@ export async function ensureSeed(sql: Sql) {
     {
       id: "sale-bethesda",
       sellerId: "seed-quiet-willow",
-      name: "Bethesda closet edit",
+      name: "Bethesda clothing",
       kind: "clearout",
       neighborhood: "Bethesda, DC",
       starts: fri,
@@ -340,14 +340,14 @@ export async function ensureSeed(sql: Sql) {
       saleId: "sale-seattle",
       sellerId: "seed-maple-haven",
       title: "Camel merino crewneck",
-      description: "Women’s M. No pills. From a closet edit — worn a handful of times.",
+      description: "Unisex M. Soft merino, no pills. Worn a handful of times.",
       priceCents: 2800,
       buyNowCents: 2800,
       originalCents: 14800,
       category: "clothing",
       condition: "Like new",
       haul: "bag",
-      sizeLabel: "Women’s M",
+      sizeLabel: "M",
       neighborhood: "Capitol Hill, Seattle",
       photo: "/listings/merino.jpg",
       modes: "official,public",
@@ -439,14 +439,14 @@ export async function ensureSeed(sql: Sql) {
       saleId: "sale-bethesda",
       sellerId: "seed-quiet-willow",
       title: "Camel cashmere crewneck",
-      description: "Women’s M. Soft, no pills. From a closet edit — worn a handful of times.",
+      description: "Men’s M. Soft, no pills. Worn a handful of times.",
       priceCents: 4800,
       buyNowCents: 4800,
       originalCents: 19800,
       category: "clothing",
       condition: "Like new",
       haul: "bag",
-      sizeLabel: "Women’s M",
+      sizeLabel: "M",
       neighborhood: "Bethesda, DC",
       photo: "/listings/cashmere.jpg",
       modes: "official,public",
@@ -625,6 +625,22 @@ export async function ensureSeed(sql: Sql) {
       haul: "bag",
       neighborhood: "Park Slope, Brooklyn",
       photo: "/listings/air-fryer.svg",
+      modes: "official,public",
+    },
+    {
+      id: "slope-sofa",
+      saleId: "sale-slope",
+      sellerId: "seed-linen-lark",
+      title: "Cream loveseat",
+      description: "Soft cream two-seater from a Park Slope move. One cushion is a little sat. Two-person carry. Official store on 9th.",
+      priceCents: 11000,
+      buyNowCents: 11000,
+      originalCents: 64000,
+      category: "furniture",
+      condition: "Good",
+      haul: "two",
+      neighborhood: "Park Slope, Brooklyn",
+      photo: "/listings/couch.svg",
       modes: "official,public",
     },
     {

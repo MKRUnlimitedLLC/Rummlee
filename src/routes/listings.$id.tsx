@@ -10,9 +10,9 @@ import { BuyerDealStatus, DealSteps, SellerOfferCard } from "@/components/deal";
 import { ThumbTally, VerifiedBadge } from "@/components/trust";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { TEST_MODE } from "@/lib/rummlee/constants";
-import { rememberAfterLogin } from "@/lib/rummlee/draft";
+import { lastCity, rememberAfterLogin } from "@/lib/rummlee/draft";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
-import { categoryLabel, haulLabel, money, payBaseCents, saleWindow } from "@/lib/rummlee/format";
+import { categoryLabel, cityOf, haulLabel, money, payBaseCents, saleWindow } from "@/lib/rummlee/format";
 import { checkoutQuote } from "@/lib/rummlee/fees";
 import { buyNow, getListing, respondOffer, sendMessage, sendOffer, toggleSaved } from "@/lib/rummlee/server";
 
@@ -220,10 +220,15 @@ function ListingPage() {
             <AskingPrice cents={listing.priceCents} originalCents={listing.originalCents} />
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base text-muted">
               <MapPin className="size-3.5" />
-              {listing.handoffSpotName ?? listing.neighborhood} · @{listing.sellerHandle}
+              {listing.handoffSpotName ?? listing.neighborhood} · {listing.neighborhood} · @{listing.sellerHandle}
               <VerifiedBadge verified={listing.sellerVerified} />
               <ThumbTally up={listing.sellerThumbsUp} down={listing.sellerThumbsDown} />
             </p>
+            {lastCity() && lastCity() !== "all" && cityOf(listing.neighborhood) !== lastCity() ? (
+              <p className="rounded-xl bg-primary-soft px-3 py-2 text-sm text-fg">
+                Pickup is in {cityOf(listing.neighborhood)}, not {lastCity()}. City chips on Browse only show that metro.
+              </p>
+            ) : null}
           </div>
           <p className="text-pretty text-base leading-relaxed text-fg">{listing.description}</p>
           <dl className="grid grid-cols-2 gap-2 text-base">
@@ -362,7 +367,9 @@ function ListingPage() {
           ) : null}
 
           <p className="text-sm font-medium">2. Price</p>
-          {data.myOffer && data.myOffer.status !== "declined" ? (
+          {data.myOffer?.status === "declined" ? (
+            <p className="text-sm text-muted">Your one offer ended. Pay asking to hold it — you can’t send another.</p>
+          ) : data.myOffer ? (
             <BuyerDealStatus offer={data.myOffer} />
           ) : (
             <p className="text-sm text-muted">Pay asking, or send one offer under it. Neighbors never see the seller’s lowest. One decline from either of you ends the offer.</p>
@@ -378,7 +385,7 @@ function ListingPage() {
           />
           {data.myOffer?.status === "accepted" || data.myOffer?.status === "countered" ? (
             <p className="text-base text-muted">
-              Agreed offer {money(base)} · {TEST_MODE ? "test " : ""}you pay {money(due.youPayCents)} if you take that deal. Pay asking if you’d rather.
+              Agreed offer {money(base)} · {TEST_MODE ? "test " : ""}you pay {money(due.youPayCents)} if you take that deal.
             </p>
           ) : null}
 
@@ -412,14 +419,6 @@ function ListingPage() {
                   : TEST_MODE
                     ? `Pay agreed ${money(due.youPayCents)} with test credits`
                     : `Pay agreed ${money(due.youPayCents)} to hold it`}
-              </Button>
-              <Button
-                className="w-full"
-                variant="secondary"
-                disabled={buyMut.isPending || isPending}
-                onClick={() => (user ? buyMut.mutate(true) : goLogin("Sign in to pay asking."))}
-              >
-                Pay asking instead · {money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}
               </Button>
               {data.myOffer.status === "countered" ? (
                 <Button className="w-full" variant="ghost" disabled={passMut.isPending || !user} onClick={() => (user ? passMut.mutate() : goLogin("Sign in to decline."))}>

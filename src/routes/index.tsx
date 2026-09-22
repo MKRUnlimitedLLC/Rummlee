@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { bootstrapPublic } from "@/lib/rummlee/server";
 import { CATEGORIES, CITIES, HAULS, HOLD_LINE } from "@/lib/rummlee/constants";
-import { rememberCity } from "@/lib/rummlee/draft";
+import { lastCity, rememberCity } from "@/lib/rummlee/draft";
 import { cityOf } from "@/lib/rummlee/format";
 import type { HandoffSpot } from "@/lib/rummlee/types";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,10 @@ function Home() {
   const signedIn = isPending ? Boolean(data?.signedIn) : Boolean(user);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
-  const [city, setCity] = useState<string>("all");
+  const [city, setCity] = useState<string>(() => {
+    const saved = lastCity();
+    return saved && saved !== "all" ? saved : "all";
+  });
   const [haul, setHaul] = useState<string>("all");
   const [size, setSize] = useState<string>("all");
 

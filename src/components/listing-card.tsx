@@ -4,7 +4,7 @@ import { VerifiedBadge } from "@/components/trust";
 import type { Listing } from "@/lib/rummlee/types";
 import { HOLD_LINE } from "@/lib/rummlee/constants";
 import { checkoutQuote, DEFAULT_FEES } from "@/lib/rummlee/fees";
-import { money, saleWindow, spotKindLabel } from "@/lib/rummlee/format";
+import { money, placeName, saleWindow, spotKindLabel } from "@/lib/rummlee/format";
 
 export function ListingCard({ listing }: { listing: Listing; premium?: boolean }) {
   const partner = listing.handoffSpotKind === "partner";
@@ -51,6 +51,8 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         <p className="flex items-center gap-1 text-sm text-muted">
           <MapPin className="size-3.5" strokeWidth={1.75} />
           {listing.handoffSpotName ?? listing.neighborhood}
+          {" · "}
+          {placeName(listing.neighborhood)}
         </p>
         <p className="text-sm text-subtle">
           {listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : "Handoff location"}

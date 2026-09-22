@@ -83,7 +83,7 @@ export const HANDOFF_MODES = [
   {
     id: "public",
     label: "Public place handoff",
-    hint: "Park, library, or civic lot. Still no home address. You choose whether to offer it.",
+    hint: "Park, library, civic lot, or parking lot. Still no home address. You choose whether to offer it.",
   },
   {
     id: "person",
