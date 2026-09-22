@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-label="Rolling tool chest">
+  <rect width="1200" height="900" fill="#f4efe8"/>
+  <ellipse cx="600" cy="760" rx="280" ry="24" fill="#e4d9cc"/>
+  <g transform="translate(340 180)">
+    <rect width="520" height="520" rx="16" fill="#3e4650" stroke="#2c3338" stroke-width="6"/>
+    <rect x="28" y="28" width="464" height="90" rx="8" fill="#4c5662"/>
+    <rect x="28" y="136" width="464" height="90" rx="8" fill="#4c5662"/>
+    <rect x="28" y="244" width="464" height="110" rx="8" fill="#4c5662"/>
+    <rect x="28" y="372" width="464" height="120" rx="8" fill="#4c5662"/>
+    <rect x="236" y="58" width="48" height="16" rx="4" fill="#c5a46a"/>
+    <rect x="236" y="168" width="48" height="16" rx="4" fill="#c5a46a"/>
+    <rect x="236" y="286" width="48" height="16" rx="4" fill="#c5a46a"/>
+    <rect x="236" y="420" width="48" height="16" rx="4" fill="#c5a46a"/>
+    <circle cx="70" cy="560" r="28" fill="#1c1a18"/>
+    <circle cx="450" cy="560" r="28" fill="#1c1a18"/>
+  </g>
+</svg>

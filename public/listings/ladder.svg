@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-label="Aluminum extension ladder">
+  <rect width="1200" height="900" fill="#f4efe8"/>
+  <rect x="80" y="760" width="1040" height="16" rx="6" fill="#e4d9cc"/>
+  <g transform="translate(430 80) rotate(8 170 370)">
+    <rect x="40" y="20" width="22" height="720" rx="8" fill="#d5dde3" stroke="#9aa6b0" stroke-width="3"/>
+    <rect x="278" y="20" width="22" height="720" rx="8" fill="#d5dde3" stroke="#9aa6b0" stroke-width="3"/>
+    <g fill="#c5ced6" stroke="#8d98a3" stroke-width="3">
+      <rect x="62" y="80" width="216" height="14" rx="4"/>
+      <rect x="62" y="170" width="216" height="14" rx="4"/>
+      <rect x="62" y="260" width="216" height="14" rx="4"/>
+      <rect x="62" y="350" width="216" height="14" rx="4"/>
+      <rect x="62" y="440" width="216" height="14" rx="4"/>
+      <rect x="62" y="530" width="216" height="14" rx="4"/>
+      <rect x="62" y="620" width="216" height="14" rx="4"/>
+    </g>
+    <rect x="70" y="40" width="16" height="560" rx="6" fill="#eef2f5" opacity="0.7"/>
+    <rect x="292" y="40" width="16" height="560" rx="6" fill="#eef2f5" opacity="0.7"/>
+  </g>
+</svg>

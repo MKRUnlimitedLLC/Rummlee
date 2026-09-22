@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-label="Cream two-seat sofa">
+  <rect width="1200" height="900" fill="#f4efe8"/>
+  <ellipse cx="600" cy="760" rx="420" ry="36" fill="#e4d9cc"/>
+  <g transform="translate(180 250)">
+    <rect x="40" y="40" width="760" height="340" rx="46" fill="#f7f3ee" stroke="#e6dfd6" stroke-width="4"/>
+    <rect x="70" y="80" width="330" height="210" rx="28" fill="#fffaf6" stroke="#eadfd4" stroke-width="3"/>
+    <rect x="440" y="80" width="330" height="210" rx="28" fill="#fffaf6" stroke="#eadfd4" stroke-width="3"/>
+    <rect x="18" y="70" width="70" height="250" rx="28" fill="#efe7de"/>
+    <rect x="752" y="70" width="70" height="250" rx="28" fill="#efe7de"/>
+    <rect x="70" y="300" width="700" height="70" rx="18" fill="#f3ebe3"/>
+    <rect x="120" y="390" width="28" height="70" rx="8" fill="#8a6244"/>
+    <rect x="690" y="390" width="28" height="70" rx="8" fill="#8a6244"/>
+  </g>
+</svg>

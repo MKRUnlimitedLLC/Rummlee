@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-label="Counter microwave">
+  <rect width="1200" height="900" fill="#f4efe8"/>
+  <rect x="160" y="620" width="880" height="18" rx="6" fill="#e4d9cc"/>
+  <g transform="translate(220 250)">
+    <rect width="760" height="420" rx="28" fill="#f7f5f2" stroke="#ddd6ce" stroke-width="4"/>
+    <rect x="36" y="36" width="470" height="300" rx="18" fill="#2c3338"/>
+    <rect x="56" y="56" width="430" height="260" rx="10" fill="#6d7c86" opacity="0.85"/>
+    <circle cx="620" cy="150" r="16" fill="#9c4454"/>
+    <rect x="560" y="200" width="150" height="18" rx="6" fill="#e7e1da"/>
+    <rect x="560" y="232" width="150" height="18" rx="6" fill="#e7e1da"/>
+    <rect x="560" y="264" width="70" height="18" rx="6" fill="#e7e1da"/>
+    <rect x="650" y="264" width="60" height="18" rx="6" fill="#e7e1da"/>
+    <rect x="36" y="356" width="688" height="28" rx="8" fill="#efeae4"/>
+  </g>
+</svg>
