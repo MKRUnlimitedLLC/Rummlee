@@ -146,13 +146,13 @@ function GuestHero() {
       </div>
       <div className="space-y-4 p-5">
         <p className="text-pretty text-muted">
-          Furniture, kitchen, closet, and kids — from women in the city and the suburbs. Offer this week. Meet at a
-          partner store, never a home address.
+          Furniture, kitchen, closet, and kids — from neighbors in the city and the suburbs. Offer this week. Meet at a
+          handoff location, never a home address.
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Perk icon={CalendarDays} title="Offers before Saturday" body="Browse while she’s still editing the closet. Lock it in before the weekend." />
+          <Perk icon={CalendarDays} title="Offers before Saturday" body="Browse while the closet is still being edited. Lock it in before the weekend." />
           <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors see @linen_lark. Email, legal name, and home stay off the listing." />
-          <Perk icon={Store} title="Meet at a store" body="Grocery or home store with a locker. Lit lot, store hours. Never a home address." />
+          <Perk icon={Store} title="Handoff locations" body="Official store, public place, or in person — the seller chooses which to offer. Never a home address." />
         </div>
         <p className="inline-flex rounded-full bg-primary-soft px-3 py-1.5 text-sm font-medium text-primary-ink">
           {HOLD_LINE}
@@ -173,7 +173,11 @@ function GuestHero() {
             Sign in
           </Link>
         </p>
-        <p className="text-center text-sm text-muted">Browse free. Fee 10% · Premium 5%.</p>
+        <p className="text-center text-sm text-muted">
+          <Link to="/fees" className="font-medium text-primary-ink">
+            Fees
+          </Link>
+        </p>
         <p className="text-center text-xs text-subtle">
           <Link to="/privacy" className="underline-offset-4 hover:underline">
             Privacy
@@ -200,7 +204,7 @@ function SignedHero() {
         This weekend nearby
       </p>
       <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">The good stuff is already listed</h1>
-      <p className="mt-1 text-sm text-muted">Offer now. Meet at a partner store — never a home address.</p>
+      <p className="mt-1 text-sm text-muted">Offer now. Meet at a handoff location — never a home address.</p>
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
         {HOLD_LINE}
       </p>
@@ -220,7 +224,7 @@ function HandoffStrip({
   return (
     <section className="mt-6">
       <div className="mb-3 flex items-end justify-between">
-        <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Where you meet</h2>
+        <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Handoff locations</h2>
         <Link to="/sales" className="text-sm font-medium text-primary-ink">
           All sales
         </Link>
@@ -232,7 +236,7 @@ function HandoffStrip({
             to="/sales"
             className="w-56 shrink-0 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]"
           >
-            <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">Partner store</p>
+            <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">Official store handoff</p>
             <p className="mt-1 font-medium leading-snug">{sp.name}</p>
             <p className="mt-1 text-xs text-muted">{sp.area}</p>
             <p className="mt-1 text-xs text-subtle">{sp.hint}</p>

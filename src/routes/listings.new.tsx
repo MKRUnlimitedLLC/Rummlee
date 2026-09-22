@@ -129,12 +129,15 @@ function NewListingPage() {
       const ids: string[] = [];
       for (const line of ready) {
         const priceCents = dollarsToCents(line.price);
+        const floorCents = dollarsToCents(line.floor || line.price);
+        if (floorCents > priceCents) throw new Error(`Lowest for “${line.title.trim()}” can’t be higher than asking.`);
         const created = await addListing({
           data: {
             saleId,
             title: line.title.trim(),
             description: line.description.trim(),
             priceCents,
+            floorCents,
             buyNowCents: priceCents,
             category: line.category,
             condition: line.condition,
@@ -184,7 +187,7 @@ function NewListingPage() {
     <main className="mx-auto max-w-lg py-6">
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">List it</h1>
       <p className="mt-1 text-muted">
-        Photo, asking price, and a partner store. A public place is backup. A home address never goes on the listing.
+        Photo, asking price, and your hidden lowest. Neighbors never see the lowest. One offer. Yes, counteroffer, or decline.
       </p>
       <p className="mt-2 text-sm text-muted">
         <Link to="/sell" className="font-medium text-primary-ink">
@@ -238,7 +241,7 @@ function NewListingPage() {
         </div>
 
         <div>
-          <Label htmlFor="spot">Partner store</Label>
+          <Label htmlFor="spot">Handoff location</Label>
           <select
             id="spot"
             className="h-11 w-full rounded-lg bg-surface px-3 text-[15px] shadow-[0_0_0_1px_rgba(22,20,18,0.1)]"
@@ -247,7 +250,7 @@ function NewListingPage() {
           >
             <option value="">Closest official partner</option>
             {hoodSpots.some((spot) => spot.kind === "partner") ? (
-              <optgroup label="Partner stores">
+              <optgroup label="Official store handoff">
                 {hoodSpots
                   .filter((spot) => spot.kind === "partner")
                   .map((spot) => (
@@ -258,7 +261,7 @@ function NewListingPage() {
               </optgroup>
             ) : null}
             {hoodSpots.some((spot) => spot.kind === "public") ? (
-              <optgroup label="Public places">
+              <optgroup label="Public place handoff">
                 {hoodSpots
                   .filter((spot) => spot.kind === "public")
                   .map((spot) => (
@@ -269,7 +272,7 @@ function NewListingPage() {
               </optgroup>
             ) : null}
           </select>
-          <p className="mt-1 text-sm text-muted">Partner store first. Public place if you need it. Never a home address.</p>
+          <p className="mt-1 text-sm text-muted">Offer official store, public place, in person — any or all. Never a home address.</p>
         </div>
 
         <ModePicks
@@ -317,6 +320,18 @@ function NewListingPage() {
                 onChange={(event) => updateLine(line.id, { price: event.target.value })}
                 placeholder="90"
               />
+              <p className="mt-1 text-sm text-muted">Neighbors see this. They can pay it, or send one offer under it.</p>
+            </div>
+            <div>
+              <Label htmlFor={`floor-${line.id}`}>Lowest you’ll take</Label>
+              <Input
+                id={`floor-${line.id}`}
+                inputMode="decimal"
+                value={line.floor}
+                onChange={(event) => updateLine(line.id, { floor: event.target.value })}
+                placeholder="Same as asking if you skip this"
+              />
+              <p className="mt-1 text-sm text-muted">Hidden. Offers below this are a no. One decline from either of you ends the offer.</p>
             </div>
             <div>
               <Label htmlFor={`desc-${line.id}`}>Note</Label>
@@ -407,7 +422,13 @@ function NewListingPage() {
             Save draft
           </Button>
         )}
-        <p className="text-center text-sm text-muted">Free to list. Fee 10% when it sells. Premium is 5%.</p>
+        <p className="text-center text-sm text-muted">
+          <Link to="/fees" className="font-medium text-primary-ink">
+            Fees
+          </Link>
+          {" "}
+          only show here if you charge to list, and at checkout.
+        </p>
       </form>
 
       {saved && !user ? (

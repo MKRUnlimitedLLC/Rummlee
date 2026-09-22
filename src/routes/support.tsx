@@ -21,9 +21,9 @@ function Support() {
 
       <LegalSection title="Safety">
         <p>
-          Meet at the official partner store when you can. Those stores are listed on the sale. A public place is
-          backup. Don’t share your real name, home address, or the pickup code with anyone who isn’t on that order.
-          Person to person is optional — leave if you feel off, and don’t confirm.
+          Meet at a handoff location the seller offers — official store, public place, or in person. Don’t share your
+          real name, home address, or the pickup code with anyone who isn’t on that order. Leave if you feel off, and
+          don’t confirm.
         </p>
       </LegalSection>
 

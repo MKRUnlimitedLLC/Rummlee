@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { OutgoingOfferCard, SellerOfferCard } from "@/components/deal";
 import { GuestGate, useAuthGate } from "@/components/guest-gate";
-import { Button } from "@/components/ui/button";
 import { errMessage } from "@/lib/rummlee/errors";
 import { money } from "@/lib/rummlee/format";
 import { getInbox, respondOffer } from "@/lib/rummlee/server";
@@ -21,9 +21,11 @@ function InboxPage() {
   const respond = useMutation({
     mutationFn: (data: { offerId: string; action: "accept" | "decline" | "counter"; counterCents?: number }) =>
       respondOffer({ data }),
-    onSuccess: () => {
+    onSuccess: (_res, vars) => {
       void qc.invalidateQueries({ queryKey: ["inbox"] });
-      toast.success("Updated.");
+      if (vars.action === "accept") toast.success("You said yes. Waiting for them to pay.");
+      else if (vars.action === "counter") toast.success("Counteroffer sent. Waiting for them to pay.");
+      else toast.success("Declined. The offer is over.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -47,7 +49,7 @@ function InboxPage() {
   return (
     <main className="py-6">
       <h1 className="font-display text-3xl font-medium tracking-[-0.03em]">Inbox</h1>
-      <p className="mt-1 text-muted">Offers, pickup holds, and neighbor notes.</p>
+      <p className="mt-1 text-muted">One offer. Yes, counteroffer, or decline. One decline ends it.</p>
 
       {empty ? (
         <p className="mt-8 rounded-2xl bg-surface px-4 py-10 text-center text-muted shadow-[var(--shadow-card)]">
@@ -65,7 +67,7 @@ function InboxPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{o.listingTitle}</p>
                   <p className="text-sm text-muted">
-                    {money(o.amountCents)} · {o.status === "escrow" ? "held until scan" : "picked up"}
+                    {money(o.amountCents)} · {o.status === "escrow" ? "held until you both confirm" : "picked up"}
                   </p>
                   <Link to="/pickup/$id" params={{ id: o.id }} className="text-sm font-medium text-primary-ink">
                     {o.status === "escrow" ? "Open pickup code" : "View"}
@@ -80,41 +82,17 @@ function InboxPage() {
       {data.offersIn.length > 0 ? (
         <section className="mt-8">
           <h2 className="font-display text-xl">Offers on your items</h2>
+          <p className="mt-1 text-sm text-muted">Yes, counteroffer, or decline. One decline ends the offer.</p>
           <ul className="mt-3 space-y-3">
             {data.offersIn.map((o) => (
-              <li key={o.id} className="rounded-2xl bg-surface p-3 shadow-[var(--shadow-card)]">
-                <div className="flex gap-3">
-                  <img src={o.listingPhoto} alt="" className="size-16 rounded-lg object-cover" />
-                  <div className="min-w-0">
-                    <p className="font-medium">{o.listingTitle}</p>
-                    <p className="text-sm text-muted">
-                      @{o.buyerHandle} offered {money(o.amountCents)} · {o.status}
-                      {o.counterCents ? ` · counter ${money(o.counterCents)}` : ""}
-                    </p>
-                  </div>
-                </div>
-                {o.status === "pending" || o.status === "countered" ? (
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" onClick={() => respond.mutate({ offerId: o.id, action: "accept" })}>
-                      Accept
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        const raw = window.prompt("Counter amount in dollars?");
-                        const n = raw ? Math.round(Number(raw) * 100) : 0;
-                        if (n >= 100) respond.mutate({ offerId: o.id, action: "counter", counterCents: n });
-                      }}
-                    >
-                      Counter
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => respond.mutate({ offerId: o.id, action: "decline" })}>
-                      Decline
-                    </Button>
-                  </div>
-                ) : null}
-              </li>
+              <SellerOfferCard
+                key={o.id}
+                offer={o}
+                busy={respond.isPending}
+                onAccept={() => respond.mutate({ offerId: o.id, action: "accept" })}
+                onPass={() => respond.mutate({ offerId: o.id, action: "decline" })}
+                onCounter={(cents) => respond.mutate({ offerId: o.id, action: "counter", counterCents: cents })}
+              />
             ))}
           </ul>
         </section>
@@ -125,22 +103,7 @@ function InboxPage() {
           <h2 className="font-display text-xl">Your offers</h2>
           <ul className="mt-3 space-y-3">
             {data.offersOut.map((o) => (
-              <li key={o.id}>
-                <Link
-                  to="/listings/$id"
-                  params={{ id: o.listingId }}
-                  className="flex gap-3 rounded-2xl bg-surface p-3 shadow-[var(--shadow-card)]"
-                >
-                  <img src={o.listingPhoto} alt="" className="size-16 rounded-lg object-cover" />
-                  <div>
-                    <p className="font-medium">{o.listingTitle}</p>
-                    <p className="text-sm text-muted">
-                      {money(o.amountCents)} to @{o.sellerHandle} · {o.status}
-                      {o.counterCents ? ` · they asked ${money(o.counterCents)}` : ""}
-                    </p>
-                  </div>
-                </Link>
-              </li>
+              <OutgoingOfferCard key={o.id} offer={o} />
             ))}
           </ul>
         </section>

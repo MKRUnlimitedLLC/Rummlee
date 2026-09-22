@@ -35,6 +35,11 @@ export function LegalLinks({ className }: { className?: string }) {
     <nav className={className} aria-label="Legal">
       <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium text-primary-ink">
         <li>
+          <Link to="/fees" className="underline-offset-4 hover:underline">
+            Fees
+          </Link>
+        </li>
+        <li>
           <Link to="/privacy" className="underline-offset-4 hover:underline">
             Privacy
           </Link>

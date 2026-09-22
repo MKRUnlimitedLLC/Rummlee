@@ -2,8 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { ensureSeed } from "./seed";
+import { ensureFees, ensureSeed } from "./seed";
 import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes, canonicalizeMode } from "./format";
+import { checkoutQuote, mapFeeRow, minAskingCents, type FeeRow } from "./fees";
 import { MIN_PRICE_CENTS } from "./constants";
 import type {
   HandoffMode,
@@ -42,6 +43,7 @@ type ListingRow = {
   status: Listing["status"];
   starts_on: string;
   ends_on: string;
+  floor_cents: number | null;
 };
 
 function mapListing(row: ListingRow, saved = false): Listing {
@@ -84,6 +86,23 @@ async function optionalUserId() {
   }
 }
 
+async function loadFees(sql: Awaited<ReturnType<typeof getSql>>): Promise<FeeRow[]> {
+  await ensureFees(sql);
+  const rows = await sql<{
+    id: string;
+    label: string;
+    description: string;
+    unit: string;
+    percent_bps: number;
+    amount_cents: number;
+    charged_to: string;
+    charged_when: string;
+    sort: number;
+    enabled: boolean;
+  }>`select id, label, description, unit, percent_bps, amount_cents, charged_to, charged_when, sort, enabled from rummlee_fees order by sort`;
+  return rows.map(mapFeeRow);
+}
+
 async function viewerPremium(sql: Awaited<ReturnType<typeof getSql>>, userId: string | null) {
   if (!userId) return false;
   const rows = await sql<{ is_premium: boolean }>`select is_premium from profiles where id = ${userId}`;
@@ -97,8 +116,9 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     neighborhood: string | null;
     zip: string | null;
     is_premium: boolean;
+    is_staff: boolean;
     wallet_cents: number;
-  }>`select id, handle, neighborhood, zip, is_premium, wallet_cents from profiles where id = ${userId}`;
+  }>`select id, handle, neighborhood, zip, is_premium, is_staff, wallet_cents from profiles where id = ${userId}`;
   if (existing[0]) {
     const p = existing[0];
     return {
@@ -107,6 +127,7 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
       neighborhood: p.neighborhood,
       zip: p.zip,
       isPremium: Boolean(p.is_premium),
+      isStaff: Boolean(p.is_staff),
       walletCents: Number(p.wallet_cents),
     };
   }
@@ -126,13 +147,14 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     neighborhood: null,
     zip: null,
     isPremium: false,
+    isStaff: false,
     walletCents: 0,
   };
 }
 
 const listingSelect = `
   select l.id, l.sale_id, s.name as sale_name, l.seller_id, p.handle as seller_handle,
-         l.title, l.description, l.price_cents, l.buy_now_cents, l.original_cents,
+         l.title, l.description, l.price_cents, l.buy_now_cents, l.original_cents, l.floor_cents,
          l.category, l.condition, l.haul, l.neighborhood, l.handoff_modes, l.photo_url,
          l.status, s.starts_on, s.ends_on,
          hs.name as handoff_spot_name, hs.area as handoff_spot_area, hs.hint as handoff_spot_hint,
@@ -201,6 +223,7 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
     spots,
     signedIn: Boolean(userId),
     buyerPremium,
+    fees: await loadFees(sql),
   };
 });
 
@@ -234,6 +257,7 @@ export const getListing = createServerFn({ method: "GET" })
         listing_id: string;
         listing_title: string;
         listing_photo: string;
+        listing_price_cents: number;
         buyer_id: string;
         buyer_handle: string;
         seller_id: string;
@@ -241,12 +265,14 @@ export const getListing = createServerFn({ method: "GET" })
         amount_cents: number;
         counter_cents: number | null;
         status: Offer["status"];
+        declined_by: string | null;
         note: string | null;
         created_at: string;
       }>`
         select o.id, o.listing_id, l.title as listing_title, l.photo_url as listing_photo,
+               l.price_cents as listing_price_cents,
                o.buyer_id, b.handle as buyer_handle, o.seller_id, se.handle as seller_handle,
-               o.amount_cents, o.counter_cents, o.status, o.note, o.created_at
+               o.amount_cents, o.counter_cents, o.status, o.declined_by, o.note, o.created_at
         from offers o
         join listings l on l.id = o.listing_id
         join profiles b on b.id = o.buyer_id
@@ -261,6 +287,7 @@ export const getListing = createServerFn({ method: "GET" })
           listingId: r.listing_id,
           listingTitle: r.listing_title,
           listingPhoto: r.listing_photo,
+          listingPriceCents: Number(r.listing_price_cents),
           buyerId: r.buyer_id,
           buyerHandle: r.buyer_handle,
           sellerId: r.seller_id,
@@ -268,6 +295,7 @@ export const getListing = createServerFn({ method: "GET" })
           amountCents: Number(r.amount_cents),
           counterCents: r.counter_cents == null ? null : Number(r.counter_cents),
           status: r.status,
+          declinedBy: r.declined_by === "buyer" || r.declined_by === "seller" || r.declined_by === "floor" ? r.declined_by : null,
           note: r.note,
           createdAt: r.created_at,
         };
@@ -298,6 +326,8 @@ export const getListing = createServerFn({ method: "GET" })
       myOffer,
       buyerPremium,
       publicSpot,
+      floorCents: userId === row.seller_id ? Number(row.floor_cents ?? row.price_cents) : null,
+      fees: await loadFees(sql),
       messages: thread.map(
         (m): Message => ({
           id: m.id,
@@ -468,9 +498,11 @@ export const togglePremium = createServerFn({ method: "POST" })
       await sql`update profiles set is_premium = false where id = ${context.userId}`;
       return { isPremium: false };
     }
-    const cost = 400;
+    const fees = await loadFees(sql);
+    const switchFee = fees.find((row) => row.id === "premium_switch");
+    const cost = switchFee?.enabled ? switchFee.amountCents : 400;
     if (me.walletCents < cost) {
-      throw new Error("Add $4 to your wallet to start Premium.");
+      throw new Error(`Add more to your wallet to start Premium. See Fees.`);
     }
     await sql`update profiles set is_premium = true, wallet_cents = wallet_cents - ${cost} where id = ${context.userId}`;
     await sql`
@@ -557,8 +589,9 @@ const listingInput = z.object({
   saleId: z.string(),
   title: z.string().min(2).max(80),
   description: z.string().max(600).optional(),
-  priceCents: z.number().int().min(MIN_PRICE_CENTS),
-  buyNowCents: z.number().int().min(MIN_PRICE_CENTS).nullable().optional(),
+  priceCents: z.number().int().min(100),
+  floorCents: z.number().int().min(100),
+  buyNowCents: z.number().int().min(100).nullable().optional(),
   category: z.string(),
   condition: z.string(),
   haul: z.string(),
@@ -572,6 +605,29 @@ export const addListing = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     await ensureProfile(sql, context.userId);
+    const fees = await loadFees(sql);
+    const min = minAskingCents(fees);
+    if (data.priceCents < min) {
+      throw new Error(`Asking has to be at least $${(min / 100).toFixed(min % 100 === 0 ? 0 : 2)}.`);
+    }
+    if (data.floorCents > data.priceCents) {
+      throw new Error("Lowest price can’t be higher than asking.");
+    }
+    if (data.floorCents < min) {
+      throw new Error(`Lowest price has to be at least $${(min / 100).toFixed(min % 100 === 0 ? 0 : 2)}.`);
+    }
+    const listFee = fees.find((row) => row.id === "list");
+    if (listFee?.enabled && listFee.amountCents > 0) {
+      const seller = await ensureProfile(sql, context.userId);
+      if (seller.walletCents < listFee.amountCents) {
+        throw new Error("Add to your wallet to cover the list-an-item fee. See Fees.");
+      }
+      await sql`update profiles set wallet_cents = wallet_cents - ${listFee.amountCents} where id = ${context.userId}`;
+      await sql`
+        insert into wallet_tx (id, user_id, kind, amount_cents, note)
+        values (${crypto.randomUUID()}, ${context.userId}, ${"list"}, ${-listFee.amountCents}, ${"List an item"})
+      `;
+    }
     const sale = await sql<{ id: string; seller_id: string; neighborhood: string }>`
       select id, seller_id, neighborhood from sales where id = ${data.saleId} and seller_id = ${context.userId}
     `;
@@ -579,11 +635,11 @@ export const addListing = createServerFn({ method: "POST" })
     const id = crypto.randomUUID();
     await sql`
       insert into listings (
-        id, sale_id, seller_id, title, description, price_cents, buy_now_cents, original_cents,
+        id, sale_id, seller_id, title, description, price_cents, buy_now_cents, original_cents, floor_cents,
         category, condition, haul, neighborhood, handoff_modes, photo_url, status
       ) values (
         ${id}, ${data.saleId}, ${context.userId}, ${data.title}, ${data.description ?? ""},
-        ${data.priceCents}, ${data.buyNowCents ?? data.priceCents}, ${null},
+        ${data.priceCents}, ${data.buyNowCents ?? data.priceCents}, ${null}, ${data.floorCents},
         ${data.category}, ${data.condition}, ${data.haul}, ${sale[0].neighborhood},
         ${splitModes(data.handoffModes.join(",")).join(",")}, ${data.photoUrl}, ${"live"}
       )
@@ -609,10 +665,10 @@ export const sendOffer = createServerFn({ method: "POST" })
       id: string;
       seller_id: string;
       price_cents: number;
-      buy_now_cents: number | null;
+      floor_cents: number | null;
       status: string;
       title: string;
-    }>`select id, seller_id, price_cents, buy_now_cents, status, title from listings where id = ${data.listingId}`;
+    }>`select id, seller_id, price_cents, floor_cents, status, title from listings where id = ${data.listingId}`;
     const item = listing[0];
     if (!item || item.status !== "live") throw new Error("This item isn’t available.");
     if (item.seller_id === context.userId) throw new Error("You can’t offer on your own listing.");
@@ -620,43 +676,37 @@ export const sendOffer = createServerFn({ method: "POST" })
       select id, status from offers where listing_id = ${data.listingId} and buyer_id = ${context.userId}
       order by created_at desc limit 1
     `;
-    if (existing[0] && existing[0].status !== "declined") {
-      throw new Error("You already have an open offer on this item.");
+    if (existing[0]) {
+      throw new Error("You already used your one offer on this item. You can still pay asking.");
+    }
+    const ask = Number(item.price_cents);
+    const floor = Number(item.floor_cents ?? item.price_cents);
+    if (data.amountCents >= ask) {
+      throw new Error("That’s asking or more. Pay asking to hold it.");
     }
     const id = crypto.randomUUID();
     let status: Offer["status"] = "pending";
-    let counter: number | null = null;
-    const ask = Number(item.price_cents);
-    if (isSeedUser(item.seller_id)) {
-      if (data.amountCents >= ask) status = "accepted";
-      else if (data.amountCents >= Math.round(ask * 0.75)) {
-        status = "countered";
-        counter = Math.round((data.amountCents + ask) / 2);
-      }
+    let declinedBy: "floor" | null = null;
+    if (data.amountCents < floor) {
+      status = "declined";
+      declinedBy = "floor";
+    } else if (isSeedUser(item.seller_id)) {
+      status = "accepted";
     }
     await sql`
-      insert into offers (id, listing_id, buyer_id, seller_id, amount_cents, counter_cents, status, note)
-      values (${id}, ${data.listingId}, ${context.userId}, ${item.seller_id}, ${data.amountCents}, ${counter}, ${status}, ${data.note ?? null})
+      insert into offers (id, listing_id, buyer_id, seller_id, amount_cents, counter_cents, status, declined_by, note)
+      values (${id}, ${data.listingId}, ${context.userId}, ${item.seller_id}, ${data.amountCents}, ${null}, ${status}, ${declinedBy}, ${data.note ?? null})
     `;
-    if (isSeedUser(item.seller_id) && status === "countered") {
+    if (status === "accepted") {
       await sql`
         insert into messages (id, listing_id, from_id, to_id, body)
         values (
           ${crypto.randomUUID()}, ${data.listingId}, ${item.seller_id}, ${context.userId},
-          ${"I can meet you in the middle — take a look at the counter."}
+          ${"Yes. Pay to hold it, then we’ll confirm at the handoff location."}
         )
       `;
     }
-    if (isSeedUser(item.seller_id) && status === "accepted") {
-      await sql`
-        insert into messages (id, listing_id, from_id, to_id, body)
-        values (
-          ${crypto.randomUUID()}, ${data.listingId}, ${item.seller_id}, ${context.userId},
-          ${"Offer accepted. Pay from your wallet and I’ll confirm pickup."}
-        )
-      `;
-    }
-    return { id, status, counterCents: counter };
+    return { id, status, counterCents: null as number | null, declinedBy };
   });
 
 export const respondOffer = createServerFn({ method: "POST" })
@@ -679,7 +729,15 @@ export const respondOffer = createServerFn({ method: "POST" })
       buyer_id: string;
       seller_id: string;
       status: string;
-    }>`select id, listing_id, buyer_id, seller_id, status from offers where id = ${data.offerId}`;
+      floor_cents: number | null;
+      price_cents: number;
+    }>`
+      select o.id, o.listing_id, o.buyer_id, o.seller_id, o.status,
+             l.floor_cents, l.price_cents
+      from offers o
+      join listings l on l.id = o.listing_id
+      where o.id = ${data.offerId}
+    `;
     const offer = rows[0];
     if (!offer) throw new Error("Offer not found.");
     const isSeller = offer.seller_id === context.userId;
@@ -689,18 +747,60 @@ export const respondOffer = createServerFn({ method: "POST" })
       throw new Error("This offer is already closed.");
     }
     if (data.action === "counter") {
-      if (!data.counterCents) throw new Error("Enter a counter.");
+      if (!isSeller) throw new Error("Only the seller can send a counteroffer.");
+      if (offer.status !== "pending") throw new Error("You already sent one counteroffer.");
+      if (!data.counterCents) throw new Error("Enter a counteroffer.");
+      const floor = Number(offer.floor_cents ?? offer.price_cents);
+      const ask = Number(offer.price_cents);
+      if (data.counterCents < floor || data.counterCents > ask) {
+        throw new Error("Counteroffer has to sit between your lowest and asking.");
+      }
       await sql`
         update offers set status = ${"countered"}, counter_cents = ${data.counterCents}, updated_at = now()
         where id = ${offer.id}
       `;
+      const dollars = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: data.counterCents % 100 === 0 ? 0 : 2,
+      }).format(data.counterCents / 100);
+      await sql`
+        insert into messages (id, listing_id, from_id, to_id, body)
+        values (
+          ${crypto.randomUUID()}, ${offer.listing_id}, ${context.userId}, ${offer.buyer_id},
+          ${`Counteroffer: ${dollars}. Pay that to hold it, or decline — that ends the offer.`}
+        )
+      `;
       return { ok: true };
     }
     if (data.action === "decline") {
-      await sql`update offers set status = ${"declined"}, updated_at = now() where id = ${offer.id}`;
+      if (isSeller && offer.status !== "pending") {
+        throw new Error("You already answered. One decline each.");
+      }
+      if (isBuyer && offer.status === "pending") {
+        /* buyer walks away before a reply — their one pass */
+      } else if (isBuyer && offer.status !== "countered") {
+        throw new Error("This offer is already closed.");
+      }
+      const who = isSeller ? "seller" : "buyer";
+      await sql`
+        update offers set status = ${"declined"}, declined_by = ${who}, updated_at = now()
+        where id = ${offer.id}
+      `;
       return { ok: true };
     }
+    if (!isSeller) throw new Error("Only the seller can say yes.");
+    if (offer.status !== "pending" && offer.status !== "countered") {
+      throw new Error("This offer is already closed.");
+    }
     await sql`update offers set status = ${"accepted"}, updated_at = now() where id = ${offer.id}`;
+    await sql`
+      insert into messages (id, listing_id, from_id, to_id, body)
+      values (
+        ${crypto.randomUUID()}, ${offer.listing_id}, ${context.userId}, ${offer.buyer_id},
+        ${"Yes. Pay to hold it, then we’ll confirm at the handoff location."}
+      )
+    `;
     return { ok: true };
   });
 
@@ -795,18 +895,29 @@ export const buyNow = createServerFn({ method: "POST" })
           }
         : null,
     );
-    const fee = feeOn(base, me.isPremium);
-    const total = base + fee;
+    const fees = await loadFees(sql);
+    const quote = checkoutQuote(
+      fees,
+      base,
+      me.isPremium,
+      data.meet === "person" ? "person" : data.meet === "public" ? "public" : "official",
+    );
+    const fee = quote.buyerFeeCents + quote.handoffFeeCents;
+    const total = quote.youPayCents;
     const meet = data.meet ?? (canonicalizeMode(data.handoffType) === "person" ? "person" : "partner");
     let handoffType: HandoffMode = "official";
     let spotId: string | null = item.handoff_spot_id;
+    const modes = splitModes(item.handoff_modes);
     if (meet === "person") {
-      if (!splitModes(item.handoff_modes).includes("person")) {
-        throw new Error("Person to person isn’t offered on this item. Meet at the partner store.");
+      if (!modes.includes("person")) {
+        throw new Error("In person handoff isn’t offered on this item. Pick another handoff location.");
       }
       handoffType = "person";
       spotId = null;
     } else if (meet === "public") {
+      if (!modes.includes("public")) {
+        throw new Error("Public place handoff isn’t offered on this item. Pick another handoff location.");
+      }
       handoffType = "official";
       const wanted = data.handoffSpotId ?? null;
       const chosen = wanted
@@ -825,7 +936,11 @@ export const buyNow = createServerFn({ method: "POST" })
             limit 1
           `;
       spotId = fallback[0]?.id ?? null;
-      if (!spotId) throw new Error("No public place in this neighborhood yet. Meet at the partner store.");
+      if (!spotId) throw new Error("No public place handoff in this neighborhood yet. Pick another handoff location.");
+    } else {
+      if (!modes.includes("official")) {
+        throw new Error("Official store handoff isn’t offered on this item. Pick another handoff location.");
+      }
     }
     if (me.walletCents < total) {
       throw new Error(`Add ${Math.ceil((total - me.walletCents) / 100)} more to your wallet to pay.`);
@@ -906,6 +1021,7 @@ export const getInbox = createServerFn({ method: "GET" })
       listing_id: string;
       listing_title: string;
       listing_photo: string;
+      listing_price_cents: number;
       buyer_id: string;
       buyer_handle: string;
       seller_id: string;
@@ -913,12 +1029,14 @@ export const getInbox = createServerFn({ method: "GET" })
       amount_cents: number;
       counter_cents: number | null;
       status: Offer["status"];
+      declined_by: string | null;
       note: string | null;
       created_at: string;
     }>`
       select o.id, o.listing_id, l.title as listing_title, l.photo_url as listing_photo,
+             l.price_cents as listing_price_cents,
              o.buyer_id, b.handle as buyer_handle, o.seller_id, se.handle as seller_handle,
-             o.amount_cents, o.counter_cents, o.status, o.note, o.created_at
+             o.amount_cents, o.counter_cents, o.status, o.declined_by, o.note, o.created_at
       from offers o
       join listings l on l.id = o.listing_id
       join profiles b on b.id = o.buyer_id
@@ -931,6 +1049,7 @@ export const getInbox = createServerFn({ method: "GET" })
       listingId: r.listing_id,
       listingTitle: r.listing_title,
       listingPhoto: r.listing_photo,
+      listingPriceCents: Number(r.listing_price_cents),
       buyerId: r.buyer_id,
       buyerHandle: r.buyer_handle,
       sellerId: r.seller_id,
@@ -938,6 +1057,7 @@ export const getInbox = createServerFn({ method: "GET" })
       amountCents: Number(r.amount_cents),
       counterCents: r.counter_cents == null ? null : Number(r.counter_cents),
       status: r.status,
+      declinedBy: r.declined_by === "buyer" || r.declined_by === "seller" || r.declined_by === "floor" ? r.declined_by : null,
       note: r.note,
       createdAt: r.created_at,
     });
@@ -1107,3 +1227,67 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
     await sql.query(`delete from "user" where id = $1`, [uid]);
     return { ok: true as const };
   });
+
+export const getFeeTable = createServerFn({ method: "GET" }).handler(async () => {
+  const sql = await getSql();
+  await ensureSeed(sql);
+  const userId = await optionalUserId();
+  let isStaff = false;
+  let canClaim = false;
+  if (userId) {
+    const me = await ensureProfile(sql, userId);
+    isStaff = me.isStaff;
+    const staff = await sql<{ n: number }>`select count(*)::int as n from profiles where is_staff = true`;
+    canClaim = !isStaff && Number(staff[0]?.n ?? 0) === 0;
+  }
+  return { fees: await loadFees(sql), isStaff, canClaim, signedIn: Boolean(userId) };
+});
+
+export const claimOperator = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    await ensureSeed(sql);
+    const staff = await sql<{ n: number }>`select count(*)::int as n from profiles where is_staff = true`;
+    if (Number(staff[0]?.n ?? 0) > 0) {
+      throw new Error("An operator account is already set.");
+    }
+    await ensureProfile(sql, context.userId);
+    await sql`update profiles set is_staff = true where id = ${context.userId}`;
+    return { ok: true as const };
+  });
+
+export const saveFee = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) =>
+    z
+      .object({
+        id: z.string().min(1),
+        percentBps: z.number().int().min(0).max(10000).optional(),
+        amountCents: z.number().int().min(0).max(10_000_000).optional(),
+        enabled: z.boolean().optional(),
+        label: z.string().min(1).max(80).optional(),
+        description: z.string().min(1).max(400).optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensureSeed(sql);
+    const me = await ensureProfile(sql, context.userId);
+    if (!me.isStaff) throw new Error("Only the operator can change the fee table.");
+    const current = await sql<{ id: string }>`select id from rummlee_fees where id = ${data.id}`;
+    if (!current[0]) throw new Error("Unknown fee.");
+    await sql`
+      update rummlee_fees set
+        percent_bps = coalesce(${data.percentBps ?? null}, percent_bps),
+        amount_cents = coalesce(${data.amountCents ?? null}, amount_cents),
+        enabled = coalesce(${data.enabled ?? null}, enabled),
+        label = coalesce(${data.label ?? null}, label),
+        description = coalesce(${data.description ?? null}, description),
+        updated_at = now()
+      where id = ${data.id}
+    `;
+    return { fees: await loadFees(sql) };
+  });
+

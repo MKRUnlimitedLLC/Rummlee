@@ -29,7 +29,7 @@ export const Route = createRootRoute({
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-      { name: "description", content: "The good stuff, before Saturday. Neighborhood finds for women in the city and the suburbs." },
+      { name: "description", content: "The good stuff, before Saturday. Neighborhood finds in the city and the suburbs." },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },

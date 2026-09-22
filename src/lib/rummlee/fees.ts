@@ -1,0 +1,267 @@
+export type FeeUnit = "percent" | "cents" | "none";
+export type FeeChargedTo = "buyer" | "seller" | "none";
+export type FeeWhen = "checkout" | "listing" | "upgrade" | "never";
+
+export type FeeRow = {
+  id: string;
+  label: string;
+  description: string;
+  unit: FeeUnit;
+  percentBps: number;
+  amountCents: number;
+  chargedTo: FeeChargedTo;
+  chargedWhen: FeeWhen;
+  sort: number;
+  enabled: boolean;
+};
+
+/** Every Rummlee fee, each independently adjustable. Zero / none = free. */
+export const DEFAULT_FEES: FeeRow[] = [
+  {
+    id: "browse",
+    label: "Browse",
+    description: "Looking at listings. Always free.",
+    unit: "none",
+    percentBps: 0,
+    amountCents: 0,
+    chargedTo: "none",
+    chargedWhen: "never",
+    sort: 10,
+    enabled: true,
+  },
+  {
+    id: "list",
+    label: "List an item",
+    description: "Charged to the seller when a listing goes live. $0 means free to list.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 0,
+    chargedTo: "seller",
+    chargedWhen: "listing",
+    sort: 20,
+    enabled: true,
+  },
+  {
+    id: "min_asking",
+    label: "Minimum asking",
+    description: "Floor for an asking price. Not a fee — listings below this cannot publish.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 500,
+    chargedTo: "none",
+    chargedWhen: "listing",
+    sort: 30,
+    enabled: true,
+  },
+  {
+    id: "buyer_standard",
+    label: "Buyer fee",
+    description: "Added on top of asking at checkout for everyone without Premium.",
+    unit: "percent",
+    percentBps: 1000,
+    amountCents: 0,
+    chargedTo: "buyer",
+    chargedWhen: "checkout",
+    sort: 40,
+    enabled: true,
+  },
+  {
+    id: "buyer_premium",
+    label: "Buyer fee with Premium",
+    description: "Checkout fee when the buyer has Rummlee Premium. Independent of the standard buyer fee.",
+    unit: "percent",
+    percentBps: 500,
+    amountCents: 0,
+    chargedTo: "buyer",
+    chargedWhen: "checkout",
+    sort: 50,
+    enabled: true,
+  },
+  {
+    id: "premium_switch",
+    label: "Premium switch",
+    description: "One-time in-app charge to turn Premium on. Not an Apple In-App Purchase in this build.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 400,
+    chargedTo: "buyer",
+    chargedWhen: "upgrade",
+    sort: 60,
+    enabled: true,
+  },
+  {
+    id: "seller_payout",
+    label: "Seller payout fee",
+    description: "Taken from asking when the hold releases. $0 / 0% means the seller receives the full asking price.",
+    unit: "percent",
+    percentBps: 0,
+    amountCents: 0,
+    chargedTo: "seller",
+    chargedWhen: "checkout",
+    sort: 70,
+    enabled: true,
+  },
+  {
+    id: "official_handoff",
+    label: "Official store handoff",
+    description: "Added at checkout when the buyer picks an official store handoff location. Independent of the buyer fee.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 0,
+    chargedTo: "buyer",
+    chargedWhen: "checkout",
+    sort: 80,
+    enabled: true,
+  },
+  {
+    id: "public_handoff",
+    label: "Public place handoff",
+    description: "Added at checkout when the buyer picks a public place handoff location.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 0,
+    chargedTo: "buyer",
+    chargedWhen: "checkout",
+    sort: 90,
+    enabled: true,
+  },
+  {
+    id: "person_handoff",
+    label: "In person handoff",
+    description: "Added at checkout when the buyer picks an in person handoff location.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 0,
+    chargedTo: "buyer",
+    chargedWhen: "checkout",
+    sort: 100,
+    enabled: true,
+  },
+  {
+    id: "cancel",
+    label: "Cancel after pay",
+    description: "Charged if a paid order is cancelled before pickup. $0 means no cancel fee.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 0,
+    chargedTo: "buyer",
+    chargedWhen: "checkout",
+    sort: 110,
+    enabled: true,
+  },
+  {
+    id: "wallet_topup",
+    label: "Wallet top-up",
+    description: "Added when credits are added to a wallet. $0 means top-ups are free of a service charge.",
+    unit: "percent",
+    percentBps: 0,
+    amountCents: 0,
+    chargedTo: "buyer",
+    chargedWhen: "upgrade",
+    sort: 120,
+    enabled: true,
+  },
+];
+
+export function mapFeeRow(row: {
+  id: string;
+  label: string;
+  description: string;
+  unit: string;
+  percent_bps: number;
+  amount_cents: number;
+  charged_to: string;
+  charged_when: string;
+  sort: number;
+  enabled: boolean;
+}): FeeRow {
+  return {
+    id: row.id,
+    label: row.label,
+    description: row.description,
+    unit: row.unit as FeeUnit,
+    percentBps: Number(row.percent_bps),
+    amountCents: Number(row.amount_cents),
+    chargedTo: row.charged_to as FeeChargedTo,
+    chargedWhen: row.charged_when as FeeWhen,
+    sort: Number(row.sort),
+    enabled: Boolean(row.enabled),
+  };
+}
+
+export function feeById(table: FeeRow[], id: string) {
+  return table.find((row) => row.id === id && row.enabled) ?? table.find((row) => row.id === id) ?? null;
+}
+
+export function percentOf(cents: number, bps: number) {
+  return Math.round((cents * bps) / 10000);
+}
+
+export function formatFeeValue(row: FeeRow) {
+  if (!row.enabled) return "Off";
+  if (row.unit === "none" || (row.unit === "percent" && row.percentBps === 0 && row.amountCents === 0) || (row.unit === "cents" && row.amountCents === 0 && row.percentBps === 0)) {
+    if (row.unit === "percent" && row.percentBps === 0) return "0%";
+    if (row.unit === "cents" && row.amountCents === 0) return "$0";
+    return "Free";
+  }
+  if (row.unit === "percent") {
+    const pct = row.percentBps / 100;
+    return `${pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2)}%`;
+  }
+  if (row.unit === "cents") {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: row.amountCents % 100 === 0 ? 0 : 2,
+    }).format(row.amountCents / 100);
+  }
+  return "Free";
+}
+
+export function minAskingCents(table: FeeRow[]) {
+  const row = feeById(table, "min_asking");
+  return row?.amountCents && row.amountCents > 0 ? row.amountCents : 500;
+}
+
+export type CheckoutQuote = {
+  baseCents: number;
+  buyerFeeCents: number;
+  sellerFeeCents: number;
+  handoffFeeCents: number;
+  youPayCents: number;
+  youGetCents: number;
+  buyerFeeId: string;
+  handoffFeeId: string | null;
+};
+
+export function checkoutQuote(
+  table: FeeRow[],
+  baseCents: number,
+  premium: boolean,
+  handoff: "official" | "public" | "person" | "partner" | null,
+): CheckoutQuote {
+  const fees = table.length ? table : DEFAULT_FEES;
+  const buyerId = premium ? "buyer_premium" : "buyer_standard";
+  const buyer = feeById(fees, buyerId);
+  const seller = feeById(fees, "seller_payout");
+  const handId =
+    handoff === "public" ? "public_handoff" : handoff === "person" ? "person_handoff" : handoff ? "official_handoff" : null;
+  const hand = handId ? feeById(fees, handId) : null;
+  const buyerFeeCents = buyer?.enabled ? (buyer.unit === "percent" ? percentOf(baseCents, buyer.percentBps) : buyer.amountCents) : 0;
+  const sellerFeeCents = seller?.enabled
+    ? seller.unit === "percent"
+      ? percentOf(baseCents, seller.percentBps)
+      : seller.amountCents
+    : 0;
+  const handoffFeeCents = hand?.enabled ? (hand.unit === "percent" ? percentOf(baseCents, hand.percentBps) : hand.amountCents) : 0;
+  return {
+    baseCents,
+    buyerFeeCents,
+    sellerFeeCents,
+    handoffFeeCents,
+    youPayCents: baseCents + buyerFeeCents + handoffFeeCents,
+    youGetCents: baseCents - sellerFeeCents,
+    buyerFeeId: buyerId,
+    handoffFeeId: handId,
+  };
+}

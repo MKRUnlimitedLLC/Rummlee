@@ -66,9 +66,21 @@ export const SALE_KINDS = [
 ] as const;
 
 export const HANDOFF_MODES = [
-  { id: "official", label: "Partner store", hint: "Default. Official Rummlee partner. Locker or pickup desk, store hours." },
-  { id: "public", label: "Public place", hint: "Backup. Park, library, or civic lot. Still no home address." },
-  { id: "person", label: "Person to person", hint: "Optional. Still a handle — still no home address posted." },
+  {
+    id: "official",
+    label: "Official store handoff",
+    hint: "A Rummlee partner store. Locker or pickup desk, store hours. You choose whether to offer it.",
+  },
+  {
+    id: "public",
+    label: "Public place handoff",
+    hint: "Park, library, or civic lot. Still no home address. You choose whether to offer it.",
+  },
+  {
+    id: "person",
+    label: "In person handoff",
+    hint: "Meet in person as handles. Still no home address on the listing. You choose whether to offer it.",
+  },
 ] as const;
 
 export const HANDLE_ADJ = [

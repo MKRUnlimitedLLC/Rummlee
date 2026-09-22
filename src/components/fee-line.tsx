@@ -1,55 +1,15 @@
+import { Link } from "@tanstack/react-router";
 import { HOLD_LINE } from "@/lib/rummlee/constants";
-import { money, payQuote } from "@/lib/rummlee/format";
+import { checkoutQuote, type FeeRow } from "@/lib/rummlee/fees";
+import { money } from "@/lib/rummlee/format";
 import { cn } from "@/lib/utils";
 
-/** Glance price for a card: You pay is the hero. Asking and fee stay on the same line. */
-export function CardPay({ baseCents, premium = false }: { baseCents: number; premium?: boolean }) {
-  const standard = payQuote(baseCents, false);
-  const prem = payQuote(baseCents, true);
-  const hero = premium ? prem : standard;
+/** Listing price only — fees live on /fees and at checkout. */
+export function AskingPrice({ cents, originalCents }: { cents: number; originalCents?: number | null }) {
   return (
     <div className="space-y-1">
-      <p className="font-display text-2xl font-semibold tracking-[-0.03em] text-primary-ink">
-        You pay {money(hero.youPayCents)}
-      </p>
-      <p className="text-sm leading-snug text-muted">
-        Asking {money(standard.baseCents)}
-        <span className="text-subtle"> · </span>
-        Fee {money(hero.feeCents)}
-        <span className="text-subtle"> · </span>
-        {premium ? `Standard ${money(standard.youPayCents)}` : `Premium you pay ${money(prem.youPayCents)}`}
-      </p>
-      <p className="text-sm font-medium text-primary-ink">{HOLD_LINE}</p>
-    </div>
-  );
-}
-
-/** Detail page: You pay leads. Asking, fee, and Premium total follow. */
-export function PdpPay({
-  baseCents,
-  premium = false,
-  originalCents,
-}: {
-  baseCents: number;
-  premium?: boolean;
-  originalCents?: number | null;
-}) {
-  const standard = payQuote(baseCents, false);
-  const prem = payQuote(baseCents, true);
-  const hero = premium ? prem : standard;
-  return (
-    <div className="space-y-1">
-      <p className="font-display text-3xl font-semibold tracking-[-0.03em] text-primary-ink">
-        You pay {money(hero.youPayCents)}
-      </p>
-      <p className="text-sm leading-snug text-fg">
-        Asking {money(standard.baseCents)}
-        <span className="text-muted"> · </span>
-        Fee {money(hero.feeCents)}
-        <span className="text-muted"> · </span>
-        {premium ? `Standard ${money(standard.youPayCents)}` : `Premium you pay ${money(prem.youPayCents)}`}
-      </p>
-      {originalCents != null && originalCents > baseCents ? (
+      <p className="font-display text-3xl font-semibold tracking-[-0.03em] text-primary-ink">{money(cents)}</p>
+      {originalCents != null && originalCents > cents ? (
         <p className="text-sm text-subtle">
           Was <span className="line-through">{money(originalCents)}</span>
         </p>
@@ -59,11 +19,57 @@ export function PdpPay({
   );
 }
 
-/** Asking, fee, and total from one base — 10%, or 5% when the buyer has Premium. */
+/** Checkout only: asking, each fee, You pay. */
+export function CheckoutPay({
+  baseCents,
+  premium,
+  fees,
+  handoff,
+}: {
+  baseCents: number;
+  premium: boolean;
+  fees: FeeRow[];
+  handoff: "official" | "public" | "person" | "partner";
+}) {
+  const quote = checkoutQuote(fees, baseCents, premium, handoff);
+  const buyer = fees.find((row) => row.id === quote.buyerFeeId);
+  const hand = quote.handoffFeeId ? fees.find((row) => row.id === quote.handoffFeeId) : null;
+  return (
+    <div className="space-y-2 rounded-2xl bg-bg px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">Checkout</p>
+      <p className="flex justify-between text-sm">
+        <span className="text-muted">Asking</span>
+        <span className="tabular-nums">{money(quote.baseCents)}</span>
+      </p>
+      {quote.buyerFeeCents > 0 ? (
+        <p className="flex justify-between text-sm">
+          <span className="text-muted">{buyer?.label ?? "Buyer fee"}</span>
+          <span className="tabular-nums">{money(quote.buyerFeeCents)}</span>
+        </p>
+      ) : null}
+      {quote.handoffFeeCents > 0 ? (
+        <p className="flex justify-between text-sm">
+          <span className="text-muted">{hand?.label ?? "Handoff"}</span>
+          <span className="tabular-nums">{money(quote.handoffFeeCents)}</span>
+        </p>
+      ) : null}
+      <p className="flex justify-between font-display text-xl font-semibold tracking-[-0.03em] text-primary-ink">
+        <span>You pay</span>
+        <span className="tabular-nums">{money(quote.youPayCents)}</span>
+      </p>
+      <p className="text-sm font-medium text-primary-ink">{HOLD_LINE}</p>
+      <p className="text-sm text-muted">
+        <Link to="/fees" className="font-medium text-primary-ink">
+          All fees
+        </Link>
+      </p>
+    </div>
+  );
+}
+
 export function FeeLine({
   baseCents,
   premium = false,
-  agreed = false,
   className,
 }: {
   baseCents: number;
@@ -71,17 +77,10 @@ export function FeeLine({
   agreed?: boolean;
   className?: string;
 }) {
-  const quote = payQuote(baseCents, premium);
-  const label = agreed ? "Agreed" : "Asking";
+  const quote = checkoutQuote([], baseCents, premium, "official");
   return (
     <p className={cn("text-sm leading-snug text-muted", className)}>
-      <span className="whitespace-nowrap font-medium text-fg">You pay {money(quote.youPayCents)}</span>
-      <span className="text-subtle"> · </span>
-      <span className="whitespace-nowrap">
-        {label} {money(quote.baseCents)}
-      </span>
-      <span className="text-subtle"> · </span>
-      <span className="whitespace-nowrap">Fee {money(quote.feeCents)}</span>
+      Asking {money(quote.baseCents)}
     </p>
   );
 }

@@ -48,6 +48,7 @@ function SellPage() {
     title: "",
     description: "",
     price: "",
+    floor: "",
     category: "furniture",
     condition: "Good",
     haul: "one",
@@ -84,12 +85,14 @@ function SellPage() {
     mutationFn: () => {
       if (!activeSaleId) throw new Error("Create a sale first.");
       const priceCents = Math.round(Number(item.price) * 100);
+      const floorCents = Math.round(Number(item.floor || item.price) * 100);
       return addListing({
         data: {
           saleId: activeSaleId,
           title: item.title.trim(),
           description: item.description.trim(),
           priceCents,
+          floorCents,
           buyNowCents: priceCents,
           category: item.category,
           condition: item.condition,
@@ -121,7 +124,7 @@ function SellPage() {
     <main className="mx-auto max-w-lg py-6">
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">List it</h1>
       <p className="mt-1 text-muted">
-        Photo, price, and a partner store. Public place is backup. Address stays off the listing.
+        Photo, price, and the handoff locations you offer. Address stays off the listing.
       </p>
       <p className="mt-2 text-sm">
         <Link to="/listings/new" className="font-medium text-primary-ink">
@@ -183,9 +186,9 @@ function SellPage() {
               value={saleForm.handoffSpotId}
               onChange={(e) => setSaleForm((s) => ({ ...s, handoffSpotId: e.target.value }))}
             >
-              <option value="">Closest official partner</option>
+              <option value="">Closest official store</option>
               {hoodSpots.filter((sp) => sp.kind === "partner").length > 0 ? (
-                <optgroup label="Partner stores">
+                <optgroup label="Official store handoff">
                   {hoodSpots
                     .filter((sp) => sp.kind === "partner")
                     .map((sp) => (
@@ -196,7 +199,7 @@ function SellPage() {
                 </optgroup>
               ) : null}
               {hoodSpots.filter((sp) => sp.kind === "public").length > 0 ? (
-                <optgroup label="Public places">
+                <optgroup label="Public place handoff">
                   {hoodSpots
                     .filter((sp) => sp.kind === "public")
                     .map((sp) => (
@@ -207,7 +210,7 @@ function SellPage() {
                 </optgroup>
               ) : null}
             </select>
-            <p className="mt-1 text-sm text-muted">Partner store first. Public place if you need it. Never a home address.</p>
+            <p className="mt-1 text-sm text-muted">Offer official store, public place, in person — any or all. Never a home address.</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -267,7 +270,12 @@ function SellPage() {
           <div>
             <Label htmlFor="price">Asking price</Label>
             <Input id="price" inputMode="decimal" value={item.price} onChange={(e) => setItem((s) => ({ ...s, price: e.target.value }))} required placeholder="40" />
-            <p className="mt-1 text-sm text-muted">$5 minimum. Neighbors can offer under asking.</p>
+            <p className="mt-1 text-sm text-muted">Neighbors see this. They can pay it, or send one offer under it.</p>
+          </div>
+          <div>
+            <Label htmlFor="floor">Lowest you’ll take</Label>
+            <Input id="floor" inputMode="decimal" value={item.floor} onChange={(e) => setItem((s) => ({ ...s, floor: e.target.value }))} placeholder="Hidden from neighbors" />
+            <p className="mt-1 text-sm text-muted">Neighbors never see this. Offers below it are a no. One decline from either of you ends the offer.</p>
           </div>
           <div>
             <Label htmlFor="desc">Describe it to a neighbor</Label>
@@ -327,24 +335,24 @@ function SellGuest() {
   return (
     <GuestGate
       title="List it"
-      body="Photo, price, and a partner store. A public place is backup. A home address never goes on the listing."
+      body="Photo, asking price, and the handoff locations you offer. A home address never goes on the listing."
     >
       <Button asChild className="mt-5 w-full">
         <Link to="/listings/new">Start a photo and asking draft</Link>
       </Button>
-      <p className="mt-2 text-sm text-muted">Save it on this device, then sign in to publish. You can paste a moving or clearout list.</p>
+      <p className="mt-2 text-sm text-muted">Save it on this device, then sign in to publish. You choose which handoff locations to offer — one, two, or all three.</p>
       <ol className="mt-6 space-y-2">
         <li className="rounded-2xl bg-primary-soft px-4 py-3">
-          <p className="text-sm font-medium">1. Partner store</p>
-          <p className="mt-0.5 text-sm text-muted">Default. Locker or pickup desk, store hours.</p>
+          <p className="text-sm font-medium">1. Official store handoff</p>
+          <p className="mt-0.5 text-sm text-muted">Partner store. Locker or pickup desk, store hours.</p>
         </li>
         <li className="rounded-2xl bg-surface px-4 py-3 shadow-[0_0_0_1px_rgba(22,20,18,0.08)]">
-          <p className="text-sm font-medium">2. Public place</p>
-          <p className="mt-0.5 text-sm text-muted">Backup. Park, library, or civic lot.</p>
+          <p className="text-sm font-medium">2. Public place handoff</p>
+          <p className="mt-0.5 text-sm text-muted">Park, library, or civic lot.</p>
         </li>
         <li className="rounded-2xl bg-surface px-4 py-3 shadow-[0_0_0_1px_rgba(22,20,18,0.08)]">
-          <p className="text-sm font-medium">3. Person to person</p>
-          <p className="mt-0.5 text-sm text-muted">Optional. Still no home address.</p>
+          <p className="text-sm font-medium">3. In person handoff</p>
+          <p className="mt-0.5 text-sm text-muted">Meet as handles. Still no home address.</p>
         </li>
       </ol>
     </GuestGate>

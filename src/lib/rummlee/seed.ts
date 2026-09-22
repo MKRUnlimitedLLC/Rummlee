@@ -1,7 +1,8 @@
 import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
+import { DEFAULT_FEES } from "./fees";
 
-const SEED_VERSION = "v7-plains";
+const SEED_VERSION = "v8-floor";
 
 type SeedListing = {
   id: string;
@@ -12,6 +13,7 @@ type SeedListing = {
   priceCents: number;
   buyNowCents: number | null;
   originalCents: number | null;
+  floorCents?: number;
   category: string;
   condition: string;
   haul: string;
@@ -20,7 +22,22 @@ type SeedListing = {
   modes: string;
 };
 
+export async function ensureFees(sql: Sql) {
+  for (const fee of DEFAULT_FEES) {
+    await sql`
+      insert into rummlee_fees (
+        id, label, description, unit, percent_bps, amount_cents, charged_to, charged_when, sort, enabled
+      ) values (
+        ${fee.id}, ${fee.label}, ${fee.description}, ${fee.unit}, ${fee.percentBps}, ${fee.amountCents},
+        ${fee.chargedTo}, ${fee.chargedWhen}, ${fee.sort}, ${fee.enabled}
+      )
+      on conflict (id) do nothing
+    `;
+  }
+}
+
 export async function ensureSeed(sql: Sql) {
+  await ensureFees(sql);
   const existing = await sql<{ value: string }>`select value from app_meta where key = ${"seeded"}`;
   if (existing[0]?.value === SEED_VERSION) return;
 
@@ -502,13 +519,14 @@ export async function ensureSeed(sql: Sql) {
   ];
 
   for (const l of listings) {
+    const floor = Math.min(l.priceCents, Math.max(500, Math.round((l.priceCents * 0.85) / 100) * 100));
     await sql`
       insert into listings (
-        id, sale_id, seller_id, title, description, price_cents, buy_now_cents, original_cents,
+        id, sale_id, seller_id, title, description, price_cents, buy_now_cents, original_cents, floor_cents,
         category, condition, haul, neighborhood, handoff_modes, photo_url, status
       ) values (
         ${l.id}, ${l.saleId}, ${l.sellerId}, ${l.title}, ${l.description}, ${l.priceCents},
-        ${l.buyNowCents}, ${l.originalCents}, ${l.category}, ${l.condition}, ${l.haul},
+        ${l.buyNowCents}, ${l.originalCents}, ${l.floorCents ?? floor}, ${l.category}, ${l.condition}, ${l.haul},
         ${l.neighborhood}, ${l.modes}, ${l.photo}, ${"live"}
       )
       on conflict (id) do nothing

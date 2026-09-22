@@ -12,7 +12,7 @@ function Terms() {
       <LegalSection title="The short version">
         <p>
           Rummlee is a local pre-sale for neighborhood, moving, and home clear-out sales. You deal under a handle.
-          Pickup is at an official partner store unless you choose a public place or person to person. Nothing ships. Addresses are
+          Pickup is at a handoff location the seller offers — official store, public place, and/or in person. Nothing ships. Addresses are
           not posted. You are responsible for what you list and what you buy.
         </p>
       </LegalSection>
@@ -27,16 +27,17 @@ function Terms() {
       <LegalSection title="Listings and pickup">
         <p>
           List only items you have the right to sell. No stolen goods, weapons, explosives, drugs, or anything illegal
-          to transfer where you live. Photos should match the item. Meet at the listed partner store, or a public place
-          or person to person if you both opt in. Confirm pickup with the code so the hold can release.
+          to transfer where you live. Photos should match the item. Meet at the listed handoff location. Confirm pickup
+          with the code so the hold can release.
         </p>
       </LegalSection>
 
       <LegalSection title="Money">
         <p>
-          Offers and buy-now use an in-app wallet. Credits are held until both of you confirm pickup. The service fee is
-          10% of the item price, or 5% with Rummlee Premium ($4 in-app). Wallet top-ups in this version credit your
-          balance inside Rummlee; they are not a bank transfer or a card charge through Apple.
+          Offers and buy-now use an in-app wallet. Credits are held until both of you confirm pickup. Every Rummlee fee
+          lives on the Fees page and is applied at checkout from that live table — not as a surprise on a listing card.
+          Wallet top-ups in this version credit your balance inside Rummlee; they are not a bank transfer or a card
+          charge through Apple.
         </p>
         <p>
           If we later take real payments, digital extras such as Premium would go through the platform’s required

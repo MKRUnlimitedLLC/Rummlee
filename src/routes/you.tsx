@@ -72,9 +72,14 @@ function YouPage() {
         <ul className="mt-6 space-y-2 text-sm text-muted">
           <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">A handle, not your name</li>
           <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
-            Wallet held until both of you scan
+            Wallet held until you both confirm
           </li>
-          <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">Fees 10% · Premium 5%</li>
+          <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
+            <Link to="/fees" className="font-medium text-primary-ink">
+              Fees
+            </Link>{" "}
+            — one table, applied at checkout
+          </li>
         </ul>
       </GuestGate>
     );
@@ -225,12 +230,11 @@ function How() {
           listing.
         </li>
         <li>
-          <strong>Partner stores.</strong> Meet at a grocery or home store with a Rummlee locker or pickup
-          desk. Scan to confirm. The seller is paid after both of you do.
+          <strong>Handoff locations.</strong> Official store, public place, or in person — the seller chooses which
+          to offer. Scan to confirm. The seller is paid after both of you do.
         </li>
         <li>
-          <strong>Public place is backup.</strong> Park or library if a partner doesn’t work. Person to person is
-          optional — still no address posted.
+          <strong>Never a home address.</strong> Even in person, you meet as handles.
         </li>
       </ul>
     </section>

@@ -1,32 +1,9 @@
+import { HANDOFF_MODES } from "@/lib/rummlee/constants";
 import { splitModes } from "@/lib/rummlee/format";
 import type { HandoffMode } from "@/lib/rummlee/types";
 import { cn } from "@/lib/utils";
 
-const ROWS: { id: HandoffMode; label: string; hint: string; badge: string | null; locked: boolean }[] = [
-  {
-    id: "official",
-    label: "Partner store",
-    hint: "Default. Locker or pickup desk, store hours.",
-    badge: "Default",
-    locked: true,
-  },
-  {
-    id: "public",
-    label: "Public place",
-    hint: "Backup. Park, library, or civic lot. Still no home address.",
-    badge: "Backup",
-    locked: false,
-  },
-  {
-    id: "person",
-    label: "Person to person",
-    hint: "Optional. Still a handle — still no home address.",
-    badge: null,
-    locked: false,
-  },
-];
-
-/** Partner stays on. Public and person to person are real selectable modes. */
+/** Seller chooses which handoff locations to offer — one, two, or all three. */
 export function ModePicks({
   value,
   onChange,
@@ -36,20 +13,20 @@ export function ModePicks({
 }) {
   return (
     <div>
-      <p className="mb-1.5 text-sm font-medium">How you hand off</p>
+      <p className="mb-1.5 text-sm font-medium">Handoff locations you offer</p>
+      <p className="mb-2 text-sm text-muted">Pick any or all. Neighbors only see what you turn on. A home address never goes on the listing.</p>
       <div className="space-y-2">
-        {ROWS.map((row, index) => {
-          const on = row.locked || value.includes(row.id);
+        {HANDOFF_MODES.map((row, index) => {
+          const on = value.includes(row.id);
           return (
             <button
               key={row.id}
               type="button"
               aria-pressed={on}
               onClick={() => {
-                if (row.locked) return;
                 const next = on ? value.filter((id) => id !== row.id) : [...value, row.id];
-                const withPartner = next.includes("official") ? next : (["official", ...next] as HandoffMode[]);
-                onChange(splitModes(withPartner.join(",")));
+                if (!next.length) return;
+                onChange(splitModes(next.join(",")));
               }}
               className={cn(
                 "flex w-full flex-col items-start rounded-2xl px-4 py-3 text-left",
@@ -58,7 +35,6 @@ export function ModePicks({
             >
               <span className="text-sm font-medium text-fg">
                 {index + 1}. {row.label}
-                {row.badge ? <span className="text-sm font-medium text-primary-ink"> · {row.badge}</span> : null}
               </span>
               <span className="mt-0.5 text-sm text-muted">{row.hint}</span>
             </button>

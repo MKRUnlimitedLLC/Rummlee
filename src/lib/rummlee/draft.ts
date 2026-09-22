@@ -10,6 +10,7 @@ export type DraftLine = {
   id: string;
   title: string;
   price: string;
+  floor: string;
   description: string;
   category: string;
   condition: string;
@@ -30,6 +31,7 @@ export function blankLine(partial?: Partial<DraftLine>): DraftLine {
     id: crypto.randomUUID(),
     title: "",
     price: "",
+    floor: "",
     description: "",
     category: "furniture",
     condition: "Good",
@@ -48,6 +50,11 @@ export function loadDraft(): ListingDraft | null {
     return {
       ...parsed,
       modes: splitModes((parsed.modes ?? ["official"]).join(",")),
+      lines: parsed.lines.map((line) => ({
+        ...blankLine(),
+        ...line,
+        floor: line.floor ?? "",
+      })),
     };
   } catch {
     return null;

@@ -25,7 +25,7 @@ function SalesPage() {
     <main className="py-6">
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">This weekend</h1>
       <p className="mt-1 text-muted">
-        Neighborhood sales from Brooklyn to Scottsdale. Offer now — meet at a partner store, never a home address.
+        Neighborhood sales from Brooklyn to Scottsdale. Offer now — meet at a handoff location, never a home address.
       </p>
 
       <ul className="mt-6 space-y-3">
@@ -57,21 +57,26 @@ function SalesPage() {
         })}
       </ul>
 
-      <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Partner stores</h2>
-      <p className="mt-1 text-sm text-muted">Locker or pickup desk. Store hours, lit lot. Your address stays off the listing.</p>
+      <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Official store handoff</h2>
+      <p className="mt-1 text-sm text-muted">A Rummlee partner store. Locker or pickup desk. Store hours, lit lot. Your address stays off the listing.</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {partners.map((sp) => (
           <SpotCard key={sp.id} spot={sp} featured />
         ))}
       </ul>
 
-      <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Public places</h2>
-      <p className="mt-1 text-sm text-muted">Park, library, or civic lot if a partner store doesn’t work.</p>
+      <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Public place handoff</h2>
+      <p className="mt-1 text-sm text-muted">Park, library, or civic lot — if the seller offers it.</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {publicSpots.map((sp) => (
           <SpotCard key={sp.id} spot={sp} />
         ))}
       </ul>
+
+      <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">In person handoff</h2>
+      <p className="mt-1 text-sm text-muted">
+        No pinned map. If a seller offers it, you still meet as handles. A home address never goes on the listing.
+      </p>
     </main>
   );
 }
@@ -82,10 +87,10 @@ function SpotCard({ spot, featured }: { spot: HandoffSpot; featured?: boolean })
       {featured ? (
         <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary-ink">
           <Store className="size-3.5" />
-          Partner store
+          Official store handoff
         </p>
       ) : (
-        <p className="text-xs font-medium uppercase tracking-wider text-subtle">Public place</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-subtle">Public place handoff</p>
       )}
       <p className="mt-1 font-medium">{spot.name}</p>
       <p className="text-sm text-muted">{spot.area}</p>

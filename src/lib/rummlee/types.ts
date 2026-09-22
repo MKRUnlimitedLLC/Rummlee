@@ -1,4 +1,4 @@
-/** Person to person. Legacy DB rows may still say `porch`; canonicalize on read. */
+/** In person handoff. Legacy DB rows may still say `porch`; canonicalize on read. */
 export type HandoffMode = "official" | "public" | "person";
 export type ListingStatus = "live" | "sold" | "held";
 export type OfferStatus = "pending" | "countered" | "accepted" | "declined";
@@ -11,6 +11,7 @@ export type Profile = {
   neighborhood: string | null;
   zip: string | null;
   isPremium: boolean;
+  isStaff: boolean;
   walletCents: number;
 };
 
@@ -71,6 +72,7 @@ export type Offer = {
   listingId: string;
   listingTitle: string;
   listingPhoto: string;
+  listingPriceCents: number;
   buyerId: string;
   buyerHandle: string;
   sellerId: string;
@@ -78,6 +80,7 @@ export type Offer = {
   amountCents: number;
   counterCents: number | null;
   status: OfferStatus;
+  declinedBy: "buyer" | "seller" | "floor" | null;
   note: string | null;
   createdAt: string;
 };

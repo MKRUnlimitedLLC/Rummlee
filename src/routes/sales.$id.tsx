@@ -49,7 +49,7 @@ function SaleDetail() {
       {spot ? (
         <div className="mt-4 rounded-2xl bg-primary-soft px-4 py-3">
           <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">
-            {spot.kind === "partner" ? "Partner store" : "Public place"}
+            {spot.kind === "partner" ? "Official store handoff" : "Public place handoff"}
           </p>
           <p className="mt-1 font-medium">{spot.name}</p>
           <p className="text-sm text-muted">{spot.hint}</p>

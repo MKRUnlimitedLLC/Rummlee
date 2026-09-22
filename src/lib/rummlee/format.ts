@@ -1,4 +1,5 @@
 import { CATEGORIES, HANDLE_ADJ, HANDLE_NOUN, HAULS, HANDOFF_MODES, HOLD_LINE } from "./constants";
+import { checkoutQuote, DEFAULT_FEES } from "./fees";
 import type { HandoffMode, SpotKind } from "./types";
 
 export function money(cents: number) {
@@ -10,8 +11,7 @@ export function money(cents: number) {
 }
 
 export function feeOn(amountCents: number, premium: boolean) {
-  const rate = premium ? 0.05 : 0.1;
-  return Math.round(amountCents * rate);
+  return checkoutQuote(DEFAULT_FEES, amountCents, premium, "official").buyerFeeCents;
 }
 
 /** Agreed offer price when one is open; otherwise the listing's asking price. */
@@ -24,10 +24,23 @@ export function payBaseCents(
   return askingCents;
 }
 
-/** One base. Fee is 10% of that base, or 5% when the buyer has Premium. */
+export function offerHeadline(status: string) {
+  if (status === "pending") return "Waiting on them";
+  if (status === "countered") return "They sent a counteroffer";
+  if (status === "accepted") return "They said yes";
+  if (status === "declined") return "They declined";
+  return "Offer";
+}
+
+export function agreedOfferCents(offer: { amountCents: number; counterCents: number | null; status: string }) {
+  if (offer.status === "countered" && offer.counterCents != null) return offer.counterCents;
+  return offer.amountCents;
+}
+
+/** One base. Buyer fee comes from the fee table (defaults until the live table loads). */
 export function payQuote(baseCents: number, premium: boolean) {
-  const feeCents = feeOn(baseCents, premium);
-  return { baseCents, feeCents, youPayCents: baseCents + feeCents };
+  const quote = checkoutQuote(DEFAULT_FEES, baseCents, premium, "official");
+  return { baseCents, feeCents: quote.buyerFeeCents + quote.handoffFeeCents, youPayCents: quote.youPayCents };
 }
 
 export function saleWindow(startsOn: string, endsOn: string) {
@@ -62,9 +75,9 @@ export function parseSpotKind(raw: string | null | undefined): SpotKind | null {
 }
 
 export function spotKindLabel(kind: SpotKind | string | null | undefined) {
-  if (kind === "partner") return "Partner store";
-  if (kind === "public") return "Public place";
-  return "Handoff";
+  if (kind === "partner") return "Official store handoff";
+  if (kind === "public") return "Public place handoff";
+  return "Handoff location";
 }
 
 export function cityOf(neighborhood: string) {
