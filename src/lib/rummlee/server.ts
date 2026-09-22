@@ -4,8 +4,9 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
 import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes, canonicalizeMode } from "./format";
-import { checkoutQuote, mapFeeRow, minAskingCents, type FeeRow } from "./fees";
+import { checkoutQuote, feeById, mapFeeRow, minAskingCents, type FeeRow } from "./fees";
 import { MIN_PRICE_CENTS, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
+import { overallThumb, type Thumb } from "./trust";
 import type {
   HandoffMode,
   HandoffSpot,
@@ -14,7 +15,9 @@ import type {
   Message,
   Offer,
   Order,
+  PendingRate,
   Profile,
+  ReceivedDown,
   Sale,
   WalletTx,
 } from "./types";
@@ -45,6 +48,9 @@ type ListingRow = {
   starts_on: string;
   ends_on: string;
   floor_cents: number | null;
+  seller_verified?: boolean;
+  seller_thumbs_up?: number;
+  seller_thumbs_down?: number;
 };
 
 function mapListing(row: ListingRow, saved = false): Listing {
@@ -75,6 +81,9 @@ function mapListing(row: ListingRow, saved = false): Listing {
     saleStartsOn: row.starts_on,
     saleEndsOn: row.ends_on,
     saved,
+    sellerVerified: Boolean(row.seller_verified),
+    sellerThumbsUp: Number(row.seller_thumbs_up ?? 0),
+    sellerThumbsDown: Number(row.seller_thumbs_down ?? 0),
   };
 }
 
@@ -146,7 +155,10 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     plus_until: string | null;
     is_staff: boolean;
     wallet_cents: number;
-  }>`select id, handle, neighborhood, zip, is_premium, plus_plan, plus_until, is_staff, wallet_cents from profiles where id = ${userId}`;
+    verified_at: string | null;
+    thumbs_up: number | null;
+    thumbs_down: number | null;
+  }>`select id, handle, neighborhood, zip, is_premium, plus_plan, plus_until, is_staff, wallet_cents, verified_at, thumbs_up, thumbs_down from profiles where id = ${userId}`;
   if (existing[0]) {
     const p = existing[0];
     const walletCents = await grantTestCredits(sql, userId, Number(p.wallet_cents));
@@ -161,6 +173,9 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
       plusUntil: p.plus_until,
       isStaff: Boolean(p.is_staff),
       walletCents,
+      verified: Boolean(p.verified_at),
+      thumbsUp: Number(p.thumbs_up ?? 0),
+      thumbsDown: Number(p.thumbs_down ?? 0),
     };
   }
   let handle = makeHandle();
@@ -190,7 +205,57 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     plusUntil: null,
     isStaff: false,
     walletCents: start,
+    verified: false,
+    thumbsUp: 0,
+    thumbsDown: 0,
   };
+}
+
+async function recountThumbs(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
+  const rows = await sql<{ overall: string; status: string | null }>`
+    select r.overall, c.status
+    from ratings r
+    left join rating_challenges c on c.rating_id = r.id
+    where r.subject_id = ${userId}
+  `;
+  let up = 0;
+  let down = 0;
+  for (const r of rows) {
+    if (r.status === "removed" || r.status === "open") continue;
+    if (r.overall === "up") up += 1;
+    else down += 1;
+  }
+  await sql`update profiles set thumbs_up = ${up}, thumbs_down = ${down} where id = ${userId}`;
+}
+
+async function loadPendingRates(sql: Awaited<ReturnType<typeof getSql>>, userId: string): Promise<PendingRate[]> {
+  const rows = await sql<{
+    id: string;
+    listing_title: string;
+    listing_photo: string;
+    other_handle: string;
+    role: "buyer" | "seller";
+  }>`
+    select o.id, l.title as listing_title, l.photo_url as listing_photo,
+           case when o.buyer_id = ${userId} then se.handle else b.handle end as other_handle,
+           case when o.buyer_id = ${userId} then ${"buyer"} else ${"seller"} end as role
+    from orders o
+    join listings l on l.id = o.listing_id
+    join profiles b on b.id = o.buyer_id
+    join profiles se on se.id = o.seller_id
+    where o.status = ${"picked_up"}
+      and (o.buyer_id = ${userId} or o.seller_id = ${userId})
+      and not exists (select 1 from ratings r where r.order_id = o.id and r.rater_id = ${userId})
+    order by o.created_at desc
+    limit 12
+  `;
+  return rows.map((r) => ({
+    orderId: r.id,
+    listingTitle: r.listing_title,
+    listingPhoto: r.listing_photo,
+    otherHandle: r.other_handle,
+    role: r.role,
+  }));
 }
 
 const listingSelect = `
@@ -199,7 +264,10 @@ const listingSelect = `
          l.category, l.condition, l.haul, l.size_label, l.neighborhood, l.handoff_modes, l.photo_url,
          l.status, s.starts_on, s.ends_on,
          hs.name as handoff_spot_name, hs.area as handoff_spot_area, hs.hint as handoff_spot_hint,
-         hs.kind as handoff_spot_kind
+         hs.kind as handoff_spot_kind,
+         (p.verified_at is not null) as seller_verified,
+         coalesce(p.thumbs_up, 0) as seller_thumbs_up,
+         coalesce(p.thumbs_down, 0) as seller_thumbs_down
   from listings l
   join sales s on s.id = l.sale_id
   join profiles p on p.id = l.seller_id
@@ -582,6 +650,22 @@ export const getMe = createServerFn({ method: "GET" })
         " join saved_listings sv on sv.listing_id = l.id where sv.user_id = $1 order by sv.created_at desc",
       [context.userId],
     );
+    const pendingRates = await loadPendingRates(sql, context.userId);
+    const receivedDowns = await sql<{
+      rating_id: string;
+      listing_title: string;
+      status: string | null;
+      created_at: string;
+    }>`
+      select r.id as rating_id, l.title as listing_title, c.status, r.created_at
+      from ratings r
+      join orders o on o.id = r.order_id
+      join listings l on l.id = o.listing_id
+      left join rating_challenges c on c.rating_id = r.id
+      where r.subject_id = ${context.userId} and r.overall = ${"down"}
+      order by r.created_at desc
+      limit 20
+    `;
     return {
       me,
       txs: txs.map(
@@ -610,6 +694,17 @@ export const getMe = createServerFn({ method: "GET" })
         }),
       ),
       saved: savedRows.map((r) => mapListing(r, true)),
+      pendingRates,
+      receivedDowns: receivedDowns.map(
+        (r): ReceivedDown => ({
+          ratingId: r.rating_id,
+          listingTitle: r.listing_title,
+          overall: "down",
+          challengeStatus:
+            r.status === "open" || r.status === "upheld" || r.status === "removed" ? r.status : null,
+          createdAt: r.created_at,
+        }),
+      ),
     };
   });
 
@@ -1341,6 +1436,7 @@ export const getInbox = createServerFn({ method: "GET" })
         body: m.body,
         createdAt: m.created_at,
       })),
+      pendingRates: await loadPendingRates(sql, context.userId),
     };
   });
 
@@ -1380,6 +1476,13 @@ export const getOrder = createServerFn({ method: "GET" })
     `;
     const o = rows[0];
     if (!o) return null;
+    const mine = await sql<{ overall: string }>`
+      select overall from ratings where order_id = ${o.id} and rater_id = ${context.userId}
+    `;
+    const iAmBuyer = o.buyer_id === context.userId;
+    const other = iAmBuyer
+      ? await sql<{ verified_at: string | null }>`select verified_at from profiles where id = ${o.seller_id}`
+      : await sql<{ verified_at: string | null }>`select verified_at from profiles where id = ${o.buyer_id}`;
     return {
       id: o.id,
       listingId: o.listing_id,
@@ -1397,7 +1500,118 @@ export const getOrder = createServerFn({ method: "GET" })
       sellerConfirmed: Boolean(o.seller_confirmed),
       handoffType: o.handoff_type,
       createdAt: o.created_at,
+      myRatingOverall: mine[0]?.overall === "up" || mine[0]?.overall === "down" ? mine[0].overall : null,
+      otherVerified: Boolean(other[0]?.verified_at),
     } satisfies Order;
+  });
+
+export const verifyId = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    const me = await ensureProfile(sql, context.userId);
+    if (me.verified) return { verified: true as const, chargedCents: 0 };
+    const fees = await loadFees(sql);
+    const row = feeById(fees, "id_verify");
+    const charge = me.isPremium ? 0 : row?.enabled ? (row.unit === "cents" ? row.amountCents : 0) : 0;
+    if (charge > 0 && me.walletCents < charge) {
+      throw new Error(
+        TEST_MODE ? "Not enough test credits for ID verification." : "Not enough wallet for ID verification.",
+      );
+    }
+    if (charge > 0) {
+      await sql`update profiles set wallet_cents = wallet_cents - ${charge}, verified_at = now() where id = ${me.id}`;
+      await sql`
+        insert into wallet_tx (id, user_id, kind, amount_cents, note)
+        values (
+          ${crypto.randomUUID()},
+          ${me.id},
+          ${"verify"},
+          ${-charge},
+          ${TEST_MODE ? "Test ID verification (no ID photo stored)" : "ID verification (no ID photo stored)"}
+        )
+      `;
+    } else {
+      await sql`update profiles set verified_at = now() where id = ${me.id}`;
+    }
+    return { verified: true as const, chargedCents: charge };
+  });
+
+export const submitRating = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) =>
+    z
+      .object({
+        orderId: z.string(),
+        showedUp: z.enum(["up", "down"]),
+        asAgreed: z.enum(["up", "down"]),
+        respectful: z.enum(["up", "down"]),
+        comment: z.string().max(500).optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensureProfile(sql, context.userId);
+    const rows = await sql<{
+      id: string;
+      buyer_id: string;
+      seller_id: string;
+      status: string;
+    }>`select id, buyer_id, seller_id, status from orders where id = ${data.orderId}`;
+    const order = rows[0];
+    if (!order) throw new Error("Pickup not found.");
+    if (order.status !== "picked_up") throw new Error("Rate after you both confirm pickup.");
+    const isBuyer = order.buyer_id === context.userId;
+    const isSeller = order.seller_id === context.userId;
+    if (!isBuyer && !isSeller) throw new Error("Not your handoff.");
+    const subjectId = isBuyer ? order.seller_id : order.buyer_id;
+    const existing = await sql<{ id: string }>`
+      select id from ratings where order_id = ${order.id} and rater_id = ${context.userId}
+    `;
+    if (existing[0]) throw new Error("You already rated this handoff.");
+    const marks = {
+      showed_up: data.showedUp as Thumb,
+      as_agreed: data.asAgreed as Thumb,
+      respectful: data.respectful as Thumb,
+    };
+    const overall = overallThumb(marks);
+    const comment = data.comment?.trim() ? data.comment.trim() : null;
+    await sql`
+      insert into ratings (
+        id, order_id, rater_id, subject_id, role,
+        showed_up, as_agreed, respectful, overall, comment
+      ) values (
+        ${crypto.randomUUID()}, ${order.id}, ${context.userId}, ${subjectId},
+        ${isBuyer ? "buyer" : "seller"},
+        ${marks.showed_up}, ${marks.as_agreed}, ${marks.respectful}, ${overall}, ${comment}
+      )
+    `;
+    await recountThumbs(sql, subjectId);
+    return { overall };
+  });
+
+export const challengeRating = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ ratingId: z.string(), note: z.string().min(8).max(500) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensureProfile(sql, context.userId);
+    const rows = await sql<{ id: string; subject_id: string; overall: string }>`
+      select id, subject_id, overall from ratings where id = ${data.ratingId}
+    `;
+    const rating = rows[0];
+    if (!rating) throw new Error("Rating not found.");
+    if (rating.subject_id !== context.userId) throw new Error("You can only challenge a thumbs down on you.");
+    if (rating.overall !== "down") throw new Error("Only a thumbs down can be challenged.");
+    const already = await sql<{ id: string }>`select id from rating_challenges where rating_id = ${rating.id}`;
+    if (already[0]) throw new Error("Already challenged.");
+    await sql`
+      insert into rating_challenges (id, rating_id, by_id, note, status)
+      values (${crypto.randomUUID()}, ${rating.id}, ${context.userId}, ${data.note.trim()}, ${"open"})
+    `;
+    await recountThumbs(sql, context.userId);
+    return { ok: true as const };
   });
 
 export const deleteMyAccount = createServerFn({ method: "POST" })
@@ -1420,6 +1634,8 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
          or listing_id in (select id from listings where seller_id = ${uid})
     `;
     await sql`delete from offers where buyer_id = ${uid} or seller_id = ${uid}`;
+    await sql`delete from rating_challenges where by_id = ${uid} or rating_id in (select id from ratings where rater_id = ${uid} or subject_id = ${uid})`;
+    await sql`delete from ratings where rater_id = ${uid} or subject_id = ${uid}`;
     await sql`delete from orders where buyer_id = ${uid} or seller_id = ${uid}`;
     await sql`delete from listings where seller_id = ${uid}`;
     await sql`delete from sales where seller_id = ${uid}`;

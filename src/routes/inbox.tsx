@@ -6,6 +6,7 @@ import { GuestGate, useAuthGate } from "@/components/guest-gate";
 import { errMessage } from "@/lib/rummlee/errors";
 import { money } from "@/lib/rummlee/format";
 import { getInbox, respondOffer } from "@/lib/rummlee/server";
+import { RateHandoff } from "@/components/trust";
 
 export const Route = createFileRoute("/inbox")({ component: InboxPage });
 
@@ -44,7 +45,7 @@ function InboxPage() {
   if (!data) return null;
 
   const empty =
-    data.offersIn.length + data.offersOut.length + data.orders.length + data.messages.length === 0;
+    data.offersIn.length + data.offersOut.length + data.orders.length + data.messages.length + data.pendingRates.length === 0;
 
   return (
     <main className="py-6">
@@ -76,6 +77,16 @@ function InboxPage() {
               </li>
             ))}
           </ul>
+        </section>
+      ) : null}
+
+      {data.pendingRates.length > 0 ? (
+        <section className="mt-6 space-y-3">
+          <h2 className="font-display text-xl">Rate a handoff</h2>
+          <p className="text-sm text-muted">Thumbs up or down. Comment is private. They can challenge a thumbs down.</p>
+          {data.pendingRates.map((p) => (
+            <RateHandoff key={p.orderId} orderId={p.orderId} role={p.role} otherHandle={p.otherHandle} />
+          ))}
         </section>
       ) : null}
 

@@ -35,7 +35,7 @@ export async function ensureFees(sql: Sql) {
       on conflict (id) do nothing
     `;
   }
-  const pack = "plus-v4";
+  const pack = "plus-v5";
   const marked = await sql<{ value: string }>`select value from app_meta where key = ${"fees_pack"}`;
   if (marked[0]?.value === pack) return;
   for (const fee of DEFAULT_FEES) {
@@ -89,6 +89,12 @@ export async function ensureSeed(sql: Sql) {
       on conflict (id) do nothing
     `;
   }
+
+  await sql`
+    update profiles set verified_at = now()
+    where id in (${"seed-linen-lark"}, ${"seed-prairie-row"}, ${"seed-north-loft"})
+      and verified_at is null
+  `;
 
   await sql`alter table handoff_spots add column if not exists kind text not null default 'public'`;
 

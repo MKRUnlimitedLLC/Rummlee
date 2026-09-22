@@ -102,6 +102,18 @@ export const DEFAULT_FEES: FeeRow[] = [
     enabled: true,
   },
   {
+    id: "id_verify",
+    label: "ID verification, one-time",
+    description: "One-time fee to get a Verified badge. Waived with Rummlee Plus. Rummlee does not keep a photo of your ID.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 499,
+    chargedTo: "buyer",
+    chargedWhen: "upgrade",
+    sort: 67,
+    enabled: true,
+  },
+  {
     id: "seller_payout",
     label: "Seller payout fee",
     description: "Taken from asking when the hold releases. $0 / 0% means the seller receives the full asking price.",

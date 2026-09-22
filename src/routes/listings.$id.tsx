@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { AskingPrice, CheckoutPay } from "@/components/fee-line";
 import { BuyerDealStatus, DealSteps, SellerOfferCard } from "@/components/deal";
+import { ThumbTally, VerifiedBadge } from "@/components/trust";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { TEST_MODE } from "@/lib/rummlee/constants";
 import { rememberAfterLogin } from "@/lib/rummlee/draft";
@@ -217,9 +218,11 @@ function ListingPage() {
           <div className="flex flex-col gap-2">
             <h1 className="font-display text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">{listing.title}</h1>
             <AskingPrice cents={listing.priceCents} originalCents={listing.originalCents} />
-            <p className="flex items-center gap-1 text-base text-muted">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base text-muted">
               <MapPin className="size-3.5" />
               {listing.handoffSpotName ?? listing.neighborhood} · @{listing.sellerHandle}
+              <VerifiedBadge verified={listing.sellerVerified} />
+              <ThumbTally up={listing.sellerThumbsUp} down={listing.sellerThumbsDown} />
             </p>
           </div>
           <p className="text-pretty text-base leading-relaxed text-fg">{listing.description}</p>

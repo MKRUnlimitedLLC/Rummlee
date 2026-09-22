@@ -9,6 +9,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { errMessage } from "@/lib/rummlee/errors";
 import { handoffLabel, money } from "@/lib/rummlee/format";
 import { confirmPickup, getOrder } from "@/lib/rummlee/server";
+import { RateHandoff, VerifiedBadge } from "@/components/trust";
 
 export const Route = createFileRoute("/pickup/$id")({ component: PickupPage });
 
@@ -63,6 +64,7 @@ function PickupPage() {
       </p>
       <p className="text-sm text-subtle">
         {iAmBuyer ? `Seller @${order.sellerHandle}` : `Buyer @${order.buyerHandle}`}
+        <VerifiedBadge verified={order.otherVerified} className="ml-2" />
       </p>
 
       <div className="mx-auto mt-6 overflow-hidden rounded-[28px] bg-surface p-6 shadow-[var(--shadow-card)]">
@@ -75,7 +77,21 @@ function PickupPage() {
       </div>
 
       {done ? (
-        <p className="mt-6 text-sm text-success">Both of you confirmed. The seller has been paid.</p>
+        <div className="mt-6 space-y-4">
+          <p className="text-sm text-success">Both of you confirmed. The seller has been paid.</p>
+          {order.myRatingOverall ? (
+            <p className="text-sm text-muted">
+              You rated this handoff {order.myRatingOverall === "up" ? "thumbs up" : "thumbs down"}. Comment stays
+              private.
+            </p>
+          ) : (
+            <RateHandoff
+              orderId={order.id}
+              role={iAmBuyer ? "buyer" : "seller"}
+              otherHandle={iAmBuyer ? order.sellerHandle : order.buyerHandle}
+            />
+          )}
+        </div>
       ) : (
         <form
           className="mt-6 space-y-3 text-left"

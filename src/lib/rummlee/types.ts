@@ -15,6 +15,9 @@ export type Profile = {
   plusUntil: string | null;
   isStaff: boolean;
   walletCents: number;
+  verified: boolean;
+  thumbsUp: number;
+  thumbsDown: number;
 };
 
 export type SpotKind = "partner" | "public";
@@ -48,6 +51,9 @@ export type Listing = {
   saleName: string;
   sellerId: string;
   sellerHandle: string;
+  sellerVerified?: boolean;
+  sellerThumbsUp?: number;
+  sellerThumbsDown?: number;
   title: string;
   description: string;
   priceCents: number;
@@ -116,6 +122,24 @@ export type Order = {
   sellerConfirmed: boolean;
   handoffType: HandoffMode;
   createdAt: string;
+  myRatingOverall?: "up" | "down" | null;
+  otherVerified?: boolean;
+};
+
+export type PendingRate = {
+  orderId: string;
+  listingTitle: string;
+  listingPhoto: string;
+  otherHandle: string;
+  role: "buyer" | "seller";
+};
+
+export type ReceivedDown = {
+  ratingId: string;
+  listingTitle: string;
+  overall: "down";
+  challengeStatus: "open" | "upheld" | "removed" | null;
+  createdAt: string;
 };
 
 export type WalletTx = {
@@ -131,4 +155,5 @@ export type InboxPayload = {
   offersOut: Offer[];
   orders: Order[];
   messages: Message[];
+  pendingRates: PendingRate[];
 };

@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/input";
 import { ListingCard } from "@/components/listing-card";
 import { LegalLinks } from "@/components/legal";
+import { RateHandoff, ThumbTally, VerifiedBadge } from "@/components/trust";
 import { NEIGHBORHOODS, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { errMessage } from "@/lib/rummlee/errors";
 import { money, saleWindow } from "@/lib/rummlee/format";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
-import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount } from "@/lib/rummlee/server";
+import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, verifyId, challengeRating } from "@/lib/rummlee/server";
 
 export const Route = createFileRoute("/you")({ component: YouPage });
 
@@ -61,6 +62,32 @@ function YouPage() {
   });
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [challengeNote, setChallengeNote] = useState("");
+
+  const verify = useMutation({
+    mutationFn: () => verifyId(),
+    onSuccess: (res) => {
+      void qc.invalidateQueries({ queryKey: ["me"] });
+      toast.success(
+        res.chargedCents > 0
+          ? `Verified. ${TEST_MODE ? "Test credits" : "Wallet"} charged ${formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])}. No ID photo stored.`
+          : "Verified. Free with Rummlee Plus. No ID photo stored.",
+      );
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+
+  const challenge = useMutation({
+    mutationFn: () => challengeRating({ data: { ratingId: challengeId!, note: challengeNote } }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["me"] });
+      setChallengeId(null);
+      setChallengeNote("");
+      toast.success("Challenge in. Neighbors won’t see that thumbs down while we look. They never see the comment.");
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
   const removeAccount = useMutation({
     mutationFn: () => deleteMyAccount(),
     onSuccess: async () => {
@@ -100,8 +127,11 @@ function YouPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm text-muted">Your handle</p>
-          <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">@{me?.handle ?? "…"}</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">
+            @{me?.handle ?? "…"} <VerifiedBadge verified={me?.verified} className="ml-1 align-middle" />
+          </h1>
           <p className="mt-1 text-sm text-subtle">Neighbors see this. Your real name stays yours.</p>
+          <ThumbTally up={me?.thumbsUp} down={me?.thumbsDown} className="mt-1 block" />
         </div>
         <UserButton />
       </div>
@@ -124,6 +154,7 @@ function YouPage() {
           <p className="mt-1 text-sm text-muted">
             Official store is {formatFeeValue(feeById(DEFAULT_FEES, "official_handoff") ?? DEFAULT_FEES[0])} each side per
             pickup. Plus waives <em>your</em> side when you buy or sell there. Buyer fee is 0% with Plus, 5% without.
+            ID verification is free with Plus.
           </p>
           {me?.isPremium ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -147,6 +178,99 @@ function YouPage() {
           )}
         </div>
       </section>
+
+      <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+        <p className="font-medium">Verified badge</p>
+        <p className="mt-1 text-sm text-muted">
+          ID check, one time. Free with Plus, or {formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])}.
+          Rummlee does not keep a photo of your ID — neighbors see the badge and your handle, not your name.
+        </p>
+        {me?.verified ? (
+          <p className="mt-3 text-sm text-fg">
+            <VerifiedBadge verified /> You’re verified.
+          </p>
+        ) : (
+          <Button className="mt-3" size="sm" onClick={() => verify.mutate()} disabled={verify.isPending}>
+            {verify.isPending
+              ? "Checking…"
+              : me?.isPremium
+                ? TEST_MODE
+                  ? "Verify ID · free with Plus (test)"
+                  : "Verify ID · free with Plus"
+                : TEST_MODE
+                  ? `Verify ID · ${formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])} test`
+                  : `Verify ID · ${formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])}`}
+          </Button>
+        )}
+      </section>
+
+      {q.data?.pendingRates.length ? (
+        <section className="mt-6 space-y-3">
+          <h2 className="font-display text-xl">Rate a handoff</h2>
+          {q.data.pendingRates.map((p) => (
+            <RateHandoff key={p.orderId} orderId={p.orderId} role={p.role} otherHandle={p.otherHandle} />
+          ))}
+        </section>
+      ) : null}
+
+      {q.data?.receivedDowns.length ? (
+        <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+          <h2 className="font-display text-xl">Thumbs down on you</h2>
+          <p className="mt-1 text-sm text-muted">
+            You see that it happened. You never see their comment. Challenge it if it wasn’t fair — we’ll hide it from
+            neighbors while we look.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {q.data.receivedDowns.map((d) => (
+              <li key={d.ratingId} className="rounded-xl bg-bg px-3 py-3">
+                <p className="font-medium">{d.listingTitle}</p>
+                <p className="text-sm text-muted">
+                  {d.challengeStatus === "open"
+                    ? "Challenged — hidden from neighbors while we look"
+                    : d.challengeStatus === "removed"
+                      ? "Removed after challenge"
+                      : d.challengeStatus === "upheld"
+                        ? "Challenge didn’t stand"
+                        : "Thumbs down"}
+                </p>
+                {!d.challengeStatus ? (
+                  challengeId === d.ratingId ? (
+                    <form
+                      className="mt-2 space-y-2"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        challenge.mutate();
+                      }}
+                    >
+                      <textarea
+                        className="min-h-20 w-full rounded-lg bg-surface px-3 py-2 text-[15px]"
+                        required
+                        minLength={8}
+                        maxLength={500}
+                        value={challengeNote}
+                        onChange={(e) => setChallengeNote(e.target.value)}
+                        placeholder="Why this thumbs down should come off. Private to Rummlee."
+                      />
+                      <div className="flex gap-2">
+                        <Button type="submit" size="sm" disabled={challenge.isPending}>
+                          Submit challenge
+                        </Button>
+                        <Button type="button" size="sm" variant="secondary" onClick={() => setChallengeId(null)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <Button className="mt-2" size="sm" variant="secondary" onClick={() => setChallengeId(d.ratingId)}>
+                      Challenge
+                    </Button>
+                  )
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <Label htmlFor="hood">Your neighborhood</Label>

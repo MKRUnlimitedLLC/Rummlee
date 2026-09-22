@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { MapPin } from "lucide-react";
+import { VerifiedBadge } from "@/components/trust";
 import type { Listing } from "@/lib/rummlee/types";
 import { HOLD_LINE } from "@/lib/rummlee/constants";
 import { checkoutQuote, DEFAULT_FEES } from "@/lib/rummlee/fees";
@@ -54,6 +55,12 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         <p className="text-sm text-subtle">
           {listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : "Handoff location"}
           {" · "}@{listing.sellerHandle}
+          {listing.sellerVerified ? (
+            <>
+              {" · "}
+              <VerifiedBadge verified className="align-middle" />
+            </>
+          ) : null}
         </p>
       </div>
     </Link>
