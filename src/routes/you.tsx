@@ -6,7 +6,7 @@ import { GuestGate, useAuthGate } from "@/components/guest-gate";
 import { UserButton } from "@/lib/auth/gates";
 import { signOut } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/input";
+import { Input, Label } from "@/components/ui/input";
 import { ListingCard } from "@/components/listing-card";
 import { LegalLinks } from "@/components/legal";
 import { RateHandoff, ThumbTally, VerifiedBadge } from "@/components/trust";
@@ -14,7 +14,7 @@ import { NEIGHBORHOODS, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants
 import { errMessage } from "@/lib/rummlee/errors";
 import { money, saleWindow } from "@/lib/rummlee/format";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
-import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, verifyId, challengeRating } from "@/lib/rummlee/server";
+import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, verifyId, challengeRating, releaseIdentity } from "@/lib/rummlee/server";
 
 export const Route = createFileRoute("/you")({ component: YouPage });
 
@@ -64,6 +64,7 @@ function YouPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [challengeNote, setChallengeNote] = useState("");
+  const [releaseHandle, setReleaseHandle] = useState("");
 
   const verify = useMutation({
     mutationFn: () => verifyId(),
@@ -85,6 +86,15 @@ function YouPage() {
       setChallengeId(null);
       setChallengeNote("");
       toast.success("Challenge in. Neighbors won’t see that thumbs down while we look. They never see the comment.");
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+
+  const release = useMutation({
+    mutationFn: () => releaseIdentity({ data: { handle: releaseHandle } }),
+    onSuccess: (res) => {
+      void qc.invalidateQueries({ queryKey: ["me"] });
+      toast.success(`ID live on @${res.handle}. Ratings stayed with the ID.`);
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -184,7 +194,8 @@ function YouPage() {
         <p className="font-medium">Verified badge</p>
         <p className="mt-1 text-sm text-muted">
           ID check, one time. Free with Plus, or {formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])}.
-          Rummlee does not keep a photo of your ID — neighbors see the badge and your handle, not your name.
+          Rummlee does not keep a photo of your ID — neighbors see the badge and your handle, not your name. One live
+          account per ID. A new account does not clear thumbs. Support can reset the live account if you lose access.
         </p>
         {me?.verified ? (
           <p className="mt-3 text-sm text-fg">
@@ -339,10 +350,37 @@ function YouPage() {
 
       <How />
 
+      {me?.isStaff ? (
+        <section className="mt-10 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+          <h2 className="font-display text-xl">Support — ID reset</h2>
+          <p className="mt-2 text-sm text-muted">
+            Makes this handle the live account for that ID. Thumbs do not reset.
+          </p>
+          <form
+            className="mt-3 flex flex-wrap gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              release.mutate();
+            }}
+          >
+            <Input
+              value={releaseHandle}
+              onChange={(e) => setReleaseHandle(e.target.value)}
+              placeholder="handle"
+              className="max-w-xs"
+            />
+            <Button type="submit" size="sm" disabled={release.isPending || releaseHandle.trim().length < 2}>
+              Set live account
+            </Button>
+          </form>
+        </section>
+      ) : null}
+
       <section className="mt-10 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display text-xl">Account</h2>
         <p className="mt-2 text-sm text-muted">
-          Delete removes your handle, listings, messages, and wallet. This cannot be undone.
+          Delete removes your handle, listings, and wallet. Thumbs stay with your ID. A new account on the same ID does
+          not start at zero. One live verified account at a time — email support to reset.
         </p>
         {confirmDelete ? (
           <div className="mt-4 flex flex-wrap gap-2">

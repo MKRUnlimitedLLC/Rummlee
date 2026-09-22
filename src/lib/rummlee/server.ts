@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
@@ -164,6 +165,10 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     const p = existing[0];
     const walletCents = await grantTestCredits(sql, userId, Number(p.wallet_cents));
     const isPremium = plusActive(Boolean(p.is_premium), p.plus_until);
+    await syncIdentity(sql, userId);
+    const thumbs = await sql<{ thumbs_up: number; thumbs_down: number }>`
+      select thumbs_up, thumbs_down from profiles where id = ${userId}
+    `;
     return {
       id: p.id,
       handle: p.handle,
@@ -175,8 +180,8 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
       isStaff: Boolean(p.is_staff),
       walletCents,
       verified: Boolean(p.verified_at),
-      thumbsUp: Number(p.thumbs_up ?? 0),
-      thumbsDown: Number(p.thumbs_down ?? 0),
+      thumbsUp: Number(thumbs[0]?.thumbs_up ?? p.thumbs_up ?? 0),
+      thumbsDown: Number(thumbs[0]?.thumbs_down ?? p.thumbs_down ?? 0),
     };
   }
   let handle = makeHandle();
@@ -196,6 +201,10 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
       values (${crypto.randomUUID()}, ${userId}, ${"beta"}, ${start}, ${"Beta test credits — not real money"})
     `;
   }
+  await syncIdentity(sql, userId);
+  const thumbs = await sql<{ thumbs_up: number; thumbs_down: number }>`
+    select thumbs_up, thumbs_down from profiles where id = ${userId}
+  `;
   return {
     id: userId,
     handle,
@@ -207,8 +216,8 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     isStaff: false,
     walletCents: start,
     verified: false,
-    thumbsUp: 0,
-    thumbsDown: 0,
+    thumbsUp: Number(thumbs[0]?.thumbs_up ?? 0),
+    thumbsDown: Number(thumbs[0]?.thumbs_down ?? 0),
   };
 }
 
@@ -227,6 +236,10 @@ async function recountThumbs(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     else down += 1;
   }
   await sql`update profiles set thumbs_up = ${up}, thumbs_down = ${down} where id = ${userId}`;
+  await sql`
+    update identity_locks set thumbs_up = ${up}, thumbs_down = ${down}, updated_at = now()
+    where profile_id = ${userId}
+  `;
 }
 
 function parseChannel(raw: string | null | undefined): SaleChannel {
@@ -272,6 +285,118 @@ function mapSale(s: SaleMapRow): Sale {
     status: s.status,
     itemCount: Number(s.item_count),
   };
+}
+
+function hashIdentity(raw: string) {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
+async function fingerprintsFor(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
+  const emails = await sql.query<{ email: string }>(`select email from "user" where id = $1`, [userId]);
+  const accounts = await sql.query<{ provider: string; account: string }>(
+    `select "providerId" as provider, "accountId" as account from account where "userId" = $1`,
+    [userId],
+  );
+  const out: { fingerprint: string; kind: string }[] = [];
+  const email = emails[0]?.email?.trim().toLowerCase();
+  if (email) out.push({ fingerprint: hashIdentity(`email:${email}`), kind: "email" });
+  for (const row of accounts) {
+    if (row.provider && row.account) {
+      out.push({ fingerprint: hashIdentity(`oauth:${row.provider}:${row.account}`), kind: "oauth" });
+    }
+  }
+  return out;
+}
+
+/** Ratings follow the ID. A new account with the same email/sign-in does not start at zero. */
+async function syncIdentity(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
+  const fps = await fingerprintsFor(sql, userId);
+  if (!fps.length) return;
+  let up = 0;
+  let down = 0;
+  let saw = false;
+  for (const fp of fps) {
+    const rows = await sql<{
+      profile_id: string;
+      thumbs_up: number;
+      thumbs_down: number;
+    }>`
+      select profile_id, thumbs_up, thumbs_down from identity_locks where fingerprint = ${fp.fingerprint}
+    `;
+    const lock = rows[0];
+    if (!lock) continue;
+    saw = true;
+    up = Number(lock.thumbs_up);
+    down = Number(lock.thumbs_down);
+    if (lock.profile_id !== userId) {
+      const alive = await sql<{ id: string }>`select id from profiles where id = ${lock.profile_id}`;
+      if (!alive[0]) {
+        await sql`update ratings set subject_id = ${userId} where subject_id = ${lock.profile_id}`;
+      }
+    }
+  }
+  if (saw) {
+    await sql`update profiles set thumbs_up = ${up}, thumbs_down = ${down} where id = ${userId}`;
+  }
+  const me = await sql<{ thumbs_up: number; thumbs_down: number }>`
+    select thumbs_up, thumbs_down from profiles where id = ${userId}
+  `;
+  const tUp = Number(me[0]?.thumbs_up ?? 0);
+  const tDown = Number(me[0]?.thumbs_down ?? 0);
+  for (const fp of fps) {
+    const existing = await sql<{ profile_id: string }>`
+      select profile_id from identity_locks where fingerprint = ${fp.fingerprint}
+    `;
+    if (!existing[0]) {
+      await sql`
+        insert into identity_locks (fingerprint, kind, profile_id, active, thumbs_up, thumbs_down)
+        values (${fp.fingerprint}, ${fp.kind}, ${userId}, ${false}, ${tUp}, ${tDown})
+      `;
+    } else {
+      await sql`
+        update identity_locks
+        set thumbs_up = ${tUp}, thumbs_down = ${tDown}, updated_at = now()
+        where fingerprint = ${fp.fingerprint}
+      `;
+    }
+  }
+}
+
+async function assertIdAvailable(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
+  const fps = await fingerprintsFor(sql, userId);
+  for (const fp of fps) {
+    const rows = await sql<{ profile_id: string; active: boolean }>`
+      select profile_id, active from identity_locks where fingerprint = ${fp.fingerprint}
+    `;
+    const lock = rows[0];
+    if (lock?.active && lock.profile_id !== userId) {
+      throw new Error(
+        "This ID already has a live account. One account at a time. Email support to reset — ratings stay with the ID.",
+      );
+    }
+  }
+}
+
+async function claimIdentity(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
+  const fps = await fingerprintsFor(sql, userId);
+  const me = await sql<{ thumbs_up: number; thumbs_down: number }>`
+    select thumbs_up, thumbs_down from profiles where id = ${userId}
+  `;
+  const tUp = Number(me[0]?.thumbs_up ?? 0);
+  const tDown = Number(me[0]?.thumbs_down ?? 0);
+  for (const fp of fps) {
+    await sql`
+      insert into identity_locks (fingerprint, kind, profile_id, active, thumbs_up, thumbs_down, released_at)
+      values (${fp.fingerprint}, ${fp.kind}, ${userId}, ${true}, ${tUp}, ${tDown}, ${null})
+      on conflict (fingerprint) do update set
+        profile_id = ${userId},
+        active = true,
+        thumbs_up = ${tUp},
+        thumbs_down = ${tDown},
+        released_at = null,
+        updated_at = now()
+    `;
+  }
 }
 
 async function freeSaleDaysUsed(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
@@ -1551,6 +1676,7 @@ export const verifyId = createServerFn({ method: "POST" })
     const sql = await getSql();
     const me = await ensureProfile(sql, context.userId);
     if (me.verified) return { verified: true as const, chargedCents: 0 };
+    await assertIdAvailable(sql, context.userId);
     const fees = await loadFees(sql);
     const row = feeById(fees, "id_verify");
     const charge = me.isPremium ? 0 : row?.enabled ? (row.unit === "cents" ? row.amountCents : 0) : 0;
@@ -1574,6 +1700,7 @@ export const verifyId = createServerFn({ method: "POST" })
     } else {
       await sql`update profiles set verified_at = now() where id = ${me.id}`;
     }
+    await claimIdentity(sql, me.id);
     return { verified: true as const, chargedCents: charge };
   });
 
@@ -1674,8 +1801,18 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
          or listing_id in (select id from listings where seller_id = ${uid})
     `;
     await sql`delete from offers where buyer_id = ${uid} or seller_id = ${uid}`;
-    await sql`delete from rating_challenges where by_id = ${uid} or rating_id in (select id from ratings where rater_id = ${uid} or subject_id = ${uid})`;
-    await sql`delete from ratings where rater_id = ${uid} or subject_id = ${uid}`;
+    const snap = await sql<{ thumbs_up: number; thumbs_down: number; verified_at: string | null }>`
+      select thumbs_up, thumbs_down, verified_at from profiles where id = ${uid}
+    `;
+    await sql`
+      update identity_locks
+      set thumbs_up = ${Number(snap[0]?.thumbs_up ?? 0)},
+          thumbs_down = ${Number(snap[0]?.thumbs_down ?? 0)},
+          active = ${Boolean(snap[0]?.verified_at)},
+          updated_at = now()
+      where profile_id = ${uid}
+    `;
+    await syncIdentity(sql, uid);
     await sql`delete from sale_days where sale_id in (select id from sales where seller_id = ${uid})`;
     await sql`delete from orders where buyer_id = ${uid} or seller_id = ${uid}`;
     await sql`delete from listings where seller_id = ${uid}`;
@@ -1684,6 +1821,23 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
     await sql`delete from profiles where id = ${uid}`;
     await sql.query(`delete from "user" where id = $1`, [uid]);
     return { ok: true as const };
+  });
+
+export const releaseIdentity = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ handle: z.string().min(2).max(40) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const staff = await ensureProfile(sql, context.userId);
+    if (!staff.isStaff) throw new Error("Support only.");
+    const handle = data.handle.replace(/^@/, "").trim().toLowerCase();
+    const rows = await sql<{ id: string }>`select id from profiles where lower(handle) = ${handle}`;
+    const target = rows[0];
+    if (!target) throw new Error("No handle by that name.");
+    await syncIdentity(sql, target.id);
+    await claimIdentity(sql, target.id);
+    await sql`update profiles set verified_at = now() where id = ${target.id}`;
+    return { ok: true as const, handle };
   });
 
 export const getFeeTable = createServerFn({ method: "GET" }).handler(async () => {
