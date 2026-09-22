@@ -59,7 +59,7 @@ function PickupPage() {
       </p>
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">{order.listingTitle}</h1>
       <p className="mt-2 text-muted">
-        {money(order.amountCents)} · {handoffLabel(order.handoffType)}
+        Held {money(order.amountCents)} until you both confirm pickup · {handoffLabel(order.handoffType)}
       </p>
       <p className="text-sm text-subtle">
         {iAmBuyer ? `Seller @${order.sellerHandle}` : `Buyer @${order.buyerHandle}`}

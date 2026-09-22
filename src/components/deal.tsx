@@ -10,7 +10,7 @@ const STEPS = ["Handoff", "Price", "Pay"] as const;
 
 export function DealSteps({ current }: { current: 1 | 2 | 3 }) {
   return (
-    <ol className="grid grid-cols-3 gap-1 text-center text-xs font-medium">
+    <ol className="grid grid-cols-3 gap-1 text-center text-sm font-medium">
       {STEPS.map((label, i) => {
         const n = (i + 1) as 1 | 2 | 3;
         const on = n === current;
@@ -121,20 +121,46 @@ export function SellerOfferCard({
       )}
 
       {openDeal && offer.status === "pending" ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" disabled={busy} onClick={onAccept}>
+        <div className="mt-3 space-y-2">
+          <Button className="w-full" disabled={busy} onClick={onAccept}>
             Yes, {money(offer.amountCents)}
           </Button>
-          <Button size="sm" variant="secondary" disabled={busy} onClick={() => setOpen((v) => !v)}>
+          <Button className="w-full" variant="secondary" disabled={busy} onClick={() => setOpen(true)}>
             Counteroffer
           </Button>
-          <Button size="sm" variant="ghost" disabled={busy} onClick={onPass}>
+          <Button className="w-full" variant="ghost" disabled={busy} onClick={onPass}>
             Decline
           </Button>
         </div>
       ) : null}
 
-      {open ? (
+      {openDeal && offer.status === "pending" ? (
+        <form
+          className="mt-3 space-y-2 rounded-xl bg-bg px-3 py-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const n = Math.round(Number(amount) * 100);
+            if (!Number.isFinite(n) || n < 100) return;
+            onCounter(n);
+            setOpen(false);
+          }}
+        >
+          <p className="text-sm font-medium">Counteroffer</p>
+          <p className="text-sm text-muted">Between your lowest and asking. They pay this, or decline.</p>
+          <div className="flex gap-2">
+            <Input
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              aria-label="Counteroffer in dollars"
+              className="max-w-32"
+            />
+            <Button type="submit" size="sm" disabled={busy}>
+              Send counteroffer
+            </Button>
+          </div>
+        </form>
+      ) : open ? (
         <form
           className="mt-3 flex gap-2"
           onSubmit={(e) => {

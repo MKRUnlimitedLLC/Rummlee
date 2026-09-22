@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { AskingPrice, CheckoutPay } from "@/components/fee-line";
-import { BuyerDealStatus, DealSteps } from "@/components/deal";
+import { BuyerDealStatus, DealSteps, SellerOfferCard } from "@/components/deal";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { TEST_MODE } from "@/lib/rummlee/constants";
 import { rememberAfterLogin } from "@/lib/rummlee/draft";
@@ -136,11 +136,12 @@ function ListingPage() {
   });
 
   const buyMut = useMutation({
-    mutationFn: () =>
+    mutationFn: (payAsking: boolean) =>
       buyNow({
         data: {
           listingId: listing.id,
-          amountCents: base,
+          amountCents: payAsking ? asking : base,
+          payAsking,
           handoffType: selected === "person" ? "person" : "official",
           meet: selected,
           handoffSpotId: selected === "public" ? publicSpot?.id ?? null : null,
@@ -177,6 +178,19 @@ function ListingPage() {
       toast.success("Declined. The offer is over. You can still pay asking.");
       void qc.invalidateQueries({ queryKey: ["listing", id] });
       void qc.invalidateQueries({ queryKey: ["inbox"] });
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+
+  const sellerMut = useMutation({
+    mutationFn: (data: { offerId: string; action: "accept" | "decline" | "counter"; counterCents?: number }) =>
+      respondOffer({ data }),
+    onSuccess: (_res, vars) => {
+      void qc.invalidateQueries({ queryKey: ["listing", id] });
+      void qc.invalidateQueries({ queryKey: ["inbox"] });
+      if (vars.action === "accept") toast.success("You said yes. Waiting for them to pay.");
+      else if (vars.action === "counter") toast.success("Counteroffer sent.");
+      else toast.success("Declined. The offer is over.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -250,18 +264,29 @@ function ListingPage() {
           </p>
         )
       ) : mine ? (
-        <p className="mt-5 rounded-2xl bg-surface px-4 py-6 text-center text-muted shadow-[var(--shadow-card)]">
-          This is your listing. Offers show up in{" "}
-          <Link to="/inbox" className="font-medium text-primary-ink">
-            Inbox
-          </Link>
-          . Yes, counteroffer, or decline. One decline ends it.
-          {data.floorCents != null ? (
-            <span className="mt-2 block text-sm">
-              Lowest you’ll take (hidden): {money(data.floorCents)}
-            </span>
-          ) : null}
-        </p>
+        <section className="mt-5 space-y-4 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+          <h2 className="font-display text-xl font-semibold">Your listing</h2>
+          <p className="text-base text-muted">
+            Yes, counteroffer, or decline. One decline ends the offer.
+            {data.floorCents != null ? ` Lowest you’ll take (hidden): ${money(data.floorCents)}.` : ""}
+          </p>
+          {(data.sellerOffers ?? []).length ? (
+            <ul className="space-y-3">
+              {(data.sellerOffers ?? []).map((o) => (
+                <SellerOfferCard
+                  key={o.id}
+                  offer={o}
+                  busy={sellerMut.isPending}
+                  onAccept={() => sellerMut.mutate({ offerId: o.id, action: "accept" })}
+                  onPass={() => sellerMut.mutate({ offerId: o.id, action: "decline" })}
+                  onCounter={(cents) => sellerMut.mutate({ offerId: o.id, action: "counter", counterCents: cents })}
+                />
+              ))}
+            </ul>
+          ) : (
+            <p className="text-base text-muted">No offers yet. They also show in Inbox.</p>
+          )}
+        </section>
       ) : (
         <section className="mt-5 space-y-4 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
           <h2 className="font-display text-xl font-semibold">Take it home</h2>
@@ -333,11 +358,16 @@ function ListingPage() {
 
           <p className="text-sm font-medium">3. Pay to hold it</p>
           <CheckoutPay
-            baseCents={base}
+            baseCents={asking}
             premium={premium}
             fees={fees}
             handoff={selected === "person" ? "person" : selected === "public" ? "public" : "official"}
           />
+          {data.myOffer?.status === "accepted" || data.myOffer?.status === "countered" ? (
+            <p className="text-base text-muted">
+              Agreed offer {money(base)} · {TEST_MODE ? "test " : ""}you pay {money(due.youPayCents)} if you take that deal. Pay asking if you’d rather.
+            </p>
+          ) : null}
 
           {data.myOffer?.status === "pending" ? (
             <div className="space-y-2">
@@ -345,11 +375,11 @@ function ListingPage() {
                 className="w-full"
                 variant="secondary"
                 disabled={buyMut.isPending || isPending}
-                onClick={() => (user ? buyMut.mutate() : goLogin("Sign in to pay asking."))}
+                onClick={() => (user ? buyMut.mutate(true) : goLogin("Sign in to pay asking."))}
               >
                 {TEST_MODE
-                  ? `Pay asking instead with test credits · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
-                  : `Pay asking instead · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
+                  ? `Pay asking with test credits · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
+                  : `Pay asking · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
               </Button>
               <Button className="w-full" variant="ghost" disabled={passMut.isPending || !user} onClick={() => (user ? passMut.mutate() : goLogin("Sign in to decline."))}>
                 Decline
@@ -360,15 +390,23 @@ function ListingPage() {
               <Button
                 className="w-full"
                 disabled={buyMut.isPending || isPending}
-                onClick={() => (user ? buyMut.mutate() : goLogin("Sign in to pay and hold it."))}
+                onClick={() => (user ? buyMut.mutate(false) : goLogin("Sign in to pay and hold it."))}
               >
                 {buyMut.isPending
                   ? TEST_MODE
                     ? "Paying with test credits…"
                     : "Paying…"
                   : TEST_MODE
-                    ? `Pay ${money(due.youPayCents)} with test credits`
-                    : `Pay ${money(due.youPayCents)} to hold it`}
+                    ? `Pay agreed ${money(due.youPayCents)} with test credits`
+                    : `Pay agreed ${money(due.youPayCents)} to hold it`}
+              </Button>
+              <Button
+                className="w-full"
+                variant="secondary"
+                disabled={buyMut.isPending || isPending}
+                onClick={() => (user ? buyMut.mutate(true) : goLogin("Sign in to pay asking."))}
+              >
+                Pay asking instead · {money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}
               </Button>
               {data.myOffer.status === "countered" ? (
                 <Button className="w-full" variant="ghost" disabled={passMut.isPending || !user} onClick={() => (user ? passMut.mutate() : goLogin("Sign in to decline."))}>
@@ -377,18 +415,18 @@ function ListingPage() {
               ) : null}
             </div>
           ) : user ? (
-            <Button className="w-full" disabled={buyMut.isPending || isPending} onClick={() => buyMut.mutate()}>
+            <Button className="w-full" disabled={buyMut.isPending || isPending} onClick={() => buyMut.mutate(true)}>
               {buyMut.isPending
                 ? TEST_MODE
                   ? "Paying with test credits…"
                   : "Paying…"
                 : TEST_MODE
-                  ? `Pay asking with test credits · ${money(due.youPayCents)}`
-                  : `Pay asking · ${money(due.youPayCents)}`}
+                  ? `Pay asking with test credits · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
+                  : `Pay asking · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
             </Button>
           ) : (
             <Button className="w-full" disabled={isPending} onClick={() => goLogin("Sign in to pay. Browse stays free.")}>
-              Sign in to pay · {money(due.youPayCents)}
+              Sign in to pay asking · {money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}
             </Button>
           )}
 

@@ -118,7 +118,10 @@ function NewListingPage() {
   const publish = useMutation({
     mutationFn: async () => {
       const ready = draft.lines.filter((line) => line.title.trim() && line.photoUrl && dollarsToCents(line.price) >= MIN_PRICE_CENTS);
-      if (!ready.length) throw new Error("Each item needs a photo and an asking price of at least $5.");
+      if (!ready.length) throw new Error("Each item needs a photo of that item and an asking price of at least $5.");
+      if (ready.some((line) => line.photoUrl.startsWith("/listings/"))) {
+        throw new Error("Use your own photo. Sample listing pictures can’t be reused.");
+      }
       const modes = splitModes(draft.modes.join(","));
       const live = meQ.data?.sales.filter((sale) => sale.status === "live" && sale.neighborhood === draft.neighborhood) ?? [];
       let saleId = live[0]?.id;
@@ -370,6 +373,16 @@ function NewListingPage() {
             </div>
             </div>
             <div className={cn(step === 3 ? "space-y-3" : "hidden")}>
+            {line.photoUrl ? (
+              <div className="overflow-hidden rounded-xl bg-bg">
+                <img src={line.photoUrl} alt={line.title.trim() || "Your listing photo"} className="aspect-[4/3] w-full object-cover" />
+                <p className="px-3 py-2 text-sm font-medium">
+                  This photo publishes as {line.title.trim() ? `“${line.title.trim()}”` : "this item"}. Change the photo if that’s the wrong thing.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted">Add a photo of this item on screen 1 before you publish.</p>
+            )}
             <div>
               <Label htmlFor={`desc-${line.id}`}>Note</Label>
               <Textarea

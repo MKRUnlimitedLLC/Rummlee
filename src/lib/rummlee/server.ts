@@ -326,6 +326,54 @@ export const getListing = createServerFn({ method: "GET" })
         };
       }
     }
+    let sellerOffers: Offer[] = [];
+    if (userId && userId === row.seller_id) {
+      const incoming = await sql<{
+        id: string;
+        listing_id: string;
+        listing_title: string;
+        listing_photo: string;
+        listing_price_cents: number;
+        buyer_id: string;
+        buyer_handle: string;
+        seller_id: string;
+        seller_handle: string;
+        amount_cents: number;
+        counter_cents: number | null;
+        status: Offer["status"];
+        declined_by: string | null;
+        note: string | null;
+        created_at: string;
+      }>`
+        select o.id, o.listing_id, l.title as listing_title, l.photo_url as listing_photo,
+               l.price_cents as listing_price_cents,
+               o.buyer_id, b.handle as buyer_handle, o.seller_id, se.handle as seller_handle,
+               o.amount_cents, o.counter_cents, o.status, o.declined_by, o.note, o.created_at
+        from offers o
+        join listings l on l.id = o.listing_id
+        join profiles b on b.id = o.buyer_id
+        join profiles se on se.id = o.seller_id
+        where o.listing_id = ${id} and o.seller_id = ${userId}
+        order by o.created_at desc
+      `;
+      sellerOffers = incoming.map((r) => ({
+        id: r.id,
+        listingId: r.listing_id,
+        listingTitle: r.listing_title,
+        listingPhoto: r.listing_photo,
+        listingPriceCents: Number(r.listing_price_cents),
+        buyerId: r.buyer_id,
+        buyerHandle: r.buyer_handle,
+        sellerId: r.seller_id,
+        sellerHandle: r.seller_handle,
+        amountCents: Number(r.amount_cents),
+        counterCents: r.counter_cents == null ? null : Number(r.counter_cents),
+        status: r.status,
+        declinedBy: r.declined_by === "buyer" || r.declined_by === "seller" || r.declined_by === "floor" ? r.declined_by : null,
+        note: r.note,
+        createdAt: r.created_at,
+      }));
+    }
     const thread = userId
       ? await sql<{
           id: string;
@@ -404,6 +452,7 @@ export const getListing = createServerFn({ method: "GET" })
       listing: mapListing(row, saved),
       myOffer,
       myOrder,
+      sellerOffers,
       buyerPremium,
       publicSpot,
       floorCents: userId === row.seller_id ? Number(row.floor_cents ?? row.price_cents) : null,
@@ -933,6 +982,7 @@ export const buyNow = createServerFn({ method: "POST" })
       .object({
         listingId: z.string(),
         amountCents: z.number().int().min(100),
+        payAsking: z.boolean().optional(),
         handoffType: z.enum(["official", "person", "porch"]),
         meet: z.enum(["partner", "public", "person"]).optional(),
         handoffSpotId: z.string().nullable().optional(),
@@ -968,16 +1018,15 @@ export const buyNow = createServerFn({ method: "POST" })
     `;
     const offer = offerRows[0];
     const asking = Number(item.price_cents);
-    const base = payBaseCents(
-      asking,
-      offer
-        ? {
-            status: offer.status,
-            amountCents: Number(offer.amount_cents),
-            counterCents: offer.counter_cents == null ? null : Number(offer.counter_cents),
-          }
-        : null,
-    );
+    const offerState = offer
+      ? {
+          status: offer.status,
+          amountCents: Number(offer.amount_cents),
+          counterCents: offer.counter_cents == null ? null : Number(offer.counter_cents),
+        }
+      : null;
+    const payAsking = Boolean(data.payAsking) || !offerState || offerState.status === "pending" || offerState.status === "declined";
+    const base = payAsking ? asking : payBaseCents(asking, offerState);
     const fees = await loadFees(sql);
     const quote = checkoutQuote(
       fees,
