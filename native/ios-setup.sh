@@ -1,24 +1,26 @@
 #!/bin/bash
 # MacinCloud / any Mac with Xcode. Signs nothing — Xcode Archive does that.
+# Capacitor 8 uses Swift Package Manager. CocoaPods is not required.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if ! xcodebuild -version >/dev/null 2>&1; then
-  echo "Open Xcode once, then: sudo xcode-select -s /Applications/Xcode.app"
-  exit 1
+  if [[ -d /Applications/Xcode.app ]]; then
+    echo "Selecting Xcode. Enter the Mac password if asked."
+    sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+  else
+    echo "This MacinCloud plan has no Xcode. Switch to a plan that includes Xcode (GUI), then rerun."
+    exit 1
+  fi
 fi
 
 if ! command -v node >/dev/null; then
   if command -v brew >/dev/null; then
     brew install node
   else
-    echo "Install Node 22 from https://nodejs.org then rerun."
+    echo "Install Node from https://nodejs.org (LTS), then rerun this script."
     exit 1
   fi
-fi
-
-if ! command -v pod >/dev/null; then
-  sudo gem install cocoapods
 fi
 
 npm install
@@ -34,4 +36,10 @@ if [[ -f "$PLIST" ]]; then
 fi
 
 npx cap open ios
-echo "Xcode: Signing Team = your Apple Developer team. Bundle com.mkrunlimited.rummlee. Product → Archive → Distribute → App Store Connect."
+echo
+echo "In Xcode:"
+echo "  1. Signing & Capabilities → Team = MKR Unlimited (your Apple ID). Automatic signing on."
+echo "  2. Bundle Identifier = com.mkrunlimited.rummlee"
+echo "  3. Destination = Any iOS Device (arm64)"
+echo "  4. Product → Archive → Distribute App → App Store Connect → Upload"
+echo "  5. Stop at TestFlight. Do not submit for App Store review yet."

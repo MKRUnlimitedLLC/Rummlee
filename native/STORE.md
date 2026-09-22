@@ -19,9 +19,11 @@ This Linux sandbox cannot produce a signed App Store IPA (needs a Mac + your App
 
 ## iOS on MacinCloud (TestFlight)
 
-Matthew uses MacinCloud. Plan must include **Xcode** (not a headless-only Mac).
+**Do this on the Mac.** Full click-path: [native/MACINCLOUD.md](MACINCLOUD.md).
 
-1. In a browser (your iPad is fine): [developer.apple.com/account](https://developer.apple.com/account) → Identifiers → App IDs → Register `com.mkrunlimited.rummlee`. Then [appstoreconnect.apple.com](https://appstoreconnect.apple.com) → Apps → New → Rummlee, bundle `com.mkrunlimited.rummlee`, SKU `rummlee`, category Shopping.
+Matthew uses MacinCloud. Plan must include **Xcode** (not a headless-only Mac). App Store Connect: **Account Holder or Admin**, not Limited Access.
+
+1. In a browser: confirm App ID `com.mkrunlimited.rummlee` and the Rummlee app (Apple ID 6814519476).
 2. Connect the MacinCloud Mac. Open **Terminal**. Paste:
 
 ```
@@ -31,11 +33,11 @@ chmod +x native/ios-setup.sh
 ./native/ios-setup.sh
 ```
 
-3. Xcode opens. Signing & Capabilities → Team = MKR Unlimited (your Apple Developer team). Bundle Identifier `com.mkrunlimited.rummlee`. Version 1.0, Build 1.
+3. Xcode opens. Signing & Capabilities → Team = MKR Unlimited. Bundle Identifier `com.mkrunlimited.rummlee`. Version 1.0, Build 1.
 4. Product → Destination → Any iOS Device. Product → Archive. Distribute App → App Store Connect → Upload.
-5. App Store Connect → TestFlight → add testers. Listing screenshots and privacy nutrition can wait until after internal TestFlight.
+5. App Store Connect → TestFlight → add testers. Do not submit for App Store review yet.
 
-Camera / photo usage strings are written by the script. Encryption: No.
+Camera / photo usage strings are in Info.plist. Encryption: No.
 
 Review notes for Apple:
 
