@@ -1077,7 +1077,7 @@ export const buyNow = createServerFn({ method: "POST" })
       { buyer: me.isPremium, seller: sellerPlus },
       data.meet === "person" ? "person" : data.meet === "public" ? "public" : "official",
     );
-    const fee = quote.buyerFeeCents + quote.handoffFeeCents;
+    const fee = quote.buyerFeeCents + quote.handoffFeeCents + quote.salesTaxCents;
     const total = quote.youPayCents;
     const meet = data.meet ?? (canonicalizeMode(data.handoffType) === "person" ? "person" : "partner");
     let handoffType: HandoffMode = "official";

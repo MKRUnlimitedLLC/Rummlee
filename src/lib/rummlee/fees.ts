@@ -162,6 +162,18 @@ export const DEFAULT_FEES: FeeRow[] = [
     enabled: true,
   },
   {
+    id: "sales_tax",
+    label: "Sales tax",
+    description: "Charged to the buyer at checkout on the asking price. Always shown at checkout, never folded into Rummlee fees. 0% means none added until you set a rate.",
+    unit: "percent",
+    percentBps: 0,
+    amountCents: 0,
+    chargedTo: "buyer",
+    chargedWhen: "checkout",
+    sort: 105,
+    enabled: true,
+  },
+  {
     id: "cancel",
     label: "Cancel after pay",
     description: "Charged if a paid order is cancelled before pickup. $0 means no cancel fee.",
@@ -255,6 +267,8 @@ export type CheckoutQuote = {
   sellerFeeCents: number;
   handoffFeeCents: number;
   sellerHandoffFeeCents: number;
+  salesTaxCents: number;
+  feesTotalCents: number;
   youPayCents: number;
   youGetCents: number;
   buyerFeeId: string;
@@ -290,13 +304,17 @@ export function checkoutQuote(
   const rawSellerHandoff = official ? feeAmount(feeById(fees, "official_handoff_seller"), baseCents) : 0;
   const handoffFeeCents = official && sides.buyer ? 0 : rawBuyerHandoff;
   const sellerHandoffFeeCents = official && sides.seller ? 0 : rawSellerHandoff;
+  const salesTaxCents = feeAmount(feeById(fees, "sales_tax"), baseCents);
+  const feesTotalCents = buyerFeeCents + handoffFeeCents;
   return {
     baseCents,
     buyerFeeCents,
     sellerFeeCents,
     handoffFeeCents,
     sellerHandoffFeeCents,
-    youPayCents: baseCents + buyerFeeCents + handoffFeeCents,
+    salesTaxCents,
+    feesTotalCents,
+    youPayCents: baseCents + feesTotalCents + salesTaxCents,
     youGetCents: baseCents - sellerFeeCents - sellerHandoffFeeCents,
     buyerFeeId: buyerId,
     handoffFeeId: handId,
