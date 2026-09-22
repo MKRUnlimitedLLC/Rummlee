@@ -114,6 +114,18 @@ export const DEFAULT_FEES: FeeRow[] = [
     enabled: true,
   },
   {
+    id: "sale_day",
+    label: "Sale day, seller",
+    description: "Charged to the seller for each date a sale runs. Plus includes 3 sale days each calendar month; extra days still pay this. Independently adjustable.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 299,
+    chargedTo: "seller",
+    chargedWhen: "listing",
+    sort: 68,
+    enabled: true,
+  },
+  {
     id: "seller_payout",
     label: "Seller payout fee",
     description: "Taken from asking when the hold releases. $0 / 0% means the seller receives the full asking price.",
@@ -264,6 +276,34 @@ export function formatFeeValue(row: FeeRow) {
     }).format(row.amountCents / 100);
   }
   return "Free";
+}
+
+export function countSaleDays(startsOn: string, endsOn: string) {
+  const [ys, ms, ds] = startsOn.split("-").map(Number);
+  const [ye, me, de] = endsOn.split("-").map(Number);
+  const a = Date.UTC(ys, (ms ?? 1) - 1, ds ?? 1);
+  const b = Date.UTC(ye, (me ?? 1) - 1, de ?? 1);
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b < a) return 0;
+  return Math.floor((b - a) / 86400000) + 1;
+}
+
+export function quoteSaleDays(opts: {
+  dayFeeCents: number;
+  days: number;
+  plus: boolean;
+  freeUsed: number;
+  freePerMonth?: number;
+}) {
+  const cap = opts.freePerMonth ?? 3;
+  const freeLeft = opts.plus ? Math.max(0, cap - opts.freeUsed) : 0;
+  const freeDays = Math.min(Math.max(0, opts.days), freeLeft);
+  const paidDays = Math.max(0, opts.days - freeDays);
+  return {
+    days: opts.days,
+    freeDays,
+    paidDays,
+    chargeCents: paidDays * (opts.dayFeeCents > 0 ? opts.dayFeeCents : 0),
+  };
 }
 
 export function minAskingCents(table: FeeRow[]) {

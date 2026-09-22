@@ -1,5 +1,5 @@
 import { PASTE_CAP } from "./constants";
-import { splitModes } from "./format";
+import { nextSaturdayIso, splitModes } from "./format";
 import type { HandoffMode } from "./types";
 
 const DRAFT_KEY = "rummlee.listingDraft.v1";
@@ -25,6 +25,12 @@ export type ListingDraft = {
   neighborhood: string;
   modes: HandoffMode[];
   handoffSpotId: string;
+  startsOn: string;
+  endsOn: string;
+  channel: "online" | "physical" | "both";
+  physicalLocation: string;
+  hoursStart: string;
+  hoursEnd: string;
   lines: DraftLine[];
 };
 
@@ -107,6 +113,12 @@ export function loadDraft(): ListingDraft | null {
     return {
       ...parsed,
       modes: splitModes((parsed.modes ?? ["official"]).join(",")),
+      startsOn: parsed.startsOn || nextSaturdayIso(),
+      endsOn: parsed.endsOn || parsed.startsOn || nextSaturdayIso(),
+      channel: parsed.channel === "physical" || parsed.channel === "both" ? parsed.channel : "online",
+      physicalLocation: parsed.physicalLocation ?? "",
+      hoursStart: parsed.hoursStart || "08:00",
+      hoursEnd: parsed.hoursEnd || "14:00",
       lines: parsed.lines.map((line) => ({
         ...blankLine(),
         ...line,

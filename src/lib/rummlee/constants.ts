@@ -8,6 +8,8 @@ export const HOLD_LINE = "Your money stays held until pickup.";
 export const TEST_MODE = true;
 export const TEST_STARTER_CENTS = 20000;
 export const TEST_PAY_NOTE = "Beta — test credits. Not real money. No card is charged. Nothing ships.";
+export const PLUS_SALE_DAYS_PER_MONTH = 3;
+export const MAX_SALE_DAYS = 14;
 
 export const NEIGHBORHOODS = [
   "Park Slope, Brooklyn",

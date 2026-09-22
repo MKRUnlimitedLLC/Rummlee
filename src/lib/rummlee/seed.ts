@@ -35,7 +35,7 @@ export async function ensureFees(sql: Sql) {
       on conflict (id) do nothing
     `;
   }
-  const pack = "plus-v5";
+  const pack = "plus-v6";
   const marked = await sql<{ value: string }>`select value from app_meta where key = ${"fees_pack"}`;
   if (marked[0]?.value === pack) return;
   for (const fee of DEFAULT_FEES) {

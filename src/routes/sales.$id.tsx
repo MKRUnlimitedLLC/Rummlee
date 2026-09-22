@@ -50,6 +50,16 @@ function SaleDetail() {
         {spot?.name ?? data.sale.neighborhood} · @{data.sale.sellerHandle}
       </p>
       <p className="mt-1 text-sm text-subtle">{saleWindow(data.sale.startsOn, data.sale.endsOn)}</p>
+      <p className="mt-1 text-sm text-muted">
+        {data.sale.channel === "physical"
+          ? "Physical sale"
+          : data.sale.channel === "both"
+            ? "Online and physical"
+            : "Online on Rummlee"}
+        {data.sale.physicalLocation
+          ? ` · ${data.sale.physicalLocation}${data.sale.hoursStart && data.sale.hoursEnd ? ` · ${data.sale.hoursStart}–${data.sale.hoursEnd}` : ""}`
+          : ""}
+      </p>
       {mine ? (
         <Button asChild className="mt-4">
           <Link to="/listings/new">Add another item to this sale</Link>

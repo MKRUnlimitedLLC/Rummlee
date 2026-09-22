@@ -4,6 +4,7 @@ export type ListingStatus = "live" | "sold" | "held";
 export type OfferStatus = "pending" | "countered" | "accepted" | "declined";
 export type OrderStatus = "escrow" | "picked_up" | "cancelled";
 export type SaleStatus = "live" | "ended" | "draft";
+export type SaleChannel = "online" | "physical" | "both";
 
 export type Profile = {
   id: string;
@@ -39,6 +40,10 @@ export type Sale = {
   neighborhood: string;
   startsOn: string;
   endsOn: string;
+  channel: SaleChannel;
+  physicalLocation: string | null;
+  hoursStart: string | null;
+  hoursEnd: string | null;
   handoffModes: HandoffMode[];
   handoffSpotId: string | null;
   status: SaleStatus;

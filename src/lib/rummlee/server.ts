@@ -4,8 +4,8 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
 import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes, canonicalizeMode } from "./format";
-import { checkoutQuote, feeById, mapFeeRow, minAskingCents, type FeeRow } from "./fees";
-import { MIN_PRICE_CENTS, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
+import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
+import { MAX_SALE_DAYS, MIN_PRICE_CENTS, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
 import { overallThumb, type Thumb } from "./trust";
 import type {
   HandoffMode,
@@ -19,6 +19,7 @@ import type {
   Profile,
   ReceivedDown,
   Sale,
+  SaleChannel,
   WalletTx,
 } from "./types";
 
@@ -228,6 +229,61 @@ async function recountThumbs(sql: Awaited<ReturnType<typeof getSql>>, userId: st
   await sql`update profiles set thumbs_up = ${up}, thumbs_down = ${down} where id = ${userId}`;
 }
 
+function parseChannel(raw: string | null | undefined): SaleChannel {
+  if (raw === "physical" || raw === "both" || raw === "online") return raw;
+  return "online";
+}
+
+type SaleMapRow = {
+  id: string;
+  seller_id: string;
+  seller_handle: string;
+  name: string;
+  kind: string;
+  neighborhood: string;
+  starts_on: string;
+  ends_on: string;
+  handoff_modes: string;
+  handoff_spot_id: string | null;
+  status: Sale["status"];
+  item_count: number;
+  channel?: string | null;
+  physical_location?: string | null;
+  hours_start?: string | null;
+  hours_end?: string | null;
+};
+
+function mapSale(s: SaleMapRow): Sale {
+  return {
+    id: s.id,
+    sellerId: s.seller_id,
+    sellerHandle: s.seller_handle,
+    name: s.name,
+    kind: s.kind,
+    neighborhood: s.neighborhood,
+    startsOn: s.starts_on,
+    endsOn: s.ends_on,
+    channel: parseChannel(s.channel),
+    physicalLocation: s.physical_location?.trim() ? s.physical_location.trim() : null,
+    hoursStart: s.hours_start ?? null,
+    hoursEnd: s.hours_end ?? null,
+    handoffModes: splitModes(s.handoff_modes),
+    handoffSpotId: s.handoff_spot_id,
+    status: s.status,
+    itemCount: Number(s.item_count),
+  };
+}
+
+async function freeSaleDaysUsed(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
+  const rows = await sql<{ used: number }>`
+    select coalesce(sum(sale_free_days), 0)::int as used
+    from sales
+    where seller_id = ${userId}
+      and created_at >= date_trunc('month', now())
+  `;
+  return Number(rows[0]?.used ?? 0);
+}
+
 async function loadPendingRates(sql: Awaited<ReturnType<typeof getSql>>, userId: string): Promise<PendingRate[]> {
   const rows = await sql<{
     id: string;
@@ -287,22 +343,10 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
     const savedRows = await sql<{ listing_id: string }>`select listing_id from saved_listings where user_id = ${userId}`;
     saved = new Set(savedRows.map((r) => r.listing_id));
   }
-  const salesRows = await sql.query<{
-    id: string;
-    seller_id: string;
-    seller_handle: string;
-    name: string;
-    kind: string;
-    neighborhood: string;
-    starts_on: string;
-    ends_on: string;
-    handoff_modes: string;
-    handoff_spot_id: string | null;
-    status: Sale["status"];
-    item_count: number;
-  }>(
+  const salesRows = await sql.query<SaleMapRow>(
     `select s.id, s.seller_id, p.handle as seller_handle, s.name, s.kind, s.neighborhood,
             s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
+            coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
             (select count(*)::int from listings l where l.sale_id = s.id and l.status = 'live') as item_count
      from sales s join profiles p on p.id = s.seller_id
      where s.status = 'live' order by s.starts_on, s.name`,
@@ -313,22 +357,7 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
   `;
   return {
     listings: rows.map((r) => mapListing(r, saved.has(r.id))),
-    sales: salesRows.map(
-      (s): Sale => ({
-        id: s.id,
-        sellerId: s.seller_id,
-        sellerHandle: s.seller_handle,
-        name: s.name,
-        kind: s.kind,
-        neighborhood: s.neighborhood,
-        startsOn: s.starts_on,
-        endsOn: s.ends_on,
-        handoffModes: splitModes(s.handoff_modes),
-        handoffSpotId: s.handoff_spot_id,
-        status: s.status,
-        itemCount: Number(s.item_count),
-      }),
-    ),
+    sales: salesRows.map(mapSale),
     spots,
     signedIn: Boolean(userId),
     buyerPremium,
@@ -563,22 +592,10 @@ export const getSale = createServerFn({ method: "GET" })
   .handler(async ({ data: id }) => {
     const sql = await getSql();
     await ensureSeed(sql);
-    const sales = await sql.query<{
-      id: string;
-      seller_id: string;
-      seller_handle: string;
-      name: string;
-      kind: string;
-      neighborhood: string;
-      starts_on: string;
-      ends_on: string;
-      handoff_modes: string;
-      handoff_spot_id: string | null;
-      status: Sale["status"];
-      item_count: number;
-    }>(
+    const sales = await sql.query<SaleMapRow>(
       `select s.id, s.seller_id, p.handle as seller_handle, s.name, s.kind, s.neighborhood,
               s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
+              coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
               (select count(*)::int from listings l where l.sale_id = s.id) as item_count
        from sales s join profiles p on p.id = s.seller_id where s.id = $1`,
       [id],
@@ -593,20 +610,7 @@ export const getSale = createServerFn({ method: "GET" })
       saved = new Set(savedRows.map((r) => r.listing_id));
     }
     return {
-      sale: {
-        id: sale.id,
-        sellerId: sale.seller_id,
-        sellerHandle: sale.seller_handle,
-        name: sale.name,
-        kind: sale.kind,
-        neighborhood: sale.neighborhood,
-        startsOn: sale.starts_on,
-        endsOn: sale.ends_on,
-        handoffModes: splitModes(sale.handoff_modes),
-        handoffSpotId: sale.handoff_spot_id,
-        status: sale.status,
-        itemCount: Number(sale.item_count),
-      } satisfies Sale,
+      sale: mapSale(sale),
       listings: rows.map((r) => mapListing(r, saved.has(r.id))),
     };
   });
@@ -624,22 +628,10 @@ export const getMe = createServerFn({ method: "GET" })
       note: string | null;
       created_at: string;
     }>`select id, kind, amount_cents, note, created_at from wallet_tx where user_id = ${context.userId} order by created_at desc limit 20`;
-    const mySales = await sql.query<{
-      id: string;
-      seller_id: string;
-      seller_handle: string;
-      name: string;
-      kind: string;
-      neighborhood: string;
-      starts_on: string;
-      ends_on: string;
-      handoff_modes: string;
-      handoff_spot_id: string | null;
-      status: Sale["status"];
-      item_count: number;
-    }>(
+    const mySales = await sql.query<SaleMapRow>(
       `select s.id, s.seller_id, p.handle as seller_handle, s.name, s.kind, s.neighborhood,
               s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
+              coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
               (select count(*)::int from listings l where l.sale_id = s.id) as item_count
        from sales s join profiles p on p.id = s.seller_id
        where s.seller_id = $1 order by s.created_at desc`,
@@ -651,6 +643,7 @@ export const getMe = createServerFn({ method: "GET" })
       [context.userId],
     );
     const pendingRates = await loadPendingRates(sql, context.userId);
+    const usedFree = await freeSaleDaysUsed(sql, context.userId);
     const receivedDowns = await sql<{
       rating_id: string;
       listing_title: string;
@@ -677,22 +670,8 @@ export const getMe = createServerFn({ method: "GET" })
           createdAt: t.created_at,
         }),
       ),
-      sales: mySales.map(
-        (s): Sale => ({
-          id: s.id,
-          sellerId: s.seller_id,
-          sellerHandle: s.seller_handle,
-          name: s.name,
-          kind: s.kind,
-          neighborhood: s.neighborhood,
-          startsOn: s.starts_on,
-          endsOn: s.ends_on,
-          handoffModes: splitModes(s.handoff_modes),
-          handoffSpotId: s.handoff_spot_id,
-          status: s.status,
-          itemCount: Number(s.item_count),
-        }),
-      ),
+      sales: mySales.map(mapSale),
+      plusSaleDaysLeft: me.isPremium ? Math.max(0, PLUS_SALE_DAYS_PER_MONTH - usedFree) : 0,
       saved: savedRows.map((r) => mapListing(r, true)),
       pendingRates,
       receivedDowns: receivedDowns.map(
@@ -815,8 +794,12 @@ const saleInput = z.object({
   name: z.string().min(3).max(80),
   kind: z.enum(["garage", "moving", "clearout"]),
   neighborhood: z.string().min(2).max(80),
-  startsOn: z.string(),
-  endsOn: z.string(),
+  startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  channel: z.enum(["online", "physical", "both"]),
+  physicalLocation: z.string().max(120).optional(),
+  hoursStart: z.string().max(8).optional(),
+  hoursEnd: z.string().max(8).optional(),
   handoffModes: z.array(z.enum(["official", "public", "person", "porch"])).min(1),
   handoffSpotId: z.string().nullable().optional(),
 });
@@ -827,6 +810,31 @@ export const createSale = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     const me = await ensureProfile(sql, context.userId);
+    const days = countSaleDays(data.startsOn, data.endsOn);
+    if (days < 1) throw new Error("End date has to be on or after the start.");
+    if (days > MAX_SALE_DAYS) throw new Error(`A sale can run at most ${MAX_SALE_DAYS} days.`);
+    const physical = data.channel === "physical" || data.channel === "both";
+    const location = data.physicalLocation?.trim() ?? "";
+    if (physical && location.length < 4) throw new Error("Physical sales need a location and hours.");
+    if (physical && (!data.hoursStart || !data.hoursEnd)) throw new Error("Physical sales need hours.");
+    const fees = await loadFees(sql);
+    const dayFee = feeById(fees, "sale_day");
+    const dayFeeCents = dayFee?.enabled && dayFee.unit === "cents" ? dayFee.amountCents : 0;
+    const usedFree = await freeSaleDaysUsed(sql, context.userId);
+    const quote = quoteSaleDays({
+      dayFeeCents,
+      days,
+      plus: me.isPremium,
+      freeUsed: usedFree,
+      freePerMonth: PLUS_SALE_DAYS_PER_MONTH,
+    });
+    if (quote.chargeCents > 0 && me.walletCents < quote.chargeCents) {
+      throw new Error(
+        TEST_MODE
+          ? `Not enough test credits for ${quote.paidDays} sale day${quote.paidDays === 1 ? "" : "s"}. See Fees.`
+          : `Not enough wallet for ${quote.paidDays} sale day${quote.paidDays === 1 ? "" : "s"}. See Fees.`,
+      );
+    }
     const id = crypto.randomUUID();
     let spotId = data.handoffSpotId ?? null;
     if (!spotId) {
@@ -840,17 +848,49 @@ export const createSale = createServerFn({ method: "POST" })
     }
     const modes = splitModes(data.handoffModes.join(","));
     await sql`
-      insert into sales (id, seller_id, name, kind, neighborhood, starts_on, ends_on, handoff_modes, handoff_spot_id, status)
+      insert into sales (
+        id, seller_id, name, kind, neighborhood, starts_on, ends_on, handoff_modes, handoff_spot_id, status,
+        channel, physical_location, hours_start, hours_end, sale_fee_cents, sale_free_days
+      )
       values (
         ${id}, ${context.userId}, ${data.name}, ${data.kind}, ${data.neighborhood},
         ${data.startsOn}::date, ${data.endsOn}::date, ${modes.join(",")},
-        ${spotId}, ${"live"}
+        ${spotId}, ${"live"},
+        ${data.channel}, ${physical ? location : null},
+        ${physical ? data.hoursStart : null}, ${physical ? data.hoursEnd : null},
+        ${quote.chargeCents}, ${quote.freeDays}
       )
     `;
+    let remainingFree = quote.freeDays;
+    for (let i = 0; i < days; i += 1) {
+      const day = new Date(`${data.startsOn}T00:00:00Z`);
+      day.setUTCDate(day.getUTCDate() + i);
+      const iso = day.toISOString().slice(0, 10);
+      const free = remainingFree > 0;
+      if (free) remainingFree -= 1;
+      await sql`
+        insert into sale_days (sale_id, day, charged_cents)
+        values (${id}, ${iso}::date, ${free ? 0 : dayFeeCents})
+      `;
+    }
+    if (quote.chargeCents > 0) {
+      await sql`update profiles set wallet_cents = wallet_cents - ${quote.chargeCents} where id = ${context.userId}`;
+      await sql`
+        insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
+        values (
+          ${crypto.randomUUID()}, ${context.userId}, ${"sale_day"}, ${-quote.chargeCents}, ${id},
+          ${
+            TEST_MODE
+              ? `Test sale days: ${days} (${quote.freeDays} Plus free, ${quote.paidDays} paid)`
+              : `Sale days: ${days} (${quote.freeDays} Plus free, ${quote.paidDays} paid)`
+          }
+        )
+      `;
+    }
     if (!me.neighborhood) {
       await sql`update profiles set neighborhood = ${data.neighborhood} where id = ${context.userId}`;
     }
-    return { id };
+    return { id, chargeCents: quote.chargeCents, freeDays: quote.freeDays, paidDays: quote.paidDays, days };
   });
 
 const listingInput = z.object({
@@ -1636,6 +1676,7 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
     await sql`delete from offers where buyer_id = ${uid} or seller_id = ${uid}`;
     await sql`delete from rating_challenges where by_id = ${uid} or rating_id in (select id from ratings where rater_id = ${uid} or subject_id = ${uid})`;
     await sql`delete from ratings where rater_id = ${uid} or subject_id = ${uid}`;
+    await sql`delete from sale_days where sale_id in (select id from sales where seller_id = ${uid})`;
     await sql`delete from orders where buyer_id = ${uid} or seller_id = ${uid}`;
     await sql`delete from listings where seller_id = ${uid}`;
     await sql`delete from sales where seller_id = ${uid}`;

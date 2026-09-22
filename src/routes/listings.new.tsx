@@ -7,7 +7,7 @@ import { PhotoInput } from "@/components/photo-input";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { useAuthGate } from "@/components/guest-gate";
-import { CATEGORIES, CONDITIONS, HAULS, MIN_PRICE_CENTS, NEIGHBORHOODS, PASTE_CAP, SALE_KINDS } from "@/lib/rummlee/constants";
+import { CATEGORIES, CONDITIONS, HAULS, MIN_PRICE_CENTS, NEIGHBORHOODS, PASTE_CAP, PLUS_SALE_DAYS_PER_MONTH, SALE_KINDS } from "@/lib/rummlee/constants";
 import {
   blankLine,
   guessCategory,
@@ -23,7 +23,8 @@ import {
   type ListingDraft,
 } from "@/lib/rummlee/draft";
 import { errMessage } from "@/lib/rummlee/errors";
-import { cityOf, nextSaturdayIso, splitModes } from "@/lib/rummlee/format";
+import { cityOf, money, nextSaturdayIso, splitModes } from "@/lib/rummlee/format";
+import { countSaleDays, DEFAULT_FEES, feeById, formatFeeValue, quoteSaleDays } from "@/lib/rummlee/fees";
 import { addListing, bootstrapPublic, createSale, getMe } from "@/lib/rummlee/server";
 import type { HandoffMode } from "@/lib/rummlee/types";
 import { cn } from "@/lib/utils";
@@ -34,11 +35,18 @@ export const Route = createFileRoute("/listings/new")({
 
 function freshDraft(): ListingDraft {
   const fm = lastCity() === "Fargo–Moorhead";
+  const sat = nextSaturdayIso();
   return {
     kind: "moving",
     neighborhood: fm ? "West Fargo, Fargo–Moorhead" : NEIGHBORHOODS[0],
     modes: ["official"],
     handoffSpotId: "",
+    startsOn: sat,
+    endsOn: sat,
+    channel: "online",
+    physicalLocation: "",
+    hoursStart: "08:00",
+    hoursEnd: "14:00",
     lines: [blankLine({ id: "draft-line" })],
   };
 }
@@ -127,11 +135,11 @@ function NewListingPage() {
         throw new Error("Use your own photo. Sample listing pictures can’t be reused.");
       }
       const modes = splitModes(draft.modes.join(","));
-      const live = meQ.data?.sales.filter((sale) => sale.status === "live" && sale.neighborhood === draft.neighborhood) ?? [];
-      let saleId =
+      const liveMatch =
         draft.saleId && meQ.data?.sales.some((sale) => sale.id === draft.saleId && sale.status === "live")
           ? draft.saleId
-          : live[0]?.id;
+          : undefined;
+      let saleId = liveMatch;
       if (!saleId) {
         const kind = SALE_KINDS.find((item) => item.id === draft.kind);
         const created = await createSale({
@@ -139,8 +147,12 @@ function NewListingPage() {
             name: `${draft.neighborhood.split(",")[0]} ${kind?.label ?? "Sale"}`.slice(0, 80),
             kind: draft.kind,
             neighborhood: draft.neighborhood,
-            startsOn: nextSaturdayIso(),
-            endsOn: nextSaturdayIso(),
+            startsOn: draft.startsOn,
+            endsOn: draft.endsOn,
+            channel: draft.channel,
+            physicalLocation: draft.physicalLocation || undefined,
+            hoursStart: draft.hoursStart || undefined,
+            hoursEnd: draft.hoursEnd || undefined,
             handoffModes: modes,
             handoffSpotId: draft.handoffSpotId || null,
           },
@@ -209,7 +221,7 @@ function NewListingPage() {
     <main className="mx-auto max-w-lg py-6">
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">List it</h1>
       <p className="mt-1 text-muted">
-        Three short screens. Photo and asking first. Lowest and handoffs next. Details last.
+        Three short screens. Photo and asking first. Sale dates and handoffs next. Details last.
       </p>
       <p className="mt-2 text-sm text-muted">
         <Link to="/sell" className="font-medium text-primary-ink">
@@ -217,7 +229,7 @@ function NewListingPage() {
         </Link>
       </p>
       <ol className="mt-4 grid grid-cols-3 gap-2 text-sm">
-        {["Photo & asking", "Lowest & handoff", "Details"].map((label, index) => (
+        {["Photo & asking", "Sale & handoff", "Details"].map((label, index) => (
           <li
             key={label}
             className={cn(
@@ -307,6 +319,21 @@ function NewListingPage() {
         </div>
 
         <div className={cn(step === 2 ? "space-y-4" : "hidden")}>
+        {draft.saleId ? (
+          <p className="rounded-xl bg-primary-soft px-3 py-2 text-sm text-fg">
+            Adding to your current sale. Dates and sale-day fees already apply.
+          </p>
+        ) : (
+          <SaleDates
+            draft={draft}
+            plus={Boolean(meQ.data?.me.isPremium)}
+            freeLeft={meQ.data?.plusSaleDaysLeft ?? 0}
+            onChange={(patch) => {
+              setSaved(false);
+              setDraft((current) => ({ ...current, ...patch }));
+            }}
+          />
+        )}
         <div>
           <Label htmlFor="hood">Neighborhood</Label>
           <select
@@ -557,6 +584,132 @@ function NewListingPage() {
         </div>
       ) : null}
     </main>
+  );
+}
+
+function SaleDates({
+  draft,
+  plus,
+  freeLeft,
+  onChange,
+}: {
+  draft: ListingDraft;
+  plus: boolean;
+  freeLeft: number;
+  onChange: (patch: Partial<ListingDraft>) => void;
+}) {
+  const days = countSaleDays(draft.startsOn, draft.endsOn);
+  const dayFee = feeById(DEFAULT_FEES, "sale_day");
+  const dayFeeCents = dayFee?.amountCents ?? 299;
+  const quote = quoteSaleDays({
+    dayFeeCents,
+    days,
+    plus,
+    freeUsed: plus ? Math.max(0, PLUS_SALE_DAYS_PER_MONTH - freeLeft) : 0,
+    freePerMonth: PLUS_SALE_DAYS_PER_MONTH,
+  });
+  const physical = draft.channel === "physical" || draft.channel === "both";
+  return (
+    <div className="space-y-3 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
+      <p className="font-medium">Sale dates</p>
+      <p className="text-sm text-muted">
+        {formatFeeValue(dayFee ?? DEFAULT_FEES[0])} per date. Plus includes {PLUS_SALE_DAYS_PER_MONTH} days each month
+        free.
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label htmlFor="starts">Starts</Label>
+          <Input
+            id="starts"
+            type="date"
+            value={draft.startsOn}
+            onChange={(e) => {
+              const startsOn = e.target.value;
+              onChange({ startsOn, endsOn: draft.endsOn < startsOn ? startsOn : draft.endsOn });
+            }}
+          />
+        </div>
+        <div>
+          <Label htmlFor="ends">Ends</Label>
+          <Input
+            id="ends"
+            type="date"
+            value={draft.endsOn}
+            onChange={(e) => onChange({ endsOn: e.target.value })}
+          />
+        </div>
+      </div>
+      <p className="text-sm text-fg">
+        {days < 1
+          ? "End date has to be on or after the start."
+          : quote.chargeCents === 0
+            ? `${days} day${days === 1 ? "" : "s"} · ${plus ? "covered by Plus this month" : "free (no sale-day fee set)"}`
+            : `${days} day${days === 1 ? "" : "s"} · ${quote.freeDays ? `${quote.freeDays} Plus free · ` : ""}${quote.paidDays} × ${money(dayFeeCents)} = ${money(quote.chargeCents)}`}
+      </p>
+      <div>
+        <p className="text-sm font-medium">How neighbors find it</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {(
+            [
+              ["online", "Online"],
+              ["physical", "Physical"],
+              ["both", "Both"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={cn(
+                "rounded-full px-3.5 py-2 text-sm font-medium",
+                draft.channel === id ? "bg-fg text-primary-fg" : "bg-bg text-muted",
+              )}
+              onClick={() => onChange({ channel: id })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-sm text-muted">
+          Online = listed on Rummlee. Physical = in-person sale with hours. Both = listed and in person.
+        </p>
+      </div>
+      {physical ? (
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="phys">Physical location</Label>
+            <Input
+              id="phys"
+              value={draft.physicalLocation}
+              onChange={(e) => onChange({ physicalLocation: e.target.value })}
+              placeholder="Library lot, 4th & Main"
+            />
+            <p className="mt-1 text-sm text-muted">
+              A public place or official store is better than a house number. Neighbors will see this if you set it.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label htmlFor="hstart">Opens</Label>
+              <Input
+                id="hstart"
+                type="time"
+                value={draft.hoursStart}
+                onChange={(e) => onChange({ hoursStart: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="hend">Closes</Label>
+              <Input
+                id="hend"
+                type="time"
+                value={draft.hoursEnd}
+                onChange={(e) => onChange({ hoursEnd: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

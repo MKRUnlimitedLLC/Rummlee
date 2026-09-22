@@ -48,7 +48,10 @@ function SalesPage() {
                   </p>
                   <p className="mt-1 text-sm text-subtle">
                     {spot ? `${spot.name} · ` : ""}
-                    {saleWindow(s.startsOn, s.endsOn)} · {s.itemCount} {s.itemCount === 1 ? "item" : "items"}
+                    {saleWindow(s.startsOn, s.endsOn)}
+                    {s.channel === "physical" ? " · physical" : s.channel === "both" ? " · online + physical" : " · online"}
+                    {" · "}
+                    {s.itemCount} {s.itemCount === 1 ? "item" : "items"}
                   </p>
                 </div>
               </Link>

@@ -154,7 +154,8 @@ function YouPage() {
           <p className="mt-1 text-sm text-muted">
             Official store is {formatFeeValue(feeById(DEFAULT_FEES, "official_handoff") ?? DEFAULT_FEES[0])} each side per
             pickup. Plus waives <em>your</em> side when you buy or sell there. Buyer fee is 0% with Plus, 5% without.
-            ID verification is free with Plus.
+            ID verification is free with Plus. Plus also includes a 3-day sale each month — extra sale days are $2.99
+            each.
           </p>
           {me?.isPremium ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
