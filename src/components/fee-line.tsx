@@ -24,17 +24,21 @@ export function AskingPrice({ cents, originalCents }: { cents: number; originalC
 export function CheckoutPay({
   baseCents,
   premium,
+  sellerPlus = false,
   fees,
   handoff,
 }: {
   baseCents: number;
   premium: boolean;
+  sellerPlus?: boolean;
   fees: FeeRow[];
   handoff: "official" | "public" | "person" | "partner";
 }) {
-  const quote = checkoutQuote(fees, baseCents, premium, handoff);
+  const quote = checkoutQuote(fees, baseCents, { buyer: premium, seller: sellerPlus }, handoff);
   const buyer = fees.find((row) => row.id === quote.buyerFeeId);
   const hand = quote.handoffFeeId ? fees.find((row) => row.id === quote.handoffFeeId) : null;
+  const official = handoff === "official" || handoff === "partner";
+  const storeSellerRow = fees.find((row) => row.id === "official_handoff_seller");
   return (
     <div className="space-y-2 rounded-2xl bg-bg px-4 py-3">
       <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">Checkout</p>
@@ -48,16 +52,48 @@ export function CheckoutPay({
           <span className="tabular-nums">{money(quote.buyerFeeCents)}</span>
         </p>
       ) : null}
-      {quote.handoffFeeCents > 0 ? (
+      {official ? (
+        <p className="flex justify-between text-sm">
+          <span className="text-muted">Official store, you</span>
+          <span className="tabular-nums">
+            {quote.handoffFeeCents > 0 ? (
+              money(quote.handoffFeeCents)
+            ) : premium ? (
+              <span>Waived with Plus</span>
+            ) : (
+              money(0)
+            )}
+          </span>
+        </p>
+      ) : quote.handoffFeeCents > 0 ? (
         <p className="flex justify-between text-sm">
           <span className="text-muted">{hand?.label ?? "Handoff"}</span>
           <span className="tabular-nums">{money(quote.handoffFeeCents)}</span>
+        </p>
+      ) : null}
+      {official && storeSellerRow?.enabled ? (
+        <p className="flex justify-between text-sm">
+          <span className="text-muted">Official store, seller</span>
+          <span className="tabular-nums text-muted">
+            {quote.sellerHandoffFeeCents > 0
+              ? `${money(quote.sellerHandoffFeeCents)} from their payout`
+              : "Waived with Plus"}
+          </span>
         </p>
       ) : null}
       <p className="flex justify-between font-display text-xl font-semibold tracking-[-0.03em] text-primary-ink">
         <span>{TEST_MODE ? "You pay (test)" : "You pay"}</span>
         <span className="tabular-nums">{money(quote.youPayCents)}</span>
       </p>
+      {official ? (
+        <p className="text-sm text-muted">
+          Each side pays $2.99 for official store unless they have Rummlee Plus.
+          {premium ? " Yours is waived. " : " "}
+          <Link to="/you" className="font-medium text-primary-ink">
+            {premium ? "Manage Plus" : "Get Plus"}
+          </Link>
+        </p>
+      ) : null}
       <p className="text-sm font-medium text-primary-ink">{HOLD_LINE}</p>
       {TEST_MODE ? <p className="text-sm text-muted">{TEST_PAY_NOTE}</p> : null}
       <SplitHint youPayCents={quote.youPayCents} />

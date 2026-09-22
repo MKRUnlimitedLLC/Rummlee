@@ -12,6 +12,7 @@ import { LegalLinks } from "@/components/legal";
 import { NEIGHBORHOODS, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { errMessage } from "@/lib/rummlee/errors";
 import { money, saleWindow } from "@/lib/rummlee/format";
+import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
 import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount } from "@/lib/rummlee/server";
 
 export const Route = createFileRoute("/you")({ component: YouPage });
@@ -35,10 +36,17 @@ function YouPage() {
   });
 
   const premium = useMutation({
-    mutationFn: () => togglePremium(),
+    mutationFn: (data: { plan?: "month" | "year"; cancel?: boolean }) => togglePremium({ data }),
     onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["me"] });
-      toast.success(res.isPremium ? "Premium on — 5% fees." : "Premium off.");
+      void qc.invalidateQueries({ queryKey: ["bootstrap"] });
+      toast.success(
+        res.isPremium
+          ? res.plusPlan === "year"
+            ? "Rummlee Plus on for a year. Official store fee waived on your side."
+            : "Rummlee Plus on for a month. Official store fee waived on your side."
+          : "Rummlee Plus off. Official store is $2.99 a side again.",
+      );
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -78,7 +86,7 @@ function YouPage() {
             <Link to="/fees" className="font-medium text-primary-ink">
               Fees
             </Link>{" "}
-            — one table, applied at checkout
+            and Rummlee Plus — $2.99 official store each side, waived with Plus
           </li>
         </ul>
       </GuestGate>
@@ -111,14 +119,32 @@ function YouPage() {
             </Button>
           ))}
         </div>
-        <div className="mt-4 flex items-center justify-between rounded-xl bg-bg px-3 py-3">
-          <div>
-            <p className="font-medium">Rummlee Premium</p>
-            <p className="text-sm text-muted">{me?.isPremium ? "5% fees on" : "10% fees · $4 to switch"}</p>
-          </div>
-          <Button size="sm" variant={me?.isPremium ? "secondary" : "primary"} onClick={() => premium.mutate()} disabled={premium.isPending}>
-            {me?.isPremium ? "Turn off" : "Upgrade"}
-          </Button>
+        <div className="mt-4 rounded-xl bg-bg px-3 py-3">
+          <p className="font-medium">Rummlee Plus</p>
+          <p className="mt-1 text-sm text-muted">
+            Official store is {formatFeeValue(feeById(DEFAULT_FEES, "official_handoff") ?? DEFAULT_FEES[0])} each side per
+            pickup. Plus waives <em>your</em> side when you buy or sell there.
+          </p>
+          {me?.isPremium ? (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-fg">
+                {me.plusPlan === "year" ? "Yearly" : "Monthly"}
+                {me.plusUntil ? ` · through ${new Date(me.plusUntil).toLocaleDateString()}` : " · on"}
+              </p>
+              <Button size="sm" variant="secondary" onClick={() => premium.mutate({ cancel: true })} disabled={premium.isPending}>
+                Turn off
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => premium.mutate({ plan: "month" })} disabled={premium.isPending}>
+                {TEST_MODE ? "Plus, 1 month · $9.99 test" : "Plus, $9.99 / month"}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => premium.mutate({ plan: "year" })} disabled={premium.isPending}>
+                {TEST_MODE ? "Plus, 1 year · $99.99 test" : "Plus, $99.99 / year"}
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 

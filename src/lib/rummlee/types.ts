@@ -11,6 +11,8 @@ export type Profile = {
   neighborhood: string | null;
   zip: string | null;
   isPremium: boolean;
+  plusPlan: "month" | "year" | null;
+  plusUntil: string | null;
   isStaff: boolean;
   walletCents: number;
 };

@@ -105,10 +105,18 @@ async function loadFees(sql: Awaited<ReturnType<typeof getSql>>): Promise<FeeRow
   return rows.map(mapFeeRow);
 }
 
+function plusActive(isPremium: boolean, plusUntil: string | Date | null) {
+  if (!isPremium) return false;
+  if (!plusUntil) return true;
+  return new Date(plusUntil).getTime() > Date.now();
+}
+
 async function viewerPremium(sql: Awaited<ReturnType<typeof getSql>>, userId: string | null) {
   if (!userId) return false;
-  const rows = await sql<{ is_premium: boolean }>`select is_premium from profiles where id = ${userId}`;
-  return Boolean(rows[0]?.is_premium);
+  const rows = await sql<{ is_premium: boolean; plus_until: string | null }>`
+    select is_premium, plus_until from profiles where id = ${userId}
+  `;
+  return plusActive(Boolean(rows[0]?.is_premium), rows[0]?.plus_until ?? null);
 }
 
 async function grantTestCredits(
@@ -134,18 +142,23 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     neighborhood: string | null;
     zip: string | null;
     is_premium: boolean;
+    plus_plan: string | null;
+    plus_until: string | null;
     is_staff: boolean;
     wallet_cents: number;
-  }>`select id, handle, neighborhood, zip, is_premium, is_staff, wallet_cents from profiles where id = ${userId}`;
+  }>`select id, handle, neighborhood, zip, is_premium, plus_plan, plus_until, is_staff, wallet_cents from profiles where id = ${userId}`;
   if (existing[0]) {
     const p = existing[0];
     const walletCents = await grantTestCredits(sql, userId, Number(p.wallet_cents));
+    const isPremium = plusActive(Boolean(p.is_premium), p.plus_until);
     return {
       id: p.id,
       handle: p.handle,
       neighborhood: p.neighborhood,
       zip: p.zip,
-      isPremium: Boolean(p.is_premium),
+      isPremium,
+      plusPlan: p.plus_plan === "year" || p.plus_plan === "month" ? p.plus_plan : null,
+      plusUntil: p.plus_until,
       isStaff: Boolean(p.is_staff),
       walletCents,
     };
@@ -173,6 +186,8 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     neighborhood: null,
     zip: null,
     isPremium: false,
+    plusPlan: null,
+    plusUntil: null,
     isStaff: false,
     walletCents: start,
   };
@@ -456,6 +471,7 @@ export const getListing = createServerFn({ method: "GET" })
       myOrder,
       sellerOffers,
       buyerPremium,
+      sellerPremium: await viewerPremium(sql, row.seller_id),
       publicSpot,
       floorCents: userId === row.seller_id ? Number(row.floor_cents ?? row.price_cents) : null,
       fees: await loadFees(sql),
@@ -622,25 +638,48 @@ export const updateProfile = createServerFn({ method: "POST" })
 
 export const togglePremium = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .handler(async ({ context }) => {
+  .validator((data: unknown) =>
+    z
+      .object({
+        plan: z.enum(["month", "year"]).optional(),
+        cancel: z.boolean().optional(),
+      })
+      .optional()
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
     const sql = await getSql();
     const me = await ensureProfile(sql, context.userId);
-    if (me.isPremium) {
-      await sql`update profiles set is_premium = false where id = ${context.userId}`;
-      return { isPremium: false };
+    if (data?.cancel || (me.isPremium && !data?.plan)) {
+      await sql`
+        update profiles set is_premium = false, plus_plan = null, plus_until = null
+        where id = ${context.userId}
+      `;
+      return { isPremium: false, plusPlan: null as "month" | "year" | null };
     }
+    const plan = data?.plan ?? "month";
     const fees = await loadFees(sql);
-    const switchFee = fees.find((row) => row.id === "premium_switch");
-    const cost = switchFee?.enabled ? switchFee.amountCents : 400;
+    const switchFee = fees.find((row) => row.id === (plan === "year" ? "plus_year" : "premium_switch"));
+    const cost = switchFee?.enabled ? switchFee.amountCents : plan === "year" ? 9999 : 999;
     if (me.walletCents < cost) {
-      throw new Error(`Add more to your wallet to start Premium. See Fees.`);
+      throw new Error(`Add more test credits on You to start Rummlee Plus. See Fees.`);
     }
-    await sql`update profiles set is_premium = true, wallet_cents = wallet_cents - ${cost} where id = ${context.userId}`;
+    const days = plan === "year" ? 365 : 30;
+    const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    await sql`
+      update profiles
+      set is_premium = true, plus_plan = ${plan}, plus_until = ${until}::timestamptz,
+          wallet_cents = wallet_cents - ${cost}
+      where id = ${context.userId}
+    `;
     await sql`
       insert into wallet_tx (id, user_id, kind, amount_cents, note)
-      values (${crypto.randomUUID()}, ${context.userId}, ${"premium"}, ${-cost}, ${"Rummlee Premium"})
+      values (
+        ${crypto.randomUUID()}, ${context.userId}, ${"premium"}, ${-cost},
+        ${plan === "year" ? "Rummlee Plus — 1 year (test)" : "Rummlee Plus — 1 month (test)"}
+      )
     `;
-    return { isPremium: true };
+    return { isPremium: true, plusPlan: plan };
   });
 
 export const topUpWallet = createServerFn({ method: "POST" })
@@ -1031,10 +1070,11 @@ export const buyNow = createServerFn({ method: "POST" })
     const payAsking = Boolean(data.payAsking) || !offerState || offerState.status === "pending" || offerState.status === "declined";
     const base = payAsking ? asking : payBaseCents(asking, offerState);
     const fees = await loadFees(sql);
+    const sellerPlus = await viewerPremium(sql, item.seller_id);
     const quote = checkoutQuote(
       fees,
       base,
-      me.isPremium,
+      { buyer: me.isPremium, seller: sellerPlus },
       data.meet === "person" ? "person" : data.meet === "public" ? "public" : "official",
     );
     const fee = quote.buyerFeeCents + quote.handoffFeeCents;
@@ -1053,7 +1093,7 @@ export const buyNow = createServerFn({ method: "POST" })
       if (!modes.includes("public")) {
         throw new Error("Public place handoff isn’t offered on this item. Pick another handoff location.");
       }
-      handoffType = "official";
+      handoffType = "public";
       const wanted = data.handoffSpotId ?? null;
       const chosen = wanted
         ? await sql<{ id: string }>`
@@ -1122,7 +1162,8 @@ export const confirmPickup = createServerFn({ method: "POST" })
       pickup_code: string;
       buyer_confirmed: boolean;
       seller_confirmed: boolean;
-    }>`select id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, status, pickup_code, buyer_confirmed, seller_confirmed from orders where id = ${data.orderId}`;
+      handoff_type: string;
+    }>`select id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, status, pickup_code, buyer_confirmed, seller_confirmed, handoff_type from orders where id = ${data.orderId}`;
     const order = rows[0];
     if (!order) throw new Error("Pickup not found.");
     if (order.status !== "escrow") throw new Error("Already finished.");
@@ -1141,13 +1182,29 @@ export const confirmPickup = createServerFn({ method: "POST" })
       where id = ${order.id}
     `;
     if (buyerOk && sellerOk) {
+      const fees = await loadFees(sql);
+      const sellerPlus = await viewerPremium(sql, order.seller_id);
+      const meet =
+        order.handoff_type === "person" || order.handoff_type === "porch"
+          ? "person"
+          : order.handoff_type === "public"
+            ? "public"
+            : "official";
+      const quote = checkoutQuote(fees, Number(order.amount_cents), { buyer: false, seller: sellerPlus }, meet);
+      const payout = quote.youGetCents;
       await sql`update orders set status = ${"picked_up"} where id = ${order.id}`;
       await sql`update listings set status = ${"sold"} where id = ${order.listing_id}`;
-      await sql`update profiles set wallet_cents = wallet_cents + ${Number(order.amount_cents)} where id = ${order.seller_id}`;
+      await sql`update profiles set wallet_cents = wallet_cents + ${payout} where id = ${order.seller_id}`;
       await sql`
         insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
-        values (${crypto.randomUUID()}, ${order.seller_id}, ${"payout"}, ${Number(order.amount_cents)}, ${order.id}, ${
-          TEST_MODE ? "Test payout (beta — not real money)" : "Sale payout"
+        values (${crypto.randomUUID()}, ${order.seller_id}, ${"payout"}, ${payout}, ${order.id}, ${
+          TEST_MODE
+            ? quote.sellerHandoffFeeCents
+              ? "Test payout minus official store fee (beta — not real money)"
+              : "Test payout (beta — not real money)"
+            : quote.sellerHandoffFeeCents
+              ? "Sale payout minus official store fee"
+              : "Sale payout"
         })
       `;
       return { done: true };

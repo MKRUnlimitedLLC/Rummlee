@@ -35,6 +35,28 @@ export async function ensureFees(sql: Sql) {
       on conflict (id) do nothing
     `;
   }
+  const pack = "plus-v1";
+  const marked = await sql<{ value: string }>`select value from app_meta where key = ${"fees_pack"}`;
+  if (marked[0]?.value === pack) return;
+  for (const fee of DEFAULT_FEES) {
+    await sql`
+      update rummlee_fees set
+        label = ${fee.label},
+        description = ${fee.description},
+        unit = ${fee.unit},
+        percent_bps = ${fee.percentBps},
+        amount_cents = ${fee.amountCents},
+        charged_to = ${fee.chargedTo},
+        charged_when = ${fee.chargedWhen},
+        sort = ${fee.sort},
+        enabled = ${fee.enabled}
+      where id = ${fee.id}
+    `;
+  }
+  await sql`
+    insert into app_meta (key, value) values (${"fees_pack"}, ${pack})
+    on conflict (key) do update set value = ${pack}
+  `;
 }
 
 export async function ensureSeed(sql: Sql) {

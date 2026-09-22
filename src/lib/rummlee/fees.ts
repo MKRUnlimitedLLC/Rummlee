@@ -67,8 +67,8 @@ export const DEFAULT_FEES: FeeRow[] = [
   },
   {
     id: "buyer_premium",
-    label: "Buyer fee with Premium",
-    description: "Checkout fee when the buyer has Rummlee Premium. Independent of the standard buyer fee.",
+    label: "Buyer fee with Rummlee Plus",
+    description: "Checkout buyer fee when the buyer has Rummlee Plus. Independent of the standard buyer fee.",
     unit: "percent",
     percentBps: 500,
     amountCents: 0,
@@ -79,14 +79,26 @@ export const DEFAULT_FEES: FeeRow[] = [
   },
   {
     id: "premium_switch",
-    label: "Premium switch",
-    description: "One-time in-app charge to turn Premium on. Not an Apple In-App Purchase in this build.",
+    label: "Rummlee Plus, monthly",
+    description: "Test-credit price for one month of Rummlee Plus. Waives your $2.99 official store fee when you buy or sell.",
     unit: "cents",
     percentBps: 0,
-    amountCents: 400,
+    amountCents: 999,
     chargedTo: "buyer",
     chargedWhen: "upgrade",
     sort: 60,
+    enabled: true,
+  },
+  {
+    id: "plus_year",
+    label: "Rummlee Plus, yearly",
+    description: "Test-credit price for one year of Rummlee Plus. Same waiver as monthly.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 9999,
+    chargedTo: "buyer",
+    chargedWhen: "upgrade",
+    sort: 65,
     enabled: true,
   },
   {
@@ -103,14 +115,26 @@ export const DEFAULT_FEES: FeeRow[] = [
   },
   {
     id: "official_handoff",
-    label: "Official store handoff",
-    description: "Added at checkout when the buyer picks an official store handoff location. Independent of the buyer fee.",
+    label: "Official store, buyer",
+    description: "Buyer pays this at checkout for official store handoff, unless they have Rummlee Plus — then it’s waived.",
     unit: "cents",
     percentBps: 0,
-    amountCents: 0,
+    amountCents: 299,
     chargedTo: "buyer",
     chargedWhen: "checkout",
     sort: 80,
+    enabled: true,
+  },
+  {
+    id: "official_handoff_seller",
+    label: "Official store, seller",
+    description: "Taken from the seller’s payout for official store handoff, unless they have Rummlee Plus — then it’s waived.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 299,
+    chargedTo: "seller",
+    chargedWhen: "checkout",
+    sort: 85,
     enabled: true,
   },
   {
@@ -223,45 +247,60 @@ export function minAskingCents(table: FeeRow[]) {
   return row?.amountCents && row.amountCents > 0 ? row.amountCents : 500;
 }
 
+export type PlusFlags = boolean | { buyer?: boolean; seller?: boolean };
+
 export type CheckoutQuote = {
   baseCents: number;
   buyerFeeCents: number;
   sellerFeeCents: number;
   handoffFeeCents: number;
+  sellerHandoffFeeCents: number;
   youPayCents: number;
   youGetCents: number;
   buyerFeeId: string;
   handoffFeeId: string | null;
+  buyerPlus: boolean;
+  sellerPlus: boolean;
 };
+
+function plusSides(plus: PlusFlags) {
+  if (typeof plus === "boolean") return { buyer: plus, seller: false };
+  return { buyer: Boolean(plus.buyer), seller: Boolean(plus.seller) };
+}
+
+function feeAmount(row: FeeRow | null, baseCents: number) {
+  if (!row?.enabled) return 0;
+  return row.unit === "percent" ? percentOf(baseCents, row.percentBps) : row.amountCents;
+}
 
 export function checkoutQuote(
   table: FeeRow[],
   baseCents: number,
-  premium: boolean,
+  plus: PlusFlags,
   handoff: "official" | "public" | "person" | "partner" | null,
 ): CheckoutQuote {
   const fees = table.length ? table : DEFAULT_FEES;
-  const buyerId = premium ? "buyer_premium" : "buyer_standard";
-  const buyer = feeById(fees, buyerId);
-  const seller = feeById(fees, "seller_payout");
-  const handId =
-    handoff === "public" ? "public_handoff" : handoff === "person" ? "person_handoff" : handoff ? "official_handoff" : null;
-  const hand = handId ? feeById(fees, handId) : null;
-  const buyerFeeCents = buyer?.enabled ? (buyer.unit === "percent" ? percentOf(baseCents, buyer.percentBps) : buyer.amountCents) : 0;
-  const sellerFeeCents = seller?.enabled
-    ? seller.unit === "percent"
-      ? percentOf(baseCents, seller.percentBps)
-      : seller.amountCents
-    : 0;
-  const handoffFeeCents = hand?.enabled ? (hand.unit === "percent" ? percentOf(baseCents, hand.percentBps) : hand.amountCents) : 0;
+  const sides = plusSides(plus);
+  const buyerId = sides.buyer ? "buyer_premium" : "buyer_standard";
+  const official = handoff === "official" || handoff === "partner";
+  const handId = handoff === "public" ? "public_handoff" : handoff === "person" ? "person_handoff" : official ? "official_handoff" : null;
+  const buyerFeeCents = feeAmount(feeById(fees, buyerId), baseCents);
+  const sellerFeeCents = feeAmount(feeById(fees, "seller_payout"), baseCents);
+  const rawBuyerHandoff = feeAmount(handId ? feeById(fees, handId) : null, baseCents);
+  const rawSellerHandoff = official ? feeAmount(feeById(fees, "official_handoff_seller"), baseCents) : 0;
+  const handoffFeeCents = official && sides.buyer ? 0 : rawBuyerHandoff;
+  const sellerHandoffFeeCents = official && sides.seller ? 0 : rawSellerHandoff;
   return {
     baseCents,
     buyerFeeCents,
     sellerFeeCents,
     handoffFeeCents,
+    sellerHandoffFeeCents,
     youPayCents: baseCents + buyerFeeCents + handoffFeeCents,
-    youGetCents: baseCents - sellerFeeCents,
+    youGetCents: baseCents - sellerFeeCents - sellerHandoffFeeCents,
     buyerFeeId: buyerId,
     handoffFeeId: handId,
+    buyerPlus: sides.buyer,
+    sellerPlus: sides.seller,
   };
 }

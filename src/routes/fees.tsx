@@ -41,7 +41,7 @@ function FeesPage() {
   return (
     <LegalPage
       title="Fees"
-      lede="Beta. Every Rummlee fee, in one table. Checkout still runs the table — paid in test credits, not real money. No card is charged."
+      lede="Beta. Every Rummlee fee, in one table. Official store is $2.99 each side unless that person has Rummlee Plus ($9.99/month or $99.99/year) — then their side is waived. Checkout still runs this table in test credits. No card is charged."
     >
       <div className="overflow-x-auto rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
         <table className="w-full min-w-[36rem] text-left text-sm">
@@ -93,7 +93,7 @@ function FeesPage() {
 function whenLabel(when: string) {
   if (when === "checkout") return "Checkout";
   if (when === "listing") return "When you list";
-  if (when === "upgrade") return "Premium switch";
+  if (when === "upgrade") return "Rummlee Plus";
   return "Never";
 }
 

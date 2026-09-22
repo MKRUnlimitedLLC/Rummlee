@@ -28,7 +28,7 @@ function Privacy() {
             other neighbors.
           </li>
           <li>
-            <strong>Profile.</strong> Neighborhood you pick, optional zip, Premium status, and in-app test-credit
+            <strong>Profile.</strong> Neighborhood you pick, optional zip, Rummlee Plus status, and in-app test-credit
             wallet. Beta pay is simulated. We do not take card numbers.
           </li>
           <li>

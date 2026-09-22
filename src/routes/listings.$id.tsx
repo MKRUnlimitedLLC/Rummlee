@@ -52,6 +52,7 @@ function ListingPage() {
   const asking = listing.priceCents;
   const base = payBaseCents(asking, data.myOffer);
   const premium = Boolean(data.buyerPremium);
+  const sellerPlus = Boolean(data.sellerPremium);
   const officialOk = listing.handoffModes.includes("official");
   const personOk = listing.handoffModes.includes("person");
   const publicOk = listing.handoffModes.includes("public") && Boolean(data.publicSpot);
@@ -92,7 +93,7 @@ function ListingPage() {
   const due = checkoutQuote(
     fees,
     base,
-    premium,
+    { buyer: premium, seller: sellerPlus },
     selected === "person" ? "person" : selected === "public" ? "public" : "official",
   );
 
@@ -368,6 +369,7 @@ function ListingPage() {
           <CheckoutPay
             baseCents={asking}
             premium={premium}
+            sellerPlus={sellerPlus}
             fees={fees}
             handoff={selected === "person" ? "person" : selected === "public" ? "public" : "official"}
           />
@@ -386,8 +388,8 @@ function ListingPage() {
                 onClick={() => (user ? buyMut.mutate(true) : goLogin("Sign in to pay asking."))}
               >
                 {TEST_MODE
-                  ? `Pay asking with test credits · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
-                  : `Pay asking · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
+                  ? `Pay asking with test credits · ${money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
+                  : `Pay asking · ${money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
               </Button>
               <Button className="w-full" variant="ghost" disabled={passMut.isPending || !user} onClick={() => (user ? passMut.mutate() : goLogin("Sign in to decline."))}>
                 Decline
@@ -414,7 +416,7 @@ function ListingPage() {
                 disabled={buyMut.isPending || isPending}
                 onClick={() => (user ? buyMut.mutate(true) : goLogin("Sign in to pay asking."))}
               >
-                Pay asking instead · {money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}
+                Pay asking instead · {money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}
               </Button>
               {data.myOffer.status === "countered" ? (
                 <Button className="w-full" variant="ghost" disabled={passMut.isPending || !user} onClick={() => (user ? passMut.mutate() : goLogin("Sign in to decline."))}>
@@ -429,12 +431,12 @@ function ListingPage() {
                   ? "Paying with test credits…"
                   : "Paying…"
                 : TEST_MODE
-                  ? `Pay asking with test credits · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
-                  : `Pay asking · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
+                  ? `Pay asking with test credits · ${money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
+                  : `Pay asking · ${money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
             </Button>
           ) : (
             <Button className="w-full" disabled={isPending} onClick={() => goLogin("Sign in to pay. Browse stays free.")}>
-              Sign in to pay asking · {money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}
+              Sign in to pay asking · {money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}
             </Button>
           )}
 

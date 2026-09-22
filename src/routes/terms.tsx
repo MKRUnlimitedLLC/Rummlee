@@ -40,7 +40,7 @@ function Terms() {
           Wallet top-ups add more test credits. They are not money.
         </p>
         <p>
-          If we later take real payments, digital extras such as Premium would go through the platform’s required
+          If we later take real payments, digital extras such as Rummlee Plus would go through the platform’s required
           billing (including In-App Purchase on iOS). Physical-item proceeds stay between neighbors.
         </p>
       </LegalSection>
