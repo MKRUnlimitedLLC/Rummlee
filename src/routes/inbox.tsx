@@ -68,10 +68,15 @@ function InboxPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{o.listingTitle}</p>
                   <p className="text-sm text-muted">
-                    {money(o.amountCents)} · {o.status === "escrow" ? "your money is held until pickup" : "picked up"}
+                    {money(o.amountCents)} · {o.status === "escrow" ? "held until pickup" : "picked up"}
+                    {o.handoffType === "official"
+                      ? " · Official store handoff"
+                      : o.handoffType === "public"
+                        ? " · Public place / lot"
+                        : " · In person handoff"}
                   </p>
-                  <Link to="/pickup/$id" params={{ id: o.id }} className="text-sm font-medium text-primary-ink">
-                    {o.status === "escrow" ? "Open pickup code" : "View"}
+                  <Link to="/pickup/$id" params={{ id: o.id }} className="text-base font-medium text-primary-ink">
+                    {o.status === "escrow" ? "Go pick up — code ready" : "View"}
                   </Link>
                 </div>
               </li>
@@ -92,7 +97,7 @@ function InboxPage() {
 
       {data.offersIn.length > 0 ? (
         <section className="mt-8">
-          <h2 className="font-display text-xl">Offers on your items</h2>
+          <h2 className="font-display text-xl">Incoming — offers on your items</h2>
           <p className="mt-1 text-sm text-muted">Yes, counteroffer, or decline. One decline ends the offer.</p>
           <ul className="mt-3 space-y-3">
             {data.offersIn.map((o) => (
@@ -111,7 +116,7 @@ function InboxPage() {
 
       {data.offersOut.length > 0 ? (
         <section className="mt-8">
-          <h2 className="font-display text-xl">Your offers</h2>
+          <h2 className="font-display text-xl">Outgoing — offers you sent</h2>
           <ul className="mt-3 space-y-3">
             {data.offersOut.map((o) => (
               <OutgoingOfferCard key={o.id} offer={o} />

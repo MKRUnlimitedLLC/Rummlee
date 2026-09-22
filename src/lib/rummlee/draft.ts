@@ -5,6 +5,49 @@ import type { HandoffMode } from "./types";
 const DRAFT_KEY = "rummlee.listingDraft.v1";
 const AFTER_LOGIN_KEY = "rummlee.afterLogin";
 const LAST_CITY_KEY = "rummlee.lastCity";
+const SAVED_KEY = "rummlee.saved.v1";
+
+export function loadSavedIds(): string[] {
+  try {
+    const raw = localStorage.getItem(SAVED_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function toggleLocalSaved(id: string) {
+  const next = new Set(loadSavedIds());
+  const saved = !next.has(id);
+  if (saved) next.add(id);
+  else next.delete(id);
+  try {
+    localStorage.setItem(SAVED_KEY, JSON.stringify([...next]));
+  } catch {
+    /* ignore */
+  }
+  return saved;
+}
+
+export function neighborhoodForCity(city: string) {
+  const map: Record<string, string> = {
+    Brooklyn: "Park Slope, Brooklyn",
+    "Los Angeles": "Silver Lake, Los Angeles",
+    Austin: "East Austin, Austin",
+    Chicago: "Naperville, Chicago",
+    Seattle: "Capitol Hill, Seattle",
+    Atlanta: "Decatur, Atlanta",
+    Denver: "LoHi, Denver",
+    DC: "Bethesda, DC",
+    Dallas: "Plano, Dallas",
+    Boston: "Cambridge, Boston",
+    Phoenix: "Scottsdale, Phoenix",
+    "Fargo–Moorhead": "West Fargo, Fargo–Moorhead",
+    Minneapolis: "Uptown, Minneapolis",
+  };
+  return map[city] ?? null;
+}
 
 export type DraftLine = {
   id: string;

@@ -2,7 +2,7 @@ import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 import { DEFAULT_FEES } from "./fees";
 
-const SEED_VERSION = "v11-play15";
+const SEED_VERSION = "v12-recs";
 
 type SeedListing = {
   id: string;
@@ -80,6 +80,8 @@ export async function ensureSeed(sql: Sql) {
     { id: "seed-quiet-willow", handle: "quiet_willow", neighborhood: "Bethesda, DC" },
     { id: "seed-prairie-row", handle: "prairie_row", neighborhood: "West Fargo, Fargo–Moorhead" },
     { id: "seed-north-loft", handle: "north_loft", neighborhood: "Uptown, Minneapolis" },
+    { id: "seed-lohi-row", handle: "lohi_row", neighborhood: "LoHi, Denver" },
+    { id: "seed-naper-bin", handle: "naper_bin", neighborhood: "Naperville, Chicago" },
   ];
 
   for (const s of sellers) {
@@ -99,9 +101,9 @@ export async function ensureSeed(sql: Sql) {
   await sql`alter table handoff_spots add column if not exists kind text not null default 'public'`;
 
   const spots = [
-    { id: "partner-slope", name: "9th Street Market", area: "Park Slope, Brooklyn", hint: "Official Rummlee partner. Customer lot, locker by the florist. Store hours.", kind: "partner" },
-    { id: "partner-silverlake", name: "Sunset Home", area: "Silver Lake, Los Angeles", hint: "Official Rummlee partner. Side lot, pickup desk inside. Store hours.", kind: "partner" },
-    { id: "partner-austin", name: "Mueller Market", area: "East Austin, Austin", hint: "Official Rummlee partner. East lot, locker by customer service.", kind: "partner" },
+    { id: "partner-slope", name: "9th Street Market", area: "Park Slope, Brooklyn", hint: "Official store. Customer lot, locker by the florist. Step-free entrance, curb cut. Store hours.", kind: "partner" },
+    { id: "partner-silverlake", name: "Sunset Home", area: "Silver Lake, Los Angeles", hint: "Official store. Side lot, pickup desk inside. Step-free entrance. Store hours.", kind: "partner" },
+    { id: "partner-austin", name: "Mueller Market", area: "East Austin, Austin", hint: "Official store. East lot, locker by customer service. Step-free entrance, curb cut. Store hours.", kind: "partner" },
     { id: "partner-lincoln", name: "Clark Street Market", area: "Lincoln Park, Chicago", hint: "Official Rummlee partner. Rear lot, store hours only.", kind: "partner" },
     { id: "partner-seattle", name: "Pike Home", area: "Capitol Hill, Seattle", hint: "Official Rummlee partner. Alley lot, locker by the garden center.", kind: "partner" },
     { id: "partner-decatur", name: "Ponce Market", area: "Decatur, Atlanta", hint: "Official Rummlee partner. North lot, grocery hours.", kind: "partner" },
@@ -120,7 +122,7 @@ export async function ensureSeed(sql: Sql) {
     { id: "public-bethesda", name: "Bethesda Library", area: "Bethesda, DC", hint: "Front lot, library hours.", kind: "public" },
     { id: "public-plano", name: "Arbor Hills Nature Preserve", area: "Plano, Dallas", hint: "Main lot, by the trailhead kiosk.", kind: "public" },
     { id: "public-harvard", name: "Cambridge Public Library", area: "Cambridge, Boston", hint: "Broadway lot, near the main doors.", kind: "public" },
-    { id: "public-scottsdale", name: "Scottsdale Civic Center", area: "Scottsdale, Phoenix", hint: "West plaza, daylight hours.", kind: "public" },
+    { id: "public-scottsdale", name: "Scottsdale Civic Center", area: "Scottsdale, Phoenix", hint: "Parking lot, west plaza. Daylight hours. No home address.", kind: "public" },
     { id: "public-naperville", name: "Naper Settlement lot", area: "Naperville, Chicago", hint: "Visitor lot off Aurora Ave.", kind: "public" },
     { id: "partner-westfargo", name: "13th Avenue Market", area: "West Fargo, Fargo–Moorhead", hint: "Official Rummlee partner. Front lot, locker by customer service. Store hours.", kind: "partner" },
     { id: "public-westfargo", name: "West Fargo Library", area: "West Fargo, Fargo–Moorhead", hint: "Front lot, library hours. Daylight handoff.", kind: "public" },
@@ -227,6 +229,28 @@ export async function ensureSeed(sql: Sql) {
       ends: sun,
       spot: "partner-uptown",
       modes: "official,public",
+    },
+    {
+      id: "sale-lohi",
+      sellerId: "seed-lohi-row",
+      name: "LoHi moving sale",
+      kind: "moving",
+      neighborhood: "LoHi, Denver",
+      starts: fri,
+      ends: sun,
+      spot: "partner-denver",
+      modes: "official,public",
+    },
+    {
+      id: "sale-naper",
+      sellerId: "seed-naper-bin",
+      name: "Naperville kids bin",
+      kind: "clearout",
+      neighborhood: "Naperville, Chicago",
+      starts: sat,
+      ends: sat,
+      spot: "partner-naperville",
+      modes: "official",
     },
   ];
 
@@ -657,6 +681,55 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "Uptown, Minneapolis",
       photo: "/listings/dresser.jpg",
+      modes: "official,public",
+    },
+    {
+      id: "lohi-dresser",
+      saleId: "sale-lohi",
+      sellerId: "seed-lohi-row",
+      title: "Six-drawer dresser",
+      description: "White oak dresser from a LoHi move. You’ll want a truck. Official store at Platte Market, or the City Park lot.",
+      priceCents: 16000,
+      buyNowCents: 16000,
+      originalCents: 72000,
+      category: "furniture",
+      condition: "Good",
+      haul: "truck",
+      neighborhood: "LoHi, Denver",
+      photo: "/listings/dresser.jpg",
+      modes: "official,public",
+    },
+    {
+      id: "naper-onesies",
+      saleId: "sale-naper",
+      sellerId: "seed-naper-bin",
+      title: "Outgrown onesies, bundle",
+      description: "Six cotton onesies, washed. Fits in a bag. Drop at Ogden Market.",
+      priceCents: 1200,
+      buyNowCents: 1200,
+      originalCents: 4800,
+      category: "kids",
+      condition: "Good",
+      haul: "bag",
+      sizeLabel: "12–18 mo",
+      neighborhood: "Naperville, Chicago",
+      photo: "/listings/kids-bike.jpg",
+      modes: "official",
+    },
+    {
+      id: "phx-ladder",
+      saleId: "sale-scottsdale",
+      sellerId: "seed-dune-studio",
+      title: "Aluminum extension ladder",
+      description: "10-foot ladder, locks. Needs a truck. Civic Center parking lot or Scottsdale Home.",
+      priceCents: 5500,
+      buyNowCents: 5500,
+      originalCents: 18000,
+      category: "outdoor",
+      condition: "Good",
+      haul: "truck",
+      neighborhood: "Scottsdale, Phoenix",
+      photo: "/listings/ladder.svg",
       modes: "official,public",
     },
   ];

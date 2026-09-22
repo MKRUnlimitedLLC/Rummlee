@@ -14,6 +14,7 @@ import {
   guessHaul,
   lastCity,
   loadDraft,
+  neighborhoodForCity,
   parsePasteList,
   rememberAfterLogin,
   saveDraft,
@@ -34,11 +35,12 @@ export const Route = createFileRoute("/listings/new")({
 });
 
 function freshDraft(): ListingDraft {
-  const fm = lastCity() === "Fargo–Moorhead";
+  const city = lastCity();
+  const fromCity = neighborhoodForCity(city);
   const sat = nextSaturdayIso();
   return {
     kind: "moving",
-    neighborhood: fm ? "West Fargo, Fargo–Moorhead" : NEIGHBORHOODS[0],
+    neighborhood: fromCity ?? (city === "Fargo–Moorhead" ? "West Fargo, Fargo–Moorhead" : NEIGHBORHOODS[0]),
     modes: ["official"],
     handoffSpotId: "",
     startsOn: sat,

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Bookmark, BookmarkCheck, MapPin, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { BuyerDealStatus, DealSteps, SellerOfferCard } from "@/components/deal";
 import { ThumbTally, VerifiedBadge } from "@/components/trust";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { TEST_MODE } from "@/lib/rummlee/constants";
-import { lastCity, rememberAfterLogin } from "@/lib/rummlee/draft";
+import { lastCity, loadSavedIds, rememberAfterLogin, toggleLocalSaved } from "@/lib/rummlee/draft";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
 import { categoryLabel, cityOf, haulLabel, money, payBaseCents, saleWindow } from "@/lib/rummlee/format";
 import { checkoutQuote } from "@/lib/rummlee/fees";
@@ -37,6 +37,10 @@ function ListingPage() {
   const [ask, setAsk] = useState("");
   const [meet, setMeet] = useState<"partner" | "public" | "person">("partner");
   const [offerOpen, setOfferOpen] = useState(false);
+  const [localSaved, setLocalSaved] = useState(false);
+  useEffect(() => {
+    if (data?.listing) setLocalSaved(loadSavedIds().includes(data.listing.id));
+  }, [data?.listing]);
 
   if (!data?.listing) {
     return (
@@ -50,6 +54,7 @@ function ListingPage() {
   }
 
   const listing = data.listing;
+  const saved = user ? listing.saved : localSaved;
   const asking = listing.priceCents;
   const base = payBaseCents(asking, data.myOffer);
   const premium = Boolean(data.buyerPremium);
@@ -207,11 +212,19 @@ function ListingPage() {
           </span>
           <button
             type="button"
-            aria-label={listing.saved ? "Unsave" : "Save"}
+            aria-label={saved ? "Unsave" : "Save"}
             className="absolute right-3 top-3 grid size-11 place-items-center rounded-full bg-surface/92 text-fg shadow-[var(--shadow-card)] backdrop-blur-sm"
-            onClick={() => saveMut.mutate()}
+            onClick={() => {
+              if (!user) {
+                const on = toggleLocalSaved(listing.id);
+                setLocalSaved(on);
+                toast.success(on ? "Saved on this device." : "Removed from this device.");
+                return;
+              }
+              saveMut.mutate();
+            }}
           >
-            {listing.saved ? <BookmarkCheck className="size-5" /> : <Bookmark className="size-5" />}
+            {saved ? <BookmarkCheck className="size-5" /> : <Bookmark className="size-5" />}
           </button>
         </div>
         <div className="space-y-4 p-5">
@@ -368,7 +381,11 @@ function ListingPage() {
 
           <p className="text-sm font-medium">2. Price</p>
           {data.myOffer?.status === "declined" ? (
-            <p className="text-sm text-muted">Your one offer ended. Pay asking to hold it — you can’t send another.</p>
+            <p className="text-sm text-muted">
+              {data.myOffer.declinedBy === "floor"
+                ? "Too low. Your one offer ended — the seller’s lowest stays hidden. Pay asking to hold it."
+                : "Your one offer ended. Pay asking to hold it — you can’t send another."}
+            </p>
           ) : data.myOffer ? (
             <BuyerDealStatus offer={data.myOffer} />
           ) : (

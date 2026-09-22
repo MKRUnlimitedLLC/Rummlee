@@ -141,6 +141,7 @@ function YouPage() {
             @{me?.handle ?? "…"} <VerifiedBadge verified={me?.verified} className="ml-1 align-middle" />
           </h1>
           <p className="mt-1 text-sm text-subtle">Neighbors see this. Your real name stays yours.</p>
+          <p className="mt-1 text-sm text-muted">Neighbors never see your address — only a neighborhood label, if you set one.</p>
           <ThumbTally up={me?.thumbsUp} down={me?.thumbsDown} className="mt-1 block" />
         </div>
         <UserButton />
@@ -165,7 +166,7 @@ function YouPage() {
             Official store is {formatFeeValue(feeById(DEFAULT_FEES, "official_handoff") ?? DEFAULT_FEES[0])} each side per
             pickup. Plus waives <em>your</em> side when you buy or sell there. Buyer fee is 0% with Plus, 5% without.
             ID verification is free with Plus. Plus also includes a 3-day sale each month — extra sale days are $2.99
-            each.
+            each. Four official-store pickups cover a $9.99 month.
           </p>
           {me?.isPremium ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">

@@ -110,6 +110,14 @@ export function CheckoutPay({
           ) : null}
         </div>
       ) : null}
+      {!premium && official ? (
+        <p className="text-sm text-muted">
+          With Plus: your store fee and buyer fee drop to $0. About four official-store pickups cover $9.99 a month.{" "}
+          <Link to="/you" className="font-medium text-primary-ink">
+            See Plus
+          </Link>
+        </p>
+      ) : null}
       <p className="flex justify-between text-sm font-medium">
         <span>Sales tax</span>
         <span className="tabular-nums">{money(quote.salesTaxCents)}</span>
@@ -126,6 +134,7 @@ export function CheckoutPay({
         <span className="tabular-nums">{money(quote.youPayCents)}</span>
       </p>
       <p className="text-sm font-medium text-primary-ink">{HOLD_LINE}</p>
+      <p className="text-sm text-muted">Cancel before pickup and the test hold comes back. Nothing is final until both of you confirm.</p>
       {TEST_MODE ? <p className="text-sm text-muted">{TEST_PAY_NOTE}</p> : null}
       <SplitHint youPayCents={quote.youPayCents} />
       <p className="text-sm text-muted">

@@ -41,6 +41,10 @@
 }
 
 @layer base {
+  html.rummlee-large {
+    font-size: 18px;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

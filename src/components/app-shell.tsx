@@ -1,6 +1,7 @@
 import { Link, getRouteApi, useRouterState } from "@tanstack/react-router";
 import { Inbox, Home, Plus, CalendarDays, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Wordmark } from "./logo";
 import { BetaNotice } from "./beta-notice";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,18 @@ const TABS = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const hideNav = pathname.startsWith("/login");
+  const [large, setLarge] = useState(false);
+  useEffect(() => {
+    const on = localStorage.getItem("rummlee.largeType") === "1";
+    setLarge(on);
+    document.documentElement.classList.toggle("rummlee-large", on);
+  }, []);
+  function toggleLarge() {
+    const next = !large;
+    setLarge(next);
+    localStorage.setItem("rummlee.largeType", next ? "1" : "0");
+    document.documentElement.classList.toggle("rummlee-large", next);
+  }
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
@@ -26,6 +39,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/" className="min-h-11 min-w-11 content-center">
             <Wordmark />
           </Link>
+          <button type="button" className="text-sm font-medium text-muted" onClick={toggleLarge}>
+            {large ? "Regular text" : "Large text"}
+          </button>
           <nav className="hidden items-center gap-1 md:flex">
             {TABS.filter((t) => t.to !== "/you").map((tab) => (
               <Link

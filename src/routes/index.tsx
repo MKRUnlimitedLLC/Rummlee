@@ -35,6 +35,8 @@ function Home() {
   });
   const [haul, setHaul] = useState<string>("all");
   const [size, setSize] = useState<string>("all");
+  const [storeOnly, setStoreOnly] = useState(false);
+  const [lotOk, setLotOk] = useState(false);
 
   const listings = useMemo(() => {
     if (!data?.listings) return [];
@@ -44,6 +46,8 @@ function Home() {
       if (city !== "all" && cityOf(l.neighborhood) !== city) return false;
       if (haul !== "all" && l.haul !== haul) return false;
       if (size !== "all" && (l.sizeLabel ?? "") !== size) return false;
+      if (storeOnly && !l.handoffModes.includes("official")) return false;
+      if (lotOk && l.haul !== "truck" && !l.handoffModes.includes("public")) return false;
       if (!query) return true;
       return (
         l.title.toLowerCase().includes(query) ||
@@ -57,7 +61,7 @@ function Home() {
     const contractor = (l: (typeof filtered)[number]) =>
       l.category === "outdoor" || l.haul === "truck" ? 0 : 1;
     return [...filtered].sort((a, b) => contractor(a) - contractor(b));
-  }, [data?.listings, q, cat, city, haul, size]);
+  }, [data?.listings, q, cat, city, haul, size, storeOnly, lotOk]);
 
   const sizeOptions = useMemo(() => {
     if (!data?.listings) return [];
@@ -138,6 +142,14 @@ function Home() {
               {h.label}
             </Chip>
           ))}
+        </div>
+        <div className="-mx-4 flex flex-wrap gap-2 px-4 pb-1 md:mx-0">
+          <Chip active={storeOnly} onClick={() => setStoreOnly((v) => !v)}>
+            Official store only
+          </Chip>
+          <Chip active={lotOk} onClick={() => setLotOk((v) => !v)}>
+            Truck or parking lot
+          </Chip>
         </div>
         {sizeOptions.length > 0 ? (
           <div className="-mx-4 flex flex-wrap gap-2 px-4 pb-1 md:mx-0">
