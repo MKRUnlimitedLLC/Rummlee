@@ -126,6 +126,7 @@ export const LISTING_ALIASES: Record<string, string> = {
   garden: "fm-garden",
   "tool-chest": "fm-tools",
   "coffee-maker": "coffee-maker",
+  "air-fryer": "air-fryer",
   microwave: "fm-microwave",
   trailer: "fm-trailer",
 };

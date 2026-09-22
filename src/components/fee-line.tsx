@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { HOLD_LINE, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { checkoutQuote, type FeeRow } from "@/lib/rummlee/fees";
@@ -59,11 +60,30 @@ export function CheckoutPay({
       </p>
       <p className="text-sm font-medium text-primary-ink">{HOLD_LINE}</p>
       {TEST_MODE ? <p className="text-sm text-muted">{TEST_PAY_NOTE}</p> : null}
+      <SplitHint youPayCents={quote.youPayCents} />
       <p className="text-sm text-muted">
         <Link to="/fees" className="font-medium text-primary-ink">
           All fees
         </Link>
       </p>
+    </div>
+  );
+}
+
+function SplitHint({ youPayCents }: { youPayCents: number }) {
+  const [open, setOpen] = useState(false);
+  const each = Math.round(youPayCents / 2);
+  return (
+    <div className="text-sm">
+      <button type="button" className="font-medium text-primary-ink" onClick={() => setOpen((v) => !v)}>
+        Split this with someone
+      </button>
+      {open ? (
+        <p className="mt-1 text-muted">
+          About {money(each)} each if two of you. Share this listing — same hold. You still pay the full test total
+          here; split the rest off-app.
+        </p>
+      ) : null}
     </div>
   );
 }

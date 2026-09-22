@@ -36,7 +36,9 @@ export function ModePicks({
               <span className="text-sm font-medium text-fg">
                 {index + 1}. {row.label}
               </span>
-              <span className="mt-0.5 text-sm text-muted">{row.hint}</span>
+              <span className="mt-0.5 text-sm text-muted">
+                {row.id === "person" ? "Optional. Off is not a bug — neighbors just won’t see this choice." : row.hint}
+              </span>
             </button>
           );
         })}

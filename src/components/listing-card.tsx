@@ -39,6 +39,9 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         <h3 className="font-display text-lg font-semibold leading-snug tracking-[-0.02em] text-fg">
           {listing.title}
         </h3>
+        {listing.sizeLabel ? (
+          <p className="text-base font-medium text-fg">{listing.sizeLabel}</p>
+        ) : null}
         <p className="font-display text-2xl font-semibold tracking-[-0.03em] text-primary-ink">{money(listing.priceCents)}</p>
         {feeHint ? (
           <p className="text-sm text-muted">About {money(youPay)} with fee · fee at checkout</p>

@@ -33,6 +33,7 @@ type ListingRow = {
   category: string;
   condition: string;
   haul: string;
+  size_label: string | null;
   neighborhood: string;
   handoff_modes: string;
   handoff_spot_name: string | null;
@@ -62,6 +63,7 @@ function mapListing(row: ListingRow, saved = false): Listing {
     category: row.category,
     condition: row.condition,
     haul: row.haul,
+    sizeLabel: row.size_label?.trim() ? row.size_label.trim() : null,
     neighborhood: row.neighborhood,
     handoffModes: splitModes(row.handoff_modes),
     handoffSpotName: row.handoff_spot_name,
@@ -179,7 +181,7 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
 const listingSelect = `
   select l.id, l.sale_id, s.name as sale_name, l.seller_id, p.handle as seller_handle,
          l.title, l.description, l.price_cents, l.buy_now_cents, l.original_cents, l.floor_cents,
-         l.category, l.condition, l.haul, l.neighborhood, l.handoff_modes, l.photo_url,
+         l.category, l.condition, l.haul, l.size_label, l.neighborhood, l.handoff_modes, l.photo_url,
          l.status, s.starts_on, s.ends_on,
          hs.name as handoff_spot_name, hs.area as handoff_spot_area, hs.hint as handoff_spot_hint,
          hs.kind as handoff_spot_kind
@@ -727,6 +729,7 @@ const listingInput = z.object({
   category: z.string(),
   condition: z.string(),
   haul: z.string(),
+  sizeLabel: z.string().max(40).optional(),
   photoUrl: z.string().min(4),
   handoffModes: z.array(z.enum(["official", "public", "person", "porch"])).min(1),
 });
@@ -768,11 +771,11 @@ export const addListing = createServerFn({ method: "POST" })
     await sql`
       insert into listings (
         id, sale_id, seller_id, title, description, price_cents, buy_now_cents, original_cents, floor_cents,
-        category, condition, haul, neighborhood, handoff_modes, photo_url, status
+        category, condition, haul, size_label, neighborhood, handoff_modes, photo_url, status
       ) values (
         ${id}, ${data.saleId}, ${context.userId}, ${data.title}, ${data.description ?? ""},
         ${data.priceCents}, ${data.buyNowCents ?? data.priceCents}, ${null}, ${data.floorCents},
-        ${data.category}, ${data.condition}, ${data.haul}, ${sale[0].neighborhood},
+        ${data.category}, ${data.condition}, ${data.haul}, ${data.sizeLabel?.trim() || null}, ${sale[0].neighborhood},
         ${splitModes(data.handoffModes.join(",")).join(",")}, ${data.photoUrl}, ${"live"}
       )
     `;

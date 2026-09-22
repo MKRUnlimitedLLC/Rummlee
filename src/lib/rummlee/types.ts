@@ -54,6 +54,7 @@ export type Listing = {
   category: string;
   condition: string;
   haul: string;
+  sizeLabel: string | null;
   neighborhood: string;
   handoffModes: HandoffMode[];
   handoffSpotName: string | null;

@@ -226,6 +226,7 @@ function ListingPage() {
             <Meta label="Condition" value={listing.condition} />
             <Meta label="Category" value={categoryLabel(listing.category)} />
             <Meta label="Haul" value={haulLabel(listing.haul)} />
+            {listing.sizeLabel ? <Meta label="Size" value={listing.sizeLabel} /> : null}
             <Meta label="Sale" value={listing.saleName} />
           </dl>
           <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary-ink">
@@ -286,6 +287,9 @@ function ListingPage() {
           ) : (
             <p className="text-base text-muted">No offers yet. They also show in Inbox.</p>
           )}
+          <Button asChild variant="secondary" className="w-full">
+            <Link to="/listings/new">Add another item to this sale</Link>
+          </Button>
         </section>
       ) : (
         <section className="mt-5 space-y-4 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
@@ -321,7 +325,11 @@ function ListingPage() {
                     {index + 1}. {choice.label}
                   </span>
                   <span className={on ? "mt-0.5 text-sm text-primary-fg/80" : "mt-0.5 text-sm text-muted"}>
-                    {choice.hint}
+                    {choice.enabled
+                      ? choice.hint
+                      : choice.id === "person"
+                        ? "Not offered — optional. The seller left this off."
+                        : "Seller didn’t offer this on this item."}
                   </span>
                 </button>
               );

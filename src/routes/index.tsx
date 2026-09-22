@@ -6,7 +6,7 @@ import { ListingCard } from "@/components/listing-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { bootstrapPublic } from "@/lib/rummlee/server";
-import { CATEGORIES, CITIES, HOLD_LINE } from "@/lib/rummlee/constants";
+import { CATEGORIES, CITIES, HAULS, HOLD_LINE } from "@/lib/rummlee/constants";
 import { rememberCity } from "@/lib/rummlee/draft";
 import { cityOf } from "@/lib/rummlee/format";
 import type { HandoffSpot } from "@/lib/rummlee/types";
@@ -30,6 +30,8 @@ function Home() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
   const [city, setCity] = useState<string>("all");
+  const [haul, setHaul] = useState<string>("all");
+  const [size, setSize] = useState<string>("all");
 
   const listings = useMemo(() => {
     if (!data?.listings) return [];
@@ -37,10 +39,13 @@ function Home() {
     const filtered = data.listings.filter((l) => {
       if (cat !== "all" && l.category !== cat) return false;
       if (city !== "all" && cityOf(l.neighborhood) !== city) return false;
+      if (haul !== "all" && l.haul !== haul) return false;
+      if (size !== "all" && (l.sizeLabel ?? "") !== size) return false;
       if (!query) return true;
       return (
         l.title.toLowerCase().includes(query) ||
         l.description.toLowerCase().includes(query) ||
+        (l.sizeLabel ?? "").toLowerCase().includes(query) ||
         l.saleName.toLowerCase().includes(query) ||
         l.neighborhood.toLowerCase().includes(query)
       );
@@ -49,7 +54,16 @@ function Home() {
     const contractor = (l: (typeof filtered)[number]) =>
       l.category === "outdoor" || l.haul === "truck" ? 0 : 1;
     return [...filtered].sort((a, b) => contractor(a) - contractor(b));
-  }, [data?.listings, q, cat, city]);
+  }, [data?.listings, q, cat, city, haul, size]);
+
+  const sizeOptions = useMemo(() => {
+    if (!data?.listings) return [];
+    const pool = data.listings.filter((l) => {
+      if (cat !== "all" && l.category !== cat) return false;
+      return Boolean(l.sizeLabel) && (cat === "all" ? l.category === "kids" || l.category === "clothing" : true);
+    });
+    return [...new Set(pool.map((l) => l.sizeLabel as string))];
+  }, [data?.listings, cat]);
 
   if (!data?.listings) {
     return (
@@ -71,12 +85,20 @@ function Home() {
           placeholder="Search sofas, mixers, linen…"
           aria-label="Search listings"
         />
+        <div className="sticky top-0 z-10 -mx-4 space-y-2 bg-bg px-4 py-2">
         <div className="-mx-4 flex flex-wrap gap-2 px-4 pb-1 md:mx-0">
-          <Chip active={cat === "all"} onClick={() => setCat("all")}>
+          <Chip active={cat === "all"} onClick={() => { setCat("all"); setSize("all"); }}>
             All
           </Chip>
           {CATEGORIES.map((c) => (
-            <Chip key={c.id} active={cat === c.id} onClick={() => setCat(c.id)}>
+            <Chip
+              key={c.id}
+              active={cat === c.id}
+              onClick={() => {
+                setCat(c.id);
+                setSize("all");
+              }}
+            >
               {c.label}
             </Chip>
           ))}
@@ -103,6 +125,29 @@ function Home() {
               {c}
             </Chip>
           ))}
+        </div>
+        <div className="-mx-4 flex flex-wrap gap-2 px-4 pb-1 md:mx-0">
+          <Chip active={haul === "all"} onClick={() => setHaul("all")}>
+            Any haul
+          </Chip>
+          {HAULS.map((h) => (
+            <Chip key={h.id} active={haul === h.id} onClick={() => setHaul(h.id)}>
+              {h.label}
+            </Chip>
+          ))}
+        </div>
+        {sizeOptions.length > 0 ? (
+          <div className="-mx-4 flex flex-wrap gap-2 px-4 pb-1 md:mx-0">
+            <Chip active={size === "all"} onClick={() => setSize("all")}>
+              Any size
+            </Chip>
+            {sizeOptions.map((label) => (
+              <Chip key={label} active={size === label} onClick={() => setSize(label)}>
+                {label}
+              </Chip>
+            ))}
+          </div>
+        ) : null}
         </div>
       </div>
 

@@ -2,7 +2,7 @@ import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 import { DEFAULT_FEES } from "./fees";
 
-const SEED_VERSION = "v9-playtest";
+const SEED_VERSION = "v10-love";
 
 type SeedListing = {
   id: string;
@@ -17,6 +17,7 @@ type SeedListing = {
   category: string;
   condition: string;
   haul: string;
+  sizeLabel?: string;
   neighborhood: string;
   photo: string;
   modes: string;
@@ -318,6 +319,7 @@ export async function ensureSeed(sql: Sql) {
       category: "clothing",
       condition: "Like new",
       haul: "bag",
+      sizeLabel: "Women’s M",
       neighborhood: "Capitol Hill, Seattle",
       photo: "/listings/merino.jpg",
       modes: "official,public",
@@ -350,6 +352,7 @@ export async function ensureSeed(sql: Sql) {
       category: "kids",
       condition: "Good",
       haul: "two",
+      sizeLabel: "Ages 3–7",
       neighborhood: "Lincoln Park, Chicago",
       photo: "/listings/play-kitchen.jpg",
       modes: "official,public",
@@ -391,13 +394,14 @@ export async function ensureSeed(sql: Sql) {
       saleId: "sale-lincoln",
       sellerId: "seed-harbor-row",
       title: "Kids bike, 16\"",
-      description: "Training wheels off, tires pumped. Helmet not included. Ready this weekend.",
+      description: "Training wheels off, tires pumped. Helmet not included. Ready this weekend. Ages 4–6.",
       priceCents: 3500,
       buyNowCents: 3500,
       originalCents: 12000,
       category: "kids",
       condition: "Good",
       haul: "one",
+      sizeLabel: "16\" / ages 4–6",
       neighborhood: "Lincoln Park, Chicago",
       photo: "/listings/kids-bike.jpg",
       modes: "official,public",
@@ -414,6 +418,7 @@ export async function ensureSeed(sql: Sql) {
       category: "clothing",
       condition: "Like new",
       haul: "bag",
+      sizeLabel: "Women’s M",
       neighborhood: "Bethesda, DC",
       photo: "/listings/cashmere.jpg",
       modes: "official,public",
@@ -579,6 +584,22 @@ export async function ensureSeed(sql: Sql) {
       modes: "official,public",
     },
     {
+      id: "air-fryer",
+      saleId: "sale-slope",
+      sellerId: "seed-linen-lark",
+      title: "Compact air fryer",
+      description: "Basket and crisper plate included. Used for fries and leftovers. Fits in a bag.",
+      priceCents: 2500,
+      buyNowCents: 2500,
+      originalCents: 8000,
+      category: "kitchen",
+      condition: "Good",
+      haul: "bag",
+      neighborhood: "Park Slope, Brooklyn",
+      photo: "/listings/air-fryer.svg",
+      modes: "official,public",
+    },
+    {
       id: "msp-dresser",
       saleId: "sale-uptown",
       sellerId: "seed-north-loft",
@@ -601,11 +622,11 @@ export async function ensureSeed(sql: Sql) {
     await sql`
       insert into listings (
         id, sale_id, seller_id, title, description, price_cents, buy_now_cents, original_cents, floor_cents,
-        category, condition, haul, neighborhood, handoff_modes, photo_url, status
+        category, condition, haul, size_label, neighborhood, handoff_modes, photo_url, status
       ) values (
         ${l.id}, ${l.saleId}, ${l.sellerId}, ${l.title}, ${l.description}, ${l.priceCents},
         ${l.buyNowCents}, ${l.originalCents}, ${l.floorCents ?? floor}, ${l.category}, ${l.condition}, ${l.haul},
-        ${l.neighborhood}, ${l.modes}, ${l.photo}, ${"live"}
+        ${l.sizeLabel ?? null}, ${l.neighborhood}, ${l.modes}, ${l.photo}, ${"live"}
       )
       on conflict (id) do nothing
     `;

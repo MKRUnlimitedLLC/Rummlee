@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MapPin } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
+import { Button } from "@/components/ui/button";
 import { bootstrapPublic, getSale } from "@/lib/rummlee/server";
 import { saleWindow } from "@/lib/rummlee/format";
 import { SALE_KINDS } from "@/lib/rummlee/constants";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
 export const Route = createFileRoute("/sales/$id")({
   loader: async ({ params }) => {
@@ -36,6 +38,8 @@ function SaleDetail() {
 
   const kind = SALE_KINDS.find((k) => k.id === data.sale.kind)?.label ?? "Sale";
   const spot = initial.spots.find((sp) => sp.id === data.sale.handoffSpotId);
+  const { user } = useCurrentUserState();
+  const mine = Boolean(user?.id && user.id === data.sale.sellerId);
 
   return (
     <main className="py-6">
@@ -46,6 +50,11 @@ function SaleDetail() {
         {spot?.name ?? data.sale.neighborhood} · @{data.sale.sellerHandle}
       </p>
       <p className="mt-1 text-sm text-subtle">{saleWindow(data.sale.startsOn, data.sale.endsOn)}</p>
+      {mine ? (
+        <Button asChild className="mt-4">
+          <Link to="/listings/new">Add another item to this sale</Link>
+        </Button>
+      ) : null}
       {spot ? (
         <div className="mt-4 rounded-2xl bg-primary-soft px-4 py-3">
           <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">

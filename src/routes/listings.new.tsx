@@ -10,13 +10,15 @@ import { useAuthGate } from "@/components/guest-gate";
 import { CATEGORIES, CONDITIONS, HAULS, MIN_PRICE_CENTS, NEIGHBORHOODS, PASTE_CAP, SALE_KINDS } from "@/lib/rummlee/constants";
 import {
   blankLine,
-  clearDraft,
+  guessCategory,
+  guessHaul,
   lastCity,
   loadDraft,
   parsePasteList,
   rememberAfterLogin,
   saveDraft,
   takeAfterLogin,
+  SELL_PRESETS,
   type DraftLine,
   type ListingDraft,
 } from "@/lib/rummlee/draft";
@@ -101,14 +103,16 @@ function NewListingPage() {
     setSaved(false);
     setDraft((current) => {
       const empty = current.lines.every((line) => !line.title.trim() && !line.price.trim());
-      const nextLines = parsed.map((row) =>
-        blankLine({
-          title: row.title,
-          price: row.price,
-          category: current.kind === "moving" ? "furniture" : "other",
-          haul: current.kind === "moving" ? "two" : "one",
-        }),
-      );
+      const nextLines = parsed.map((row) => {
+          const category = guessCategory(row.title, current.kind === "moving" ? "furniture" : current.kind === "clearout" ? "kitchen" : "other");
+          return blankLine({
+            title: row.title,
+            price: row.price,
+            sizeLabel: row.sizeLabel,
+            category,
+            haul: guessHaul(category, row.title, current.kind === "moving" ? "two" : "one"),
+          });
+        });
       return { ...current, lines: empty ? nextLines : [...current.lines, ...nextLines].slice(0, PASTE_CAP) };
     });
     setPaste("");
@@ -124,7 +128,10 @@ function NewListingPage() {
       }
       const modes = splitModes(draft.modes.join(","));
       const live = meQ.data?.sales.filter((sale) => sale.status === "live" && sale.neighborhood === draft.neighborhood) ?? [];
-      let saleId = live[0]?.id;
+      let saleId =
+        draft.saleId && meQ.data?.sales.some((sale) => sale.id === draft.saleId && sale.status === "live")
+          ? draft.saleId
+          : live[0]?.id;
       if (!saleId) {
         const kind = SALE_KINDS.find((item) => item.id === draft.kind);
         const created = await createSale({
@@ -157,6 +164,7 @@ function NewListingPage() {
             condition: line.condition,
             haul: line.haul,
             photoUrl: line.photoUrl,
+            sizeLabel: line.sizeLabel.trim() || undefined,
             handoffModes: modes,
           },
         });
@@ -165,10 +173,10 @@ function NewListingPage() {
       return { saleId, ids };
     },
     onSuccess: ({ saleId, ids }) => {
-      clearDraft();
+      saveDraft({ ...draft, saleId, lines: [blankLine({ category: draft.lines[0]?.category ?? "furniture", haul: draft.lines[0]?.haul ?? "one" })] });
       void qc.invalidateQueries({ queryKey: ["bootstrap"] });
       void qc.invalidateQueries({ queryKey: ["me"] });
-      toast.success(ids.length === 1 ? "Published & visible on Browse." : `Published ${ids.length} items. Visible on Browse.`);
+      toast.success(ids.length === 1 ? "Published. Add another item to this sale if you want." : `Published ${ids.length} items. Add another to this sale if you want.`);
       if (ids.length === 1) void navigate({ to: "/listings/$id", params: { id: ids[0] } });
       else void navigate({ to: "/sales/$id", params: { id: saleId } });
     },
@@ -255,15 +263,42 @@ function NewListingPage() {
           </div>
         <p className="text-sm text-muted">{SALE_KINDS.find((kind) => kind.id === draft.kind)?.blurb}</p>
 
+        <div className="flex flex-wrap gap-2">
+          {SELL_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => {
+                setSaved(false);
+                setPaste(preset.sample);
+                setDraft((current) => ({
+                  ...current,
+                  kind: preset.kind,
+                  modes: preset.modes,
+                  lines: current.lines.every((line) => !line.title.trim() && !line.photoUrl)
+                    ? [blankLine({ category: preset.category, haul: preset.haul })]
+                    : current.lines,
+                }));
+                toast.message(preset.hint);
+              }}
+              className="rounded-full bg-primary-soft px-3.5 py-2 text-sm font-medium text-primary-ink"
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+
         <div className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
           <Label htmlFor="paste">Paste a list</Label>
-          <p className="mt-1 text-sm text-muted">Moving or clearout. One item per line, price at the end. Up to {PASTE_CAP}.</p>
+          <p className="mt-1 text-sm text-muted">
+            One item per line. Price at the end. Clothing: title · size · price. Up to {PASTE_CAP}.
+          </p>
           <Textarea
             id="paste"
             className="mt-2"
             value={paste}
             onChange={(event) => setPaste(event.target.value)}
-            placeholder={"Cream sofa, 90\nWhite desk 120\nMicrowave — 35"}
+            placeholder={"Cream sofa · 90\nCamel cashmere · M · 48\nStand mixer · 95"}
           />
           <button type="button" className="mt-2 text-sm font-medium text-primary-ink" onClick={applyPaste}>
             Add these rows
@@ -358,6 +393,17 @@ function NewListingPage() {
               />
               <p className="mt-1 text-sm text-muted">Neighbors see this. They can pay it, or send one offer under it.</p>
             </div>
+            {line.category === "clothing" || line.category === "kids" || line.sizeLabel ? (
+              <div>
+                <Label htmlFor={`size-${line.id}`}>{line.category === "kids" ? "Size / age" : "Size"}</Label>
+                <Input
+                  id={`size-${line.id}`}
+                  value={line.sizeLabel}
+                  onChange={(event) => updateLine(line.id, { sizeLabel: event.target.value })}
+                  placeholder={line.category === "kids" ? "16\" / ages 4–6" : "Women’s M"}
+                />
+              </div>
+            ) : null}
             </div>
             <div className={cn(step === 2 ? "space-y-3" : "hidden")}>
             <div>
@@ -389,7 +435,7 @@ function NewListingPage() {
                 id={`desc-${line.id}`}
                 value={line.description}
                 onChange={(event) => updateLine(line.id, { description: event.target.value })}
-                placeholder="One cushion is a little sat."
+                placeholder={draft.kind === "moving" && draft.modes.length === 1 ? "Lobby / elevator rules if this is a building item." : "One cushion is a little sat."}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -398,7 +444,12 @@ function NewListingPage() {
                 <select
                   className="h-11 w-full rounded-lg bg-bg px-3 text-base"
                   value={line.category}
-                  onChange={(event) => updateLine(line.id, { category: event.target.value })}
+                  onChange={(event) =>
+                    updateLine(line.id, {
+                      category: event.target.value,
+                      haul: guessHaul(event.target.value, line.title, line.haul),
+                    })
+                  }
                 >
                   {CATEGORIES.map((category) => (
                     <option key={category.id} value={category.id}>
@@ -453,13 +504,14 @@ function NewListingPage() {
         ))}
 
         {step === 1 ? (
-        <button
+        <Button
           type="button"
-          className="text-sm font-medium text-primary-ink"
-          onClick={() => setDraft((current) => ({ ...current, lines: [...current.lines, blankLine()].slice(0, PASTE_CAP) }))}
+          variant="secondary"
+          className="w-full"
+          onClick={() => setDraft((current) => ({ ...current, lines: [...current.lines, blankLine({ category: current.lines[0]?.category ?? "furniture", haul: current.lines[0]?.haul ?? "one" })].slice(0, PASTE_CAP) }))}
         >
-          Add another item
-        </button>
+          Add another item to this sale
+        </Button>
         ) : null}
 
         <div className="flex gap-2">
