@@ -2,7 +2,7 @@ import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 import { DEFAULT_FEES } from "./fees";
 
-const SEED_VERSION = "v8-floor";
+const SEED_VERSION = "v9-person";
 
 type SeedListing = {
   id: string;
@@ -76,7 +76,7 @@ export async function ensureSeed(sql: Sql) {
     { id: "partner-seattle", name: "Pike Home", area: "Capitol Hill, Seattle", hint: "Official Rummlee partner. Alley lot, locker by the garden center.", kind: "partner" },
     { id: "partner-decatur", name: "Ponce Market", area: "Decatur, Atlanta", hint: "Official Rummlee partner. North lot, grocery hours.", kind: "partner" },
     { id: "partner-denver", name: "Platte Market", area: "LoHi, Denver", hint: "Official Rummlee partner. Front lot, locker near the florist.", kind: "partner" },
-    { id: "partner-bethesda", name: "Wisconsin Market", area: "Bethesda, DC", hint: "Official Rummlee partner. Garage level P1, pickup desk.", kind: "partner" },
+    { id: "partner-bethesda", name: "Wisconsin Market", area: "Bethesda, DC", hint: "Official Rummlee partner. Covered garage, pickup desk. Store hours.", kind: "partner" },
     { id: "partner-plano", name: "Preston Home", area: "Plano, Dallas", hint: "Official Rummlee partner. Garden-center lot, store hours.", kind: "partner" },
     { id: "partner-cambridge", name: "Harvard Square Market", area: "Cambridge, Boston", hint: "Official Rummlee partner. Rear lot, locker by the cafe.", kind: "partner" },
     { id: "partner-scottsdale", name: "Scottsdale Home", area: "Scottsdale, Phoenix", hint: "Official Rummlee partner. Covered lot, pickup desk inside.", kind: "partner" },
@@ -258,7 +258,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "one",
       neighborhood: "Park Slope, Brooklyn",
       photo: "/listings/mixer.jpg",
-      modes: "official,public",
+      modes: "official,public,person",
     },
     {
       id: "linen-duvet",
@@ -418,7 +418,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "two",
       neighborhood: "West Fargo, Fargo–Moorhead",
       photo: "/listings/couch.svg",
-      modes: "official,public",
+      modes: "official,public,person",
     },
     {
       id: "fm-desk",

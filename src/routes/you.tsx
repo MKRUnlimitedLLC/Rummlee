@@ -154,7 +154,7 @@ function YouPage() {
           </ul>
         ) : (
           <p className="mt-2 text-sm text-muted">
-            None yet. <Link to="/sell" className="font-medium text-primary-ink">List a sale</Link>
+            None yet. <Link to="/listings/new" className="font-medium text-primary-ink">List a sale</Link>
           </p>
         )}
       </section>

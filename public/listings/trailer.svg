@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-label="Open utility trailer">
+  <rect width="1200" height="900" fill="#f4efe8"/>
+  <rect x="80" y="700" width="1040" height="16" rx="6" fill="#e4d9cc"/>
+  <g transform="translate(140 280)">
+    <rect x="180" y="80" width="720" height="280" rx="8" fill="#d9dee3" stroke="#8d98a3" stroke-width="6"/>
+    <path d="M180 80 H900 V140 H180 Z" fill="#c5ced6"/>
+    <rect x="40" y="200" width="160" height="28" rx="6" fill="#8d98a3"/>
+    <circle cx="300" cy="390" r="62" fill="#2c3338"/>
+    <circle cx="300" cy="390" r="28" fill="#c5ced6"/>
+    <circle cx="760" cy="390" r="62" fill="#2c3338"/>
+    <circle cx="760" cy="390" r="28" fill="#c5ced6"/>
+    <rect x="210" y="110" width="8" height="220" fill="#9aa6b0"/>
+    <rect x="400" y="110" width="8" height="220" fill="#9aa6b0"/>
+    <rect x="590" y="110" width="8" height="220" fill="#9aa6b0"/>
+    <rect x="780" y="110" width="8" height="220" fill="#9aa6b0"/>
+  </g>
+</svg>

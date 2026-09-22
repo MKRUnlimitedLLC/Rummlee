@@ -189,12 +189,6 @@ function NewListingPage() {
       <p className="mt-1 text-muted">
         Photo, asking price, and your hidden lowest. Neighbors never see the lowest. One offer. Yes, counteroffer, or decline.
       </p>
-      <p className="mt-2 text-sm text-muted">
-        <Link to="/sell" className="font-medium text-primary-ink">
-          How handoff works
-        </Link>
-      </p>
-
       <form
         className="mt-6 space-y-4"
         onSubmit={(event) => {
