@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img">
+  <rect width="800" height="1000" fill="#EBE6E0"/>
+  
+  <rect x="250" y="420" width="300" height="180" rx="20" fill="#C9C2B6"/>
+  <circle cx="300" cy="640" r="40" fill="#2A2623"/>
+  <circle cx="500" cy="640" r="40" fill="#2A2623"/>
+  <rect x="360" y="280" width="28" height="160" fill="#6E6964"/>
+  <rect x="330" y="250" width="90" height="40" rx="8" fill="#3D6B3A"/>
+  <text x="400" y="880" text-anchor="middle" font-family="Georgia, serif" font-size="28" fill="#7A3140">Garden tools</text>
+
+</svg>

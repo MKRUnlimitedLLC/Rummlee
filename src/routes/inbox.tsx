@@ -63,11 +63,11 @@ function InboxPage() {
           <ul className="mt-3 space-y-3">
             {data.orders.map((o) => (
               <li key={o.id} className="flex gap-3 rounded-2xl bg-surface p-3 shadow-[var(--shadow-card)]">
-                <img src={o.listingPhoto} alt="" className="size-16 rounded-lg object-cover" />
+                <img src={o.listingPhoto} alt={o.listingTitle} className="size-16 rounded-lg object-cover" />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{o.listingTitle}</p>
                   <p className="text-sm text-muted">
-                    {money(o.amountCents)} · {o.status === "escrow" ? "held until you both confirm" : "picked up"}
+                    {money(o.amountCents)} · {o.status === "escrow" ? "your money is held until pickup" : "picked up"}
                   </p>
                   <Link to="/pickup/$id" params={{ id: o.id }} className="text-sm font-medium text-primary-ink">
                     {o.status === "escrow" ? "Open pickup code" : "View"}

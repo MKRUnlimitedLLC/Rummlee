@@ -4,5 +4,6 @@ export function errMessage(e: unknown) {
 }
 
 export function isUnauthorized(e: unknown) {
-  return e instanceof Error && /unauthorized/i.test(e.message);
+  const msg = errMessage(e);
+  return /unauthorized|not signed in|sign in required/i.test(msg);
 }

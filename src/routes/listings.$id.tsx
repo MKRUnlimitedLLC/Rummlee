@@ -9,6 +9,7 @@ import { AskingPrice, CheckoutPay } from "@/components/fee-line";
 import { BuyerDealStatus, DealSteps } from "@/components/deal";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { TEST_MODE } from "@/lib/rummlee/constants";
+import { rememberAfterLogin } from "@/lib/rummlee/draft";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
 import { categoryLabel, haulLabel, money, payBaseCents, saleWindow } from "@/lib/rummlee/format";
 import { checkoutQuote } from "@/lib/rummlee/fees";
@@ -24,7 +25,7 @@ function ListingPage() {
   const initial = Route.useLoaderData();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user } = useCurrentUserState();
+  const { user, isPending } = useCurrentUserState();
   const { data } = useQuery({
     queryKey: ["listing", id],
     queryFn: () => getListing({ data: id }),
@@ -57,6 +58,13 @@ function ListingPage() {
   const publicSpot = data.publicSpot;
   const mine = user?.id === listing.sellerId;
   const fees = data.fees ?? [];
+  const myOrder = data.myOrder;
+
+  function goLogin(reason: string) {
+    rememberAfterLogin(`/listings/${listing.id}`);
+    toast.message(reason);
+    void navigate({ to: "/login" });
+  }
 
   const meetChoices = [
     {
@@ -68,13 +76,13 @@ function ListingPage() {
     {
       id: "public" as const,
       label: "Public place handoff",
-      hint: publicSpot ? publicSpot.name : "Not offered on this item.",
+      hint: publicSpot ? publicSpot.name : "Seller didn’t offer this on this item.",
       enabled: publicOk,
     },
     {
       id: "person" as const,
       label: "In person handoff",
-      hint: personOk ? "Meet as handles. Still no home address." : "Not offered on this item.",
+      hint: personOk ? "Meet as handles. Still no home address." : "Seller didn’t offer this on this item.",
       enabled: personOk,
     },
   ];
@@ -112,15 +120,18 @@ function ListingPage() {
     onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["listing", id] });
       void qc.invalidateQueries({ queryKey: ["inbox"] });
-      if (res.status === "accepted") toast.success("They said yes. Pay to hold it.");
+      if (res.status === "accepted") toast.success("They said yes. Sign in is done — pay to hold it.");
       else if (res.status === "declined") toast.success("No deal on that offer. You can still pay asking.");
-      else toast.success("Offer sent. They get one answer.");
+      else toast.success("Offer sent. They get one answer — yes, counteroffer, or decline.");
       setOffer("");
       setOfferOpen(false);
     },
     onError: (e) => {
-      if (isUnauthorized(e)) void navigate({ to: "/login" });
-      else toast.error(errMessage(e));
+      if (isUnauthorized(e)) {
+        rememberAfterLogin(`/listings/${listing.id}`);
+        toast.error("Sign in to send that offer.");
+        void navigate({ to: "/login" });
+      } else toast.error(errMessage(e));
     },
   });
 
@@ -140,8 +151,11 @@ function ListingPage() {
       void navigate({ to: "/pickup/$id", params: { id: res.orderId } });
     },
     onError: (e) => {
-      if (isUnauthorized(e)) void navigate({ to: "/login" });
-      else toast.error(errMessage(e));
+      if (isUnauthorized(e)) {
+        rememberAfterLogin(`/listings/${listing.id}`);
+        toast.error("Sign in to pay.");
+        void navigate({ to: "/login" });
+      } else toast.error(errMessage(e));
     },
   });
 
@@ -171,8 +185,8 @@ function ListingPage() {
     <article className="py-5">
       <div className="overflow-hidden rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
         <div className="relative aspect-[4/5] bg-bg-warm sm:aspect-[4/3]">
-          <img src={listing.photoUrl} alt="" className="size-full object-cover" />
-          <span className="absolute left-3 top-3 rounded-md bg-surface/92 px-2 py-1 text-xs font-medium backdrop-blur-sm">
+          <img src={listing.photoUrl} alt={listing.title} className="size-full object-cover" />
+          <span className="absolute left-3 top-3 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium backdrop-blur-sm">
             {saleWindow(listing.saleStartsOn, listing.saleEndsOn)}
           </span>
           <button
@@ -188,25 +202,25 @@ function ListingPage() {
           <div className="flex flex-col gap-2">
             <h1 className="font-display text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">{listing.title}</h1>
             <AskingPrice cents={listing.priceCents} originalCents={listing.originalCents} />
-            <p className="flex items-center gap-1 text-sm text-muted">
+            <p className="flex items-center gap-1 text-base text-muted">
               <MapPin className="size-3.5" />
               {listing.handoffSpotName ?? listing.neighborhood} · @{listing.sellerHandle}
             </p>
           </div>
-          <p className="text-pretty text-sm leading-relaxed text-fg">{listing.description}</p>
-          <dl className="grid grid-cols-2 gap-2 text-sm">
+          <p className="text-pretty text-base leading-relaxed text-fg">{listing.description}</p>
+          <dl className="grid grid-cols-2 gap-2 text-base">
             <Meta label="Condition" value={listing.condition} />
             <Meta label="Category" value={categoryLabel(listing.category)} />
             <Meta label="Haul" value={haulLabel(listing.haul)} />
             <Meta label="Sale" value={listing.saleName} />
           </dl>
-          <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-xs font-medium text-primary-ink">
+          <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary-ink">
             Handoff location
           </span>
-          <Link to="/sales/$id" params={{ id: listing.saleId }} className="block text-sm font-medium text-primary-ink">
+          <Link to="/sales/$id" params={{ id: listing.saleId }} className="block text-base font-medium text-primary-ink">
             See the rest of this sale
           </Link>
-          <p className="text-xs text-subtle">
+          <p className="text-sm text-subtle">
             Neighbors see @{listing.sellerHandle} — never a real name or home address.
             {listing.handoffSpotKind === "partner" ? " Official store handoff." : listing.handoffSpotKind === "public" ? " Public place handoff." : ""}
           </p>
@@ -214,9 +228,27 @@ function ListingPage() {
       </div>
 
       {listing.status !== "live" ? (
-        <p className="mt-5 rounded-2xl bg-surface px-4 py-6 text-center text-muted shadow-[var(--shadow-card)]">
-          This one already sold.
-        </p>
+        myOrder ? (
+          <section className="mt-5 space-y-3 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+            <h2 className="font-display text-xl font-semibold">
+              {myOrder.status === "escrow" ? "Your money is held" : "Picked up"}
+            </h2>
+            <p className="text-base text-muted">
+              {myOrder.status === "escrow"
+                ? "Test credits are held until you both confirm pickup. This listing is spoken for — not sold to someone else."
+                : "Pickup confirmed. The hold released."}
+            </p>
+            <Button asChild className="w-full">
+              <Link to="/pickup/$id" params={{ id: myOrder.id }}>
+                {myOrder.status === "escrow" ? "Open pickup code" : "View pickup"}
+              </Link>
+            </Button>
+          </section>
+        ) : (
+          <p className="mt-5 rounded-2xl bg-surface px-4 py-6 text-center text-muted shadow-[var(--shadow-card)]">
+            {listing.status === "held" ? "Someone’s already holding this. Your money would stay held until pickup." : "This one already sold."}
+          </p>
+        )
       ) : mine ? (
         <p className="mt-5 rounded-2xl bg-surface px-4 py-6 text-center text-muted shadow-[var(--shadow-card)]">
           This is your listing. Offers show up in{" "}
@@ -263,7 +295,7 @@ function ListingPage() {
                   <span className="text-sm font-medium">
                     {index + 1}. {choice.label}
                   </span>
-                  <span className={on ? "mt-0.5 text-xs text-primary-fg/80" : "mt-0.5 text-xs text-muted"}>
+                  <span className={on ? "mt-0.5 text-sm text-primary-fg/80" : "mt-0.5 text-sm text-muted"}>
                     {choice.hint}
                   </span>
                 </button>
@@ -272,7 +304,7 @@ function ListingPage() {
           </div>
           {selected === "partner" && listing.handoffSpotName ? (
             <div className="rounded-xl bg-bg px-3.5 py-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">Official store handoff</p>
+              <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">Official store handoff</p>
               <p className="mt-1 font-medium">{listing.handoffSpotName}</p>
               <p className="text-sm text-muted">{listing.handoffSpotArea}</p>
               {listing.handoffSpotHint ? <p className="mt-1 text-sm text-subtle">{listing.handoffSpotHint}</p> : null}
@@ -280,7 +312,7 @@ function ListingPage() {
           ) : null}
           {selected === "public" && publicSpot ? (
             <div className="rounded-xl bg-bg px-3.5 py-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-subtle">Public place handoff</p>
+              <p className="text-sm font-medium uppercase tracking-wider text-subtle">Public place handoff</p>
               <p className="mt-1 font-medium">{publicSpot.name}</p>
               <p className="text-sm text-muted">{publicSpot.area}</p>
               <p className="mt-1 text-sm text-subtle">{publicSpot.hint}</p>
@@ -312,20 +344,24 @@ function ListingPage() {
               <Button
                 className="w-full"
                 variant="secondary"
-                disabled={buyMut.isPending}
-                onClick={() => (user ? buyMut.mutate() : navigate({ to: "/login" }))}
+                disabled={buyMut.isPending || isPending}
+                onClick={() => (user ? buyMut.mutate() : goLogin("Sign in to pay asking."))}
               >
                 {TEST_MODE
                   ? `Pay asking instead with test credits · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
                   : `Pay asking instead · ${money(checkoutQuote(fees, asking, premium, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
               </Button>
-              <Button className="w-full" variant="ghost" disabled={passMut.isPending} onClick={() => passMut.mutate()}>
+              <Button className="w-full" variant="ghost" disabled={passMut.isPending || !user} onClick={() => (user ? passMut.mutate() : goLogin("Sign in to decline."))}>
                 Decline
               </Button>
             </div>
           ) : data.myOffer?.status === "accepted" || data.myOffer?.status === "countered" ? (
             <div className="space-y-2">
-              <Button className="w-full" disabled={buyMut.isPending} onClick={() => buyMut.mutate()}>
+              <Button
+                className="w-full"
+                disabled={buyMut.isPending || isPending}
+                onClick={() => (user ? buyMut.mutate() : goLogin("Sign in to pay and hold it."))}
+              >
                 {buyMut.isPending
                   ? TEST_MODE
                     ? "Paying with test credits…"
@@ -335,13 +371,13 @@ function ListingPage() {
                     : `Pay ${money(due.youPayCents)} to hold it`}
               </Button>
               {data.myOffer.status === "countered" ? (
-                <Button className="w-full" variant="ghost" disabled={passMut.isPending} onClick={() => passMut.mutate()}>
+                <Button className="w-full" variant="ghost" disabled={passMut.isPending || !user} onClick={() => (user ? passMut.mutate() : goLogin("Sign in to decline."))}>
                   Decline
                 </Button>
               ) : null}
             </div>
-          ) : (
-            <Button className="w-full" disabled={buyMut.isPending} onClick={() => (user ? buyMut.mutate() : navigate({ to: "/login" }))}>
+          ) : user ? (
+            <Button className="w-full" disabled={buyMut.isPending || isPending} onClick={() => buyMut.mutate()}>
               {buyMut.isPending
                 ? TEST_MODE
                   ? "Paying with test credits…"
@@ -349,6 +385,10 @@ function ListingPage() {
                 : TEST_MODE
                   ? `Pay asking with test credits · ${money(due.youPayCents)}`
                   : `Pay asking · ${money(due.youPayCents)}`}
+            </Button>
+          ) : (
+            <Button className="w-full" disabled={isPending} onClick={() => goLogin("Sign in to pay. Browse stays free.")}>
+              Sign in to pay · {money(due.youPayCents)}
             </Button>
           )}
 
@@ -359,7 +399,7 @@ function ListingPage() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!user) {
-                    void navigate({ to: "/login" });
+                    goLogin("Sign in to send that offer.");
                     return;
                   }
                   const n = Math.round(Number(offer) * 100);
@@ -385,15 +425,25 @@ function ListingPage() {
                 />
                 <Textarea placeholder="Optional note — condition, timing" value={note} onChange={(e) => setNote(e.target.value)} />
                 <Button type="submit" variant="secondary" className="w-full" disabled={offerMut.isPending}>
-                  {offerMut.isPending ? "Sending…" : "Send offer"}
+                  {offerMut.isPending ? "Sending…" : user ? "Send offer" : "Sign in to send offer"}
                 </Button>
                 <button type="button" className="w-full text-sm text-muted" onClick={() => setOfferOpen(false)}>
                   Cancel
                 </button>
               </form>
             ) : (
-              <button type="button" className="w-full text-sm font-medium text-primary-ink" onClick={() => setOfferOpen(true)}>
-                Offer a different price
+              <button
+                type="button"
+                className="w-full text-base font-medium text-primary-ink"
+                onClick={() => {
+                  if (!user) {
+                    goLogin("Sign in to send an offer.");
+                    return;
+                  }
+                  setOfferOpen(true);
+                }}
+              >
+                {user ? "Offer a different price" : "Sign in to send an offer"}
               </button>
             )
           ) : null}
@@ -436,7 +486,7 @@ function ListingPage() {
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-bg px-3 py-2">
-      <dt className="text-[11px] uppercase tracking-wide text-subtle">{label}</dt>
+      <dt className="text-sm uppercase tracking-wide text-subtle">{label}</dt>
       <dd className="font-medium">{value}</dd>
     </div>
   );

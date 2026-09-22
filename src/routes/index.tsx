@@ -138,7 +138,7 @@ function GuestHero() {
   return (
     <section className="overflow-hidden rounded-2xl bg-surface shadow-[var(--shadow-card)] sm:rounded-[28px]">
       <div className="relative aspect-[16/9] max-h-56 w-full overflow-hidden sm:max-h-72">
-        <img src="/listings/hero-sale.jpg" alt="" className="size-full object-cover" />
+        <img src="/listings/hero-sale.jpg" alt="Neighbors browsing a weekend sale" className="size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-fg/80 via-fg/20 to-transparent" />
         <p className="absolute bottom-3 left-4 right-4 font-display text-2xl font-semibold leading-tight tracking-[-0.04em] text-primary-fg sm:text-3xl">
           The good stuff, before Saturday.
@@ -147,7 +147,7 @@ function GuestHero() {
       <div className="space-y-4 p-5">
         <p className="text-pretty text-muted">
           Furniture, kitchen, closet, and kids — from neighbors in the city and the suburbs. Offer this week. Meet at a
-          handoff location, never a home address.
+          handoff location, never a home address. Nothing ships.
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
           <Perk icon={CalendarDays} title="Offers before Saturday" body="Browse while the closet is still being edited. Lock it in before the weekend." />

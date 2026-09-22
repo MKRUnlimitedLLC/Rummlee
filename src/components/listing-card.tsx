@@ -2,10 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { MapPin } from "lucide-react";
 import type { Listing } from "@/lib/rummlee/types";
 import { HOLD_LINE } from "@/lib/rummlee/constants";
+import { checkoutQuote, DEFAULT_FEES } from "@/lib/rummlee/fees";
 import { money, saleWindow, spotKindLabel } from "@/lib/rummlee/format";
 
 export function ListingCard({ listing }: { listing: Listing; premium?: boolean }) {
   const partner = listing.handoffSpotKind === "partner";
+  const youPay = checkoutQuote(DEFAULT_FEES, listing.priceCents, false, "official").youPayCents;
+  const feeHint = youPay > listing.priceCents;
   return (
     <Link
       to="/listings/$id"
@@ -15,34 +18,37 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
       <div className="relative aspect-[4/5] overflow-hidden bg-bg-warm sm:aspect-[4/3]">
         <img
           src={listing.photoUrl}
-          alt=""
+          alt={listing.title}
           className="size-full object-cover transition-transform duration-500 ease-[var(--ease-out-smooth)] group-hover:scale-[1.03]"
         />
-        <span className="absolute left-2.5 top-2.5 rounded-md bg-surface/92 px-2 py-1 text-xs font-medium text-fg backdrop-blur-sm">
+        <span className="absolute left-2.5 top-2.5 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium text-fg backdrop-blur-sm">
           {saleWindow(listing.saleStartsOn, listing.saleEndsOn)}
         </span>
-        {listing.status === "sold" ? (
-          <span className="absolute right-2.5 top-2.5 rounded-md bg-fg/85 px-2 py-1 text-xs font-medium text-primary-fg">
-            Sold
+        {listing.status === "sold" || listing.status === "held" ? (
+          <span className="absolute right-2.5 top-2.5 rounded-md bg-fg/85 px-2 py-1 text-sm font-medium text-primary-fg">
+            {listing.status === "held" ? "Held" : "Sold"}
           </span>
         ) : null}
         {partner ? (
-          <span className="absolute bottom-2.5 left-2.5 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-fg">
+          <span className="absolute bottom-2.5 left-2.5 rounded-md bg-primary px-2 py-1 text-sm font-medium text-primary-fg">
             Official store
           </span>
         ) : null}
       </div>
       <div className="space-y-1.5 p-3.5">
-        <h3 className="font-display text-base font-semibold leading-snug tracking-[-0.02em] text-fg">
+        <h3 className="font-display text-lg font-semibold leading-snug tracking-[-0.02em] text-fg">
           {listing.title}
         </h3>
         <p className="font-display text-2xl font-semibold tracking-[-0.03em] text-primary-ink">{money(listing.priceCents)}</p>
+        {feeHint ? (
+          <p className="text-sm text-muted">About {money(youPay)} with fee · fee at checkout</p>
+        ) : null}
         <p className="text-sm font-medium text-primary-ink">{HOLD_LINE}</p>
-        <p className="flex items-center gap-1 text-xs text-muted">
+        <p className="flex items-center gap-1 text-sm text-muted">
           <MapPin className="size-3.5" strokeWidth={1.75} />
           {listing.handoffSpotName ?? listing.neighborhood}
         </p>
-        <p className="text-xs text-subtle">
+        <p className="text-sm text-subtle">
           {listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : "Handoff location"}
           {" · "}@{listing.sellerHandle}
         </p>

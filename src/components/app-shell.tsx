@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <Link
                     to={tab.to}
                     className={cn(
-                      "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+                      "flex min-h-14 flex-col items-center justify-center gap-0.5 text-sm font-medium",
                       active ? "text-primary-ink" : "text-muted",
                     )}
                   >

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img">
+  <rect width="800" height="1000" fill="#EBE6E0"/>
+  
+  <rect x="250" y="300" width="300" height="360" rx="24" fill="#E8E2DA"/>
+  <rect x="280" y="340" width="240" height="160" rx="12" fill="#2A2623"/>
+  <rect x="310" y="530" width="180" height="90" rx="10" fill="#F4EDE4"/>
+  <circle cx="400" cy="250" r="40" fill="#7A3140"/>
+  <text x="400" y="880" text-anchor="middle" font-family="Georgia, serif" font-size="28" fill="#7A3140">Coffee maker</text>
+
+</svg>

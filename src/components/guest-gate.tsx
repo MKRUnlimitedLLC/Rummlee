@@ -35,7 +35,7 @@ export function GuestGate({
       <div className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <p className="font-medium">Sign in or create account</p>
         <p className="mt-1 text-sm text-muted">
-          Browse stays free. Sign in to list, offer, or pay. You deal as a handle. Meet at a partner store — never a
+          Browse stays free. Sign in to list, offer, or pay. You deal as a handle. Meet at a handoff location — never a
           home address.
         </p>
         <Button asChild className="mt-4 w-full">

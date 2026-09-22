@@ -2,7 +2,7 @@ import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 import { DEFAULT_FEES } from "./fees";
 
-const SEED_VERSION = "v9-person";
+const SEED_VERSION = "v9-playtest";
 
 type SeedListing = {
   id: string;
@@ -56,6 +56,7 @@ export async function ensureSeed(sql: Sql) {
     { id: "seed-dune-studio", handle: "dune_studio", neighborhood: "Scottsdale, Phoenix" },
     { id: "seed-quiet-willow", handle: "quiet_willow", neighborhood: "Bethesda, DC" },
     { id: "seed-prairie-row", handle: "prairie_row", neighborhood: "West Fargo, Fargo–Moorhead" },
+    { id: "seed-north-loft", handle: "north_loft", neighborhood: "Uptown, Minneapolis" },
   ];
 
   for (const s of sellers) {
@@ -76,7 +77,7 @@ export async function ensureSeed(sql: Sql) {
     { id: "partner-seattle", name: "Pike Home", area: "Capitol Hill, Seattle", hint: "Official Rummlee partner. Alley lot, locker by the garden center.", kind: "partner" },
     { id: "partner-decatur", name: "Ponce Market", area: "Decatur, Atlanta", hint: "Official Rummlee partner. North lot, grocery hours.", kind: "partner" },
     { id: "partner-denver", name: "Platte Market", area: "LoHi, Denver", hint: "Official Rummlee partner. Front lot, locker near the florist.", kind: "partner" },
-    { id: "partner-bethesda", name: "Wisconsin Market", area: "Bethesda, DC", hint: "Official Rummlee partner. Covered garage, pickup desk. Store hours.", kind: "partner" },
+    { id: "partner-bethesda", name: "Wisconsin Market", area: "Bethesda, DC", hint: "Official Rummlee partner. Garage level P1, pickup desk.", kind: "partner" },
     { id: "partner-plano", name: "Preston Home", area: "Plano, Dallas", hint: "Official Rummlee partner. Garden-center lot, store hours.", kind: "partner" },
     { id: "partner-cambridge", name: "Harvard Square Market", area: "Cambridge, Boston", hint: "Official Rummlee partner. Rear lot, locker by the cafe.", kind: "partner" },
     { id: "partner-scottsdale", name: "Scottsdale Home", area: "Scottsdale, Phoenix", hint: "Official Rummlee partner. Covered lot, pickup desk inside.", kind: "partner" },
@@ -94,6 +95,8 @@ export async function ensureSeed(sql: Sql) {
     { id: "public-naperville", name: "Naper Settlement lot", area: "Naperville, Chicago", hint: "Visitor lot off Aurora Ave.", kind: "public" },
     { id: "partner-westfargo", name: "13th Avenue Market", area: "West Fargo, Fargo–Moorhead", hint: "Official Rummlee partner. Front lot, locker by customer service. Store hours.", kind: "partner" },
     { id: "public-westfargo", name: "West Fargo Library", area: "West Fargo, Fargo–Moorhead", hint: "Front lot, library hours. Daylight handoff.", kind: "public" },
+    { id: "partner-uptown", name: "Hennepin Home", area: "Uptown, Minneapolis", hint: "Official Rummlee partner. Side lot, pickup desk inside. Store hours.", kind: "partner" },
+    { id: "public-uptown", name: "Lake of the Isles — 28th St", area: "Uptown, Minneapolis", hint: "East lot, daylight hours.", kind: "public" },
   ];
   for (const s of spots) {
     await sql`
@@ -183,6 +186,17 @@ export async function ensureSeed(sql: Sql) {
       starts: fri,
       ends: sun,
       spot: "partner-westfargo",
+      modes: "official,public",
+    },
+    {
+      id: "sale-uptown",
+      sellerId: "seed-north-loft",
+      name: "Uptown moving sale",
+      kind: "moving",
+      neighborhood: "Uptown, Minneapolis",
+      starts: fri,
+      ends: sun,
+      spot: "partner-uptown",
       modes: "official,public",
     },
   ];
@@ -409,7 +423,7 @@ export async function ensureSeed(sql: Sql) {
       saleId: "sale-westfargo",
       sellerId: "seed-prairie-row",
       title: "Cream two-seat sofa",
-      description: "Soft cream sofa from a West Fargo move. One cushion is a little sat. Two-person carry. Partner store on 13th.",
+      description: "Soft cream sofa from a West Fargo move. One cushion is a little sat. Two-person carry. Official store on 13th.",
       priceCents: 9000,
       buyNowCents: 9000,
       originalCents: 64000,
@@ -497,7 +511,7 @@ export async function ensureSeed(sql: Sql) {
       condition: "Loved",
       haul: "truck",
       neighborhood: "West Fargo, Fargo–Moorhead",
-      photo: "/listings/garden-tools.jpg",
+      photo: "/listings/garden.svg",
       modes: "official,public",
     },
     {
@@ -515,6 +529,70 @@ export async function ensureSeed(sql: Sql) {
       neighborhood: "West Fargo, Fargo–Moorhead",
       photo: "/listings/ladder.svg",
       modes: "official",
+    },
+    {
+      id: "coffee-maker",
+      saleId: "sale-slope",
+      sellerId: "seed-linen-lark",
+      title: "Drip coffee maker",
+      description: "12-cup drip. Carafe is clean. Timer still works. One-person carry from the official store.",
+      priceCents: 2200,
+      buyNowCents: 2200,
+      originalCents: 8000,
+      category: "kitchen",
+      condition: "Good",
+      haul: "one",
+      neighborhood: "Park Slope, Brooklyn",
+      photo: "/listings/coffee-maker.svg",
+      modes: "official,public",
+    },
+    {
+      id: "toaster",
+      saleId: "sale-slope",
+      sellerId: "seed-linen-lark",
+      title: "Two-slice toaster",
+      description: "Works. A little crumb in the tray. Fits in a bag.",
+      priceCents: 1200,
+      buyNowCents: 1200,
+      originalCents: 4000,
+      category: "kitchen",
+      condition: "Good",
+      haul: "bag",
+      neighborhood: "Park Slope, Brooklyn",
+      photo: "/listings/toaster.svg",
+      modes: "official",
+    },
+    {
+      id: "blender",
+      saleId: "sale-slope",
+      sellerId: "seed-linen-lark",
+      title: "Counter blender",
+      description: "Pitcher, lid, and blade. Used for smoothies. One-person carry.",
+      priceCents: 2800,
+      buyNowCents: 2800,
+      originalCents: 9000,
+      category: "kitchen",
+      condition: "Good",
+      haul: "one",
+      neighborhood: "Park Slope, Brooklyn",
+      photo: "/listings/blender.svg",
+      modes: "official,public",
+    },
+    {
+      id: "msp-dresser",
+      saleId: "sale-uptown",
+      sellerId: "seed-north-loft",
+      title: "Six-drawer dresser",
+      description: "White oak dresser from an Uptown move. You’ll want a truck. Official store handoff on Hennepin.",
+      priceCents: 18000,
+      buyNowCents: 18000,
+      originalCents: 72000,
+      category: "furniture",
+      condition: "Good",
+      haul: "truck",
+      neighborhood: "Uptown, Minneapolis",
+      photo: "/listings/dresser.jpg",
+      modes: "official,public",
     },
   ];
 

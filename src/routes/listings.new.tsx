@@ -58,11 +58,22 @@ function NewListingPage() {
   const [draft, setDraft] = useState<ListingDraft>(freshDraft);
   const [paste, setPaste] = useState("");
   const [saved, setSaved] = useState(false);
+  const [step, setStep] = useState(1);
 
   useEffect(() => {
     const savedDraft = loadDraft();
     if (savedDraft?.lines?.length) setDraft(savedDraft);
   }, []);
+
+  useEffect(() => {
+    const named = draft.lines.some((line) => line.title.trim() || line.price.trim() || line.photoUrl);
+    if (!named) return;
+    try {
+      saveDraft(draft);
+    } catch {
+      /* ignore quota */
+    }
+  }, [draft]);
 
   useEffect(() => {
     if (user) takeAfterLogin();
@@ -187,17 +198,41 @@ function NewListingPage() {
     <main className="mx-auto max-w-lg py-6">
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">List it</h1>
       <p className="mt-1 text-muted">
-        Photo, asking price, and your hidden lowest. Neighbors never see the lowest. One offer. Yes, counteroffer, or decline.
+        Three short screens. Photo and asking first. Lowest and handoffs next. Details last.
       </p>
+      <p className="mt-2 text-sm text-muted">
+        <Link to="/sell" className="font-medium text-primary-ink">
+          How handoff works
+        </Link>
+      </p>
+      <ol className="mt-4 grid grid-cols-3 gap-2 text-sm">
+        {["Photo & asking", "Lowest & handoff", "Details"].map((label, index) => (
+          <li
+            key={label}
+            className={cn(
+              "rounded-full px-2 py-1.5 text-center font-medium",
+              step === index + 1 ? "bg-fg text-primary-fg" : "bg-surface text-muted",
+            )}
+          >
+            {index + 1}. {label}
+          </li>
+        ))}
+      </ol>
+
       <form
         className="mt-6 space-y-4"
         onSubmit={(event) => {
           event.preventDefault();
+          if (step < 3) {
+            setStep((s) => s + 1);
+            return;
+          }
           if (!user) onSaveDraft();
           else publish.mutate();
         }}
       >
-        <div className="flex flex-wrap gap-2">
+        <div className={cn(step === 1 ? "space-y-4" : "hidden")}>
+          <div className="flex flex-wrap gap-2">
           {SALE_KINDS.map((kind) => (
             <button
               key={kind.id}
@@ -214,14 +249,31 @@ function NewListingPage() {
               {kind.label}
             </button>
           ))}
-        </div>
+          </div>
         <p className="text-sm text-muted">{SALE_KINDS.find((kind) => kind.id === draft.kind)?.blurb}</p>
 
+        <div className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
+          <Label htmlFor="paste">Paste a list</Label>
+          <p className="mt-1 text-sm text-muted">Moving or clearout. One item per line, price at the end. Up to {PASTE_CAP}.</p>
+          <Textarea
+            id="paste"
+            className="mt-2"
+            value={paste}
+            onChange={(event) => setPaste(event.target.value)}
+            placeholder={"Cream sofa, 90\nWhite desk 120\nMicrowave — 35"}
+          />
+          <button type="button" className="mt-2 text-sm font-medium text-primary-ink" onClick={applyPaste}>
+            Add these rows
+          </button>
+        </div>
+        </div>
+
+        <div className={cn(step === 2 ? "space-y-4" : "hidden")}>
         <div>
           <Label htmlFor="hood">Neighborhood</Label>
           <select
             id="hood"
-            className="h-11 w-full rounded-lg bg-surface px-3 text-[15px] shadow-[0_0_0_1px_rgba(28,25,21,0.1)]"
+            className="h-11 w-full rounded-lg bg-surface px-3 text-base shadow-[0_0_0_1px_rgba(28,25,21,0.1)]"
             value={draft.neighborhood}
             onChange={(event) => {
               setSaved(false);
@@ -238,11 +290,11 @@ function NewListingPage() {
           <Label htmlFor="spot">Handoff location</Label>
           <select
             id="spot"
-            className="h-11 w-full rounded-lg bg-surface px-3 text-[15px] shadow-[0_0_0_1px_rgba(22,20,18,0.1)]"
+            className="h-11 w-full rounded-lg bg-surface px-3 text-base shadow-[0_0_0_1px_rgba(22,20,18,0.1)]"
             value={draft.handoffSpotId}
             onChange={(event) => setDraft((current) => ({ ...current, handoffSpotId: event.target.value }))}
           >
-            <option value="">Closest official partner</option>
+            <option value="">Closest official store</option>
             {hoodSpots.some((spot) => spot.kind === "partner") ? (
               <optgroup label="Official store handoff">
                 {hoodSpots
@@ -266,7 +318,7 @@ function NewListingPage() {
               </optgroup>
             ) : null}
           </select>
-          <p className="mt-1 text-sm text-muted">Offer official store, public place, in person — any or all. Never a home address.</p>
+          <p className="mt-1 text-sm text-muted">Official store is the default. Add public place or in person if you want. Never a home address.</p>
         </div>
 
         <ModePicks
@@ -276,25 +328,12 @@ function NewListingPage() {
             setDraft((current) => ({ ...current, modes }));
           }}
         />
-
-        <div className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
-          <Label htmlFor="paste">Paste a list</Label>
-          <p className="mt-1 text-sm text-muted">Moving or clearout. One item per line, price at the end. Up to {PASTE_CAP}.</p>
-          <Textarea
-            id="paste"
-            className="mt-2"
-            value={paste}
-            onChange={(event) => setPaste(event.target.value)}
-            placeholder={"Cream sofa, 90\nWhite desk 120\nMicrowave — 35"}
-          />
-          <button type="button" className="mt-2 text-sm font-medium text-primary-ink" onClick={applyPaste}>
-            Add these rows
-          </button>
         </div>
 
         {draft.lines.map((line, index) => (
           <fieldset key={line.id} className="space-y-3 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
             <legend className="px-1 text-sm font-medium">Item {index + 1}</legend>
+            <div className={cn(step === 1 ? "space-y-3" : "hidden")}>
             <PhotoInput value={line.photoUrl} onChange={(photoUrl) => updateLine(line.id, { photoUrl })} />
             <div>
               <Label htmlFor={`title-${line.id}`}>What is it?</Label>
@@ -316,6 +355,8 @@ function NewListingPage() {
               />
               <p className="mt-1 text-sm text-muted">Neighbors see this. They can pay it, or send one offer under it.</p>
             </div>
+            </div>
+            <div className={cn(step === 2 ? "space-y-3" : "hidden")}>
             <div>
               <Label htmlFor={`floor-${line.id}`}>Lowest you’ll take</Label>
               <Input
@@ -327,6 +368,8 @@ function NewListingPage() {
               />
               <p className="mt-1 text-sm text-muted">Hidden. Offers below this are a no. One decline from either of you ends the offer.</p>
             </div>
+            </div>
+            <div className={cn(step === 3 ? "space-y-3" : "hidden")}>
             <div>
               <Label htmlFor={`desc-${line.id}`}>Note</Label>
               <Textarea
@@ -340,7 +383,7 @@ function NewListingPage() {
               <div>
                 <Label>Category</Label>
                 <select
-                  className="h-11 w-full rounded-lg bg-bg px-3 text-[15px]"
+                  className="h-11 w-full rounded-lg bg-bg px-3 text-base"
                   value={line.category}
                   onChange={(event) => updateLine(line.id, { category: event.target.value })}
                 >
@@ -354,7 +397,7 @@ function NewListingPage() {
               <div>
                 <Label>Haul</Label>
                 <select
-                  className="h-11 w-full rounded-lg bg-bg px-3 text-[15px]"
+                  className="h-11 w-full rounded-lg bg-bg px-3 text-base"
                   value={line.haul}
                   onChange={(event) => updateLine(line.id, { haul: event.target.value })}
                 >
@@ -381,7 +424,8 @@ function NewListingPage() {
                 </button>
               ))}
             </div>
-            {draft.lines.length > 1 ? (
+            </div>
+            {draft.lines.length > 1 && step === 1 ? (
               <button
                 type="button"
                 className="text-sm text-muted"
@@ -395,6 +439,7 @@ function NewListingPage() {
           </fieldset>
         ))}
 
+        {step === 1 ? (
         <button
           type="button"
           className="text-sm font-medium text-primary-ink"
@@ -402,20 +447,32 @@ function NewListingPage() {
         >
           Add another item
         </button>
+        ) : null}
 
-        {showLoading ? (
-          <Button type="button" className="w-full" disabled>
-            Checking your account…
-          </Button>
-        ) : user ? (
-          <Button type="submit" className="w-full" disabled={publish.isPending || meQ.isPending}>
-            {publish.isPending ? "Publishing…" : "Publish"}
-          </Button>
-        ) : (
-          <Button type="submit" className="w-full">
-            Save draft
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {step > 1 ? (
+            <Button type="button" variant="secondary" className="flex-1" onClick={() => setStep((s) => s - 1)}>
+              Back
+            </Button>
+          ) : null}
+          {step < 3 ? (
+            <Button type="submit" className="flex-1">
+              Next
+            </Button>
+          ) : showLoading ? (
+            <Button type="button" className="flex-1" disabled>
+              Checking your account…
+            </Button>
+          ) : user ? (
+            <Button type="submit" className="flex-1" disabled={publish.isPending || meQ.isPending}>
+              {publish.isPending ? "Publishing…" : "Publish"}
+            </Button>
+          ) : (
+            <Button type="submit" className="flex-1">
+              Save draft, then sign in
+            </Button>
+          )}
+        </div>
         <p className="text-center text-sm text-muted">
           <Link to="/fees" className="font-medium text-primary-ink">
             Fees

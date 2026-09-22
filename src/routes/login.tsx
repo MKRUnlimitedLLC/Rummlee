@@ -39,7 +39,8 @@ function Login() {
       <Wordmark className="mb-8 justify-center" />
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Sign in or create account</h1>
       <p className="mt-2 text-pretty text-muted">
-        Browse free. Sign in to offer, list, or pay. You deal as a handle. Meet at a partner store — never a home address.
+        Browse free. Sign in to offer, list, or pay. You deal as a handle. Meet at a handoff location — never a home
+        address.
       </p>
 
       <div className="mt-8 space-y-2">

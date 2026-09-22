@@ -58,7 +58,7 @@ function SalesPage() {
       </ul>
 
       <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Official store handoff</h2>
-      <p className="mt-1 text-sm text-muted">A Rummlee partner store. Locker or pickup desk. Store hours, lit lot. Your address stays off the listing.</p>
+      <p className="mt-1 text-sm text-muted">An official store handoff. Locker or pickup desk. Store hours, lit lot. Your address stays off the listing.</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {partners.map((sp) => (
           <SpotCard key={sp.id} spot={sp} featured />

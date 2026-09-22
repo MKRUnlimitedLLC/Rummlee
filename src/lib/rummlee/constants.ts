@@ -2,12 +2,12 @@ export const FEE_RATE = 0.1;
 export const PREMIUM_FEE_RATE = 0.05;
 export const MIN_PRICE_CENTS = 500;
 export const PASTE_CAP = 40;
-export const HOLD_LINE = "Held until you both confirm.";
+export const HOLD_LINE = "Your money stays held until pickup.";
 
 /** Beta: full product until pay. Pay is simulated test credits — never a card or bank. Flip off only when real billing is live. */
 export const TEST_MODE = true;
 export const TEST_STARTER_CENTS = 20000;
-export const TEST_PAY_NOTE = "Beta — test credits. Not real money. No card is charged.";
+export const TEST_PAY_NOTE = "Beta — test credits. Not real money. No card is charged. Nothing ships.";
 
 export const NEIGHBORHOODS = [
   "Park Slope, Brooklyn",
@@ -26,6 +26,7 @@ export const NEIGHBORHOODS = [
   "Brookline, Boston",
   "Scottsdale, Phoenix",
   "West Fargo, Fargo–Moorhead",
+  "Uptown, Minneapolis",
 ] as const;
 
 export const CITIES = [
@@ -41,6 +42,7 @@ export const CITIES = [
   "Boston",
   "Phoenix",
   "Fargo–Moorhead",
+  "Minneapolis",
 ] as const;
 
 export const CATEGORIES = [
@@ -60,7 +62,7 @@ export const CONDITIONS = ["Like new", "Good", "Loved"] as const;
 export const HAULS = [
   { id: "bag", label: "Fits in a bag" },
   { id: "one", label: "One-person carry" },
-  { id: "two", label: "Two-person job" },
+  { id: "two", label: "Two-person job — stairs or elevator" },
   { id: "truck", label: "Needs a truck" },
 ] as const;
 
@@ -74,7 +76,7 @@ export const HANDOFF_MODES = [
   {
     id: "official",
     label: "Official store handoff",
-    hint: "A Rummlee partner store. Locker or pickup desk, store hours. You choose whether to offer it.",
+    hint: "A Rummlee official store. Locker or pickup desk, store hours. Default for most listings.",
   },
   {
     id: "public",
@@ -113,3 +115,22 @@ export const HANDLE_NOUN = [
   "nook",
   "row",
 ] as const;
+
+/** Short / legacy listing URLs → live seed ids. */
+export const LISTING_ALIASES: Record<string, string> = {
+  "cream-mixer": "mixer",
+  couch: "fm-couch",
+  desk: "fm-desk",
+  ladder: "fm-ladder",
+  tools: "fm-tools",
+  garden: "fm-garden",
+  "tool-chest": "fm-tools",
+  "coffee-maker": "coffee-maker",
+  microwave: "fm-microwave",
+  trailer: "fm-trailer",
+};
+
+export function resolveListingId(raw: string) {
+  const id = raw.replace(/\.svg$/i, "").trim();
+  return LISTING_ALIASES[id] ?? id;
+}

@@ -66,11 +66,11 @@ function PickupPage() {
       </p>
 
       <div className="mx-auto mt-6 overflow-hidden rounded-[28px] bg-surface p-6 shadow-[var(--shadow-card)]">
-        <img src={order.listingPhoto} alt="" className="mx-auto mb-5 aspect-[4/3] w-full rounded-2xl object-cover" />
+        <img src={order.listingPhoto} alt={order.listingTitle} className="mx-auto mb-5 aspect-[4/3] w-full rounded-2xl object-cover" />
         <ScanFace code={order.pickupCode} />
         <p className="mt-4 font-mono text-3xl font-medium tracking-[0.28em] text-fg">{order.pickupCode}</p>
         <p className="mt-2 text-sm text-muted">
-          Show this code at the partner store locker or desk. A public place or person to person still uses a scan.
+          Show this code at the official store locker or desk. A public place or in person still uses a scan.
         </p>
       </div>
 

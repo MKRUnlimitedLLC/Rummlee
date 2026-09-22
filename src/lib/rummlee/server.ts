@@ -5,7 +5,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
 import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes, canonicalizeMode } from "./format";
 import { checkoutQuote, mapFeeRow, minAskingCents, type FeeRow } from "./fees";
-import { MIN_PRICE_CENTS, TEST_MODE, TEST_STARTER_CENTS } from "./constants";
+import { MIN_PRICE_CENTS, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
 import type {
   HandoffMode,
   HandoffSpot,
@@ -253,7 +253,8 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
 
 export const getListing = createServerFn({ method: "GET" })
   .validator((id: string) => id)
-  .handler(async ({ data: id }) => {
+  .handler(async ({ data: rawId }) => {
+    const id = resolveListingId(rawId);
     const sql = await getSql();
     await ensureSeed(sql);
     const rows = await sql.query<ListingRow>(listingSelect + " where l.id = $1", [id]);
@@ -345,9 +346,64 @@ export const getListing = createServerFn({ method: "GET" })
           order by m.created_at asc
         `
       : [];
+    let myOrder: Order | null = null;
+    if (userId) {
+      const orows = await sql<{
+        id: string;
+        listing_id: string;
+        listing_title: string;
+        listing_photo: string;
+        buyer_id: string;
+        buyer_handle: string;
+        seller_id: string;
+        seller_handle: string;
+        amount_cents: number;
+        fee_cents: number;
+        status: Order["status"];
+        pickup_code: string;
+        buyer_confirmed: boolean;
+        seller_confirmed: boolean;
+        handoff_type: Order["handoffType"];
+        created_at: string;
+      }>`
+        select o.id, o.listing_id, l.title as listing_title, l.photo_url as listing_photo,
+               o.buyer_id, b.handle as buyer_handle, o.seller_id, se.handle as seller_handle,
+               o.amount_cents, o.fee_cents, o.status, o.pickup_code, o.buyer_confirmed, o.seller_confirmed,
+               o.handoff_type, o.created_at
+        from orders o
+        join listings l on l.id = o.listing_id
+        join profiles b on b.id = o.buyer_id
+        join profiles se on se.id = o.seller_id
+        where o.listing_id = ${id} and (o.buyer_id = ${userId} or o.seller_id = ${userId})
+        order by o.created_at desc
+        limit 1
+      `;
+      const o = orows[0];
+      if (o) {
+        myOrder = {
+          id: o.id,
+          listingId: o.listing_id,
+          listingTitle: o.listing_title,
+          listingPhoto: o.listing_photo,
+          buyerId: o.buyer_id,
+          buyerHandle: o.buyer_handle,
+          sellerId: o.seller_id,
+          sellerHandle: o.seller_handle,
+          amountCents: Number(o.amount_cents),
+          feeCents: Number(o.fee_cents),
+          status: o.status,
+          pickupCode: o.pickup_code,
+          buyerConfirmed: Boolean(o.buyer_confirmed),
+          sellerConfirmed: Boolean(o.seller_confirmed),
+          handoffType: o.handoff_type,
+          createdAt: o.created_at,
+        };
+      }
+    }
     return {
       listing: mapListing(row, saved),
       myOffer,
+      myOrder,
       buyerPremium,
       publicSpot,
       floorCents: userId === row.seller_id ? Number(row.floor_cents ?? row.price_cents) : null,
@@ -863,7 +919,7 @@ export const sendMessage = createServerFn({ method: "POST" })
         insert into messages (id, listing_id, from_id, to_id, body)
         values (
           ${crypto.randomUUID()}, ${data.listingId}, ${toId}, ${context.userId},
-          ${"Still available. Meet at the official partner store — locker or pickup desk, store hours. A public place or person to person is optional if we both want it."}
+          ${"Still available. Meet at an official store handoff — locker or pickup desk, store hours. A public place or in person is optional if we both want it."}
         )
       `;
     }
@@ -978,7 +1034,7 @@ export const buyNow = createServerFn({ method: "POST" })
     }
     const code = pickupCode();
     const orderId = crypto.randomUUID();
-    await sql`update listings set status = ${"sold"} where id = ${item.id} and status = ${"live"}`;
+    await sql`update listings set status = ${"held"} where id = ${item.id} and status = ${"live"}`;
     await sql`
       insert into orders (id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, status, pickup_code, handoff_type, handoff_spot_id, buyer_confirmed, seller_confirmed)
       values (${orderId}, ${item.id}, ${context.userId}, ${item.seller_id}, ${base}, ${fee}, ${"escrow"}, ${code}, ${handoffType}, ${spotId}, ${false}, ${isSeedUser(item.seller_id)})
@@ -1034,6 +1090,7 @@ export const confirmPickup = createServerFn({ method: "POST" })
     `;
     if (buyerOk && sellerOk) {
       await sql`update orders set status = ${"picked_up"} where id = ${order.id}`;
+      await sql`update listings set status = ${"sold"} where id = ${order.listing_id}`;
       await sql`update profiles set wallet_cents = wallet_cents + ${Number(order.amount_cents)} where id = ${order.seller_id}`;
       await sql`
         insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)

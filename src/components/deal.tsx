@@ -99,7 +99,7 @@ export function SellerOfferCard({
   return (
     <li className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
       <Link to="/listings/$id" params={{ id: offer.listingId }} className="flex gap-3">
-        <img src={offer.listingPhoto} alt="" className="size-16 rounded-lg object-cover" />
+        <img src={offer.listingPhoto} alt={offer.listingTitle} className="size-16 rounded-lg object-cover" />
         <div className="min-w-0">
           <p className="font-medium">{offer.listingTitle}</p>
           <p className="text-sm text-muted">
@@ -176,7 +176,7 @@ export function OutgoingOfferCard({ offer }: { offer: Offer }) {
         params={{ id: offer.listingId }}
         className="flex gap-3 rounded-2xl bg-surface p-3 shadow-[var(--shadow-card)]"
       >
-        <img src={offer.listingPhoto} alt="" className="size-16 rounded-lg object-cover" />
+        <img src={offer.listingPhoto} alt={offer.listingTitle} className="size-16 rounded-lg object-cover" />
         <div>
           <p className="font-medium">{offer.listingTitle}</p>
           <p className="text-sm text-muted">

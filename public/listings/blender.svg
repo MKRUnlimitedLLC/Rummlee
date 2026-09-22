@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img">
+  <rect width="800" height="1000" fill="#EBE6E0"/>
+  
+  <path d="M300 360 h200 l30 220 h-260 z" fill="#D7ECEC"/>
+  <rect x="280" y="580" width="240" height="90" rx="16" fill="#9C4454"/>
+  <rect x="360" y="300" width="80" height="60" rx="8" fill="#7A3140"/>
+  <text x="400" y="880" text-anchor="middle" font-family="Georgia, serif" font-size="28" fill="#7A3140">Blender</text>
+
+</svg>

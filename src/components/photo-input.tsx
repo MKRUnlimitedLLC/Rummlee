@@ -32,7 +32,7 @@ export function PhotoInput({
       )}
     >
       {value ? (
-        <img src={value} alt="" className="size-full object-cover" />
+        <img src={value} alt="Your listing photo" className="size-full object-cover" />
       ) : (
         <span className="flex flex-col items-center gap-2 text-sm">
           <Camera className="size-6" strokeWidth={1.6} />
