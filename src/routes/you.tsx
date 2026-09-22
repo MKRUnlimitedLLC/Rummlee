@@ -123,7 +123,7 @@ function YouPage() {
           <p className="font-medium">Rummlee Plus</p>
           <p className="mt-1 text-sm text-muted">
             Official store is {formatFeeValue(feeById(DEFAULT_FEES, "official_handoff") ?? DEFAULT_FEES[0])} each side per
-            pickup. Plus waives <em>your</em> side when you buy or sell there.
+            pickup. Plus waives <em>your</em> side when you buy or sell there. Buyer fee is 3% with Plus, 10% without.
           </p>
           {me?.isPremium ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">

@@ -56,7 +56,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "buyer_standard",
     label: "Buyer fee",
-    description: "Added on top of asking at checkout for everyone without Premium.",
+    description: "Added on top of asking at checkout for everyone without Rummlee Plus.",
     unit: "percent",
     percentBps: 1000,
     amountCents: 0,
@@ -68,9 +68,9 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "buyer_premium",
     label: "Buyer fee with Rummlee Plus",
-    description: "Checkout buyer fee when the buyer has Rummlee Plus. Independent of the standard buyer fee.",
+    description: "Checkout buyer fee when the buyer has Rummlee Plus. 3%. Independent of the standard buyer fee.",
     unit: "percent",
-    percentBps: 500,
+    percentBps: 300,
     amountCents: 0,
     chargedTo: "buyer",
     chargedWhen: "checkout",

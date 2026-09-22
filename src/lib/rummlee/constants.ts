@@ -1,5 +1,5 @@
 export const FEE_RATE = 0.1;
-export const PREMIUM_FEE_RATE = 0.05;
+export const PREMIUM_FEE_RATE = 0.03;
 export const MIN_PRICE_CENTS = 500;
 export const PASTE_CAP = 40;
 export const HOLD_LINE = "Your money stays held until pickup.";
