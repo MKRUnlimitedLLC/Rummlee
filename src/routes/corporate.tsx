@@ -7,6 +7,8 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { errMessage } from "@/lib/rummlee/errors";
 import { money } from "@/lib/rummlee/format";
 import { decideAdmission, getCorporateDesk, submitAdmission, type CorporateMetrics } from "@/lib/rummlee/corporate";
+import { closeCase, getCustomerStatement, type Statement } from "@/lib/rummlee/records";
+import { StatementView } from "@/components/statement";
 
 export const Route = createFileRoute("/corporate")({
   component: CorporatePage,
@@ -25,6 +27,8 @@ function CorporatePage() {
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
   const [note, setNote] = useState("");
+  const [lookup, setLookup] = useState("");
+  const [customer, setCustomer] = useState<Statement | null>(null);
 
   const apply = useMutation({
     mutationFn: () =>
@@ -37,6 +41,19 @@ function CorporatePage() {
     onError: (e) => toast.error(errMessage(e)),
   });
 
+  const lookupMut = useMutation({
+    mutationFn: () => getCustomerStatement({ data: { handle: lookup } }),
+    onSuccess: (statement) => setCustomer(statement),
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const close = useMutation({
+    mutationFn: (id: string) => closeCase({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Closed.");
+      if (lookup) lookupMut.mutate();
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
   const decide = useMutation({
     mutationFn: (data: { id: string; decision: "admit" | "deny" }) => decideAdmission({ data }),
     onSuccess: (res) => {
@@ -59,6 +76,51 @@ function CorporatePage() {
       </p>
 
       {data?.isStaff && data.metrics ? <Metrics metrics={data.metrics} /> : null}
+
+      {data?.isStaff ? (
+        <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+          <h2 className="font-display text-xl">Customer</h2>
+          <p className="mt-1 text-sm text-muted">Same year-to-date record they see, plus their support cases.</p>
+          <form
+            className="mt-3 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              lookupMut.mutate();
+            }}
+          >
+            <Input value={lookup} onChange={(e) => setLookup(e.target.value)} placeholder="@handle" aria-label="Handle" />
+            <Button type="submit" disabled={lookupMut.isPending}>
+              Look up
+            </Button>
+          </form>
+          {customer ? (
+            <div className="mt-4">
+              <StatementView statement={customer} staff />
+              {customer.cases.length ? (
+                <ul className="mt-4 space-y-2">
+                  {customer.cases.map((item) => (
+                    <li key={item.id} className="flex items-start justify-between gap-3 rounded-xl bg-bg px-3 py-2 text-sm">
+                      <div>
+                        <p className="font-medium">
+                          {item.subject} · {item.status}
+                        </p>
+                        <p className="text-muted">{item.body}</p>
+                      </div>
+                      {item.status === "open" ? (
+                        <Button size="sm" variant="secondary" disabled={close.isPending} onClick={() => close.mutate(item.id)}>
+                          Close
+                        </Button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 text-sm text-muted">No support cases.</p>
+              )}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {data?.isStaff ? (
         <section className="mt-8">

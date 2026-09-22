@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
-import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes, canonicalizeMode } from "./format";
+import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes, canonicalizeMode, cityOf } from "./format";
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
 import { MAX_SALE_DAYS, MIN_PRICE_CENTS, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
 import { overallThumb, type Thumb } from "./trust";
@@ -1340,8 +1340,11 @@ export const buyNow = createServerFn({ method: "POST" })
       { buyer: me.isPremium, seller: sellerPlus },
       data.meet === "person" ? "person" : data.meet === "public" ? "public" : "official",
     );
-    const fee = quote.buyerFeeCents + quote.handoffFeeCents + quote.salesTaxCents;
+    const buyerFee = quote.buyerFeeCents + quote.handoffFeeCents;
+    const sellerFee = quote.sellerFeeCents + quote.sellerHandoffFeeCents;
+    const tax = quote.salesTaxCents;
     const total = quote.youPayCents;
+    const metro = cityOf(item.neighborhood);
     const meet = data.meet ?? (canonicalizeMode(data.handoffType) === "person" ? "person" : "partner");
     let handoffType: HandoffMode = "official";
     let spotId: string | null = item.handoff_spot_id;
@@ -1391,8 +1394,14 @@ export const buyNow = createServerFn({ method: "POST" })
     const orderId = crypto.randomUUID();
     await sql`update listings set status = ${"held"} where id = ${item.id} and status = ${"live"}`;
     await sql`
-      insert into orders (id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, status, pickup_code, handoff_type, handoff_spot_id, buyer_confirmed, seller_confirmed)
-      values (${orderId}, ${item.id}, ${context.userId}, ${item.seller_id}, ${base}, ${fee}, ${"escrow"}, ${code}, ${handoffType}, ${spotId}, ${false}, ${isSeedUser(item.seller_id)})
+      insert into orders (
+        id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, tax_cents, buyer_fee_cents, seller_fee_cents, metro,
+        status, pickup_code, handoff_type, handoff_spot_id, buyer_confirmed, seller_confirmed
+      )
+      values (
+        ${orderId}, ${item.id}, ${context.userId}, ${item.seller_id}, ${base}, ${buyerFee}, ${tax}, ${buyerFee}, ${sellerFee}, ${metro},
+        ${"escrow"}, ${code}, ${handoffType}, ${spotId}, ${false}, ${isSeedUser(item.seller_id)}
+      )
     `;
     await sql`update profiles set wallet_cents = wallet_cents - ${total} where id = ${context.userId}`;
     await sql`
@@ -1405,7 +1414,7 @@ export const buyNow = createServerFn({ method: "POST" })
       update offers set status = ${"declined"}, updated_at = now()
       where listing_id = ${item.id} and status in (${"pending"}, ${"countered"})
     `;
-    return { orderId, pickupCode: code, feeCents: fee };
+    return { orderId, pickupCode: code, feeCents: buyerFee };
   });
 
 export const confirmPickup = createServerFn({ method: "POST" })
@@ -1421,12 +1430,13 @@ export const confirmPickup = createServerFn({ method: "POST" })
       seller_id: string;
       amount_cents: number;
       fee_cents: number;
+      seller_fee_cents: number;
       status: string;
       pickup_code: string;
       buyer_confirmed: boolean;
       seller_confirmed: boolean;
       handoff_type: string;
-    }>`select id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, status, pickup_code, buyer_confirmed, seller_confirmed, handoff_type from orders where id = ${data.orderId}`;
+    }>`select id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, seller_fee_cents, status, pickup_code, buyer_confirmed, seller_confirmed, handoff_type from orders where id = ${data.orderId}`;
     const order = rows[0];
     if (!order) throw new Error("Pickup not found.");
     if (order.status !== "escrow") throw new Error("Already finished.");
@@ -1454,7 +1464,8 @@ export const confirmPickup = createServerFn({ method: "POST" })
             ? "public"
             : "official";
       const quote = checkoutQuote(fees, Number(order.amount_cents), { buyer: false, seller: sellerPlus }, meet);
-      const payout = quote.youGetCents;
+      const storedSellerFee = Number(order.seller_fee_cents ?? 0);
+      const payout = storedSellerFee > 0 ? Number(order.amount_cents) - storedSellerFee : quote.youGetCents;
       await sql`update orders set status = ${"picked_up"} where id = ${order.id}`;
       await sql`update listings set status = ${"sold"} where id = ${order.listing_id}`;
       await sql`update profiles set wallet_cents = wallet_cents + ${payout} where id = ${order.seller_id}`;

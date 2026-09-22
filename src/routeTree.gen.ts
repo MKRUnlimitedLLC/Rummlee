@@ -16,6 +16,7 @@ import { Route as FeesRouteImport } from './routes/fees'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RecordsRouteImport } from './routes/records'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -60,6 +61,11 @@ const LoginRoute = LoginRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecordsRoute = RecordsRouteImport.update({
+  id: '/records',
+  path: '/records',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellRoute = SellRouteImport.update({
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
+  '/records': typeof RecordsRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
+  '/records': typeof RecordsRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
+  '/records': typeof RecordsRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/login'
     | '/privacy'
+    | '/records'
     | '/sell'
     | '/support'
     | '/terms'
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/login'
     | '/privacy'
+    | '/records'
     | '/sell'
     | '/support'
     | '/terms'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/login'
     | '/privacy'
+    | '/records'
     | '/sell'
     | '/support'
     | '/terms'
@@ -239,6 +251,7 @@ export interface RootRouteChildren {
   InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
+  RecordsRoute: typeof RecordsRoute
   SellRoute: typeof SellRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
@@ -300,6 +313,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/records': {
+      id: '/records'
+      path: '/records'
+      fullPath: '/records'
+      preLoaderRoute: typeof RecordsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sell': {
@@ -383,6 +403,7 @@ const rootRouteChildren: RootRouteChildren = {
   InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
+  RecordsRoute: RecordsRoute,
   SellRoute: SellRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,

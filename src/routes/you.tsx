@@ -151,7 +151,10 @@ function YouPage() {
         <p className="text-sm text-muted">{TEST_MODE ? "Test credits" : "Wallet"}</p>
         <p className="font-display text-4xl font-medium tabular-nums tracking-[-0.03em]">{me ? money(me.walletCents) : "—"}</p>
         <p className="mt-1 text-sm text-subtle">
-          {TEST_MODE ? TEST_PAY_NOTE : "Pay is held here until both of you confirm pickup."}
+          {TEST_MODE ? TEST_PAY_NOTE : "Pay is held here until both of you confirm pickup."}{" "}
+          <Link to="/records" className="font-medium text-primary-ink">
+            Your records
+          </Link>
         </p>
         <div className="mt-4 flex gap-2">
           {[2000, 5000, 10000].map((c) => (

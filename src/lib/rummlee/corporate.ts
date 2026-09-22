@@ -119,7 +119,13 @@ async function loadMetrics(sql: Awaited<ReturnType<typeof getSql>>): Promise<Cor
   }>`
     select
       coalesce(sum(amount_cents) filter (where status <> 'cancelled' and created_at >= now() - interval '30 days'), 0)::int as gmv,
-      coalesce(sum(fee_cents) filter (where status <> 'cancelled' and created_at >= now() - interval '30 days'), 0)::int as fees,
+      coalesce(sum(
+        case
+          when buyer_fee_cents > 0 or seller_fee_cents > 0 or tax_cents > 0
+          then buyer_fee_cents + seller_fee_cents
+          else fee_cents
+        end
+      ) filter (where status <> 'cancelled' and created_at >= now() - interval '30 days'), 0)::int as fees,
       count(*) filter (where status <> 'cancelled' and created_at >= now() - interval '30 days')::int as orders,
       count(*) filter (where status = 'cancelled' and created_at >= now() - interval '30 days')::int as cancelled,
       count(*) filter (where status = 'picked_up' and created_at >= now() - interval '30 days')::int as picked,
