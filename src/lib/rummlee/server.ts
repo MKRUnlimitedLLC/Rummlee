@@ -89,6 +89,22 @@ function mapListing(row: ListingRow, saved = false): Listing {
   };
 }
 
+function safePhoto(url: string) {
+  if (url.startsWith("/listings/") && !url.includes("..") && !url.includes("\\") && url.length < 180) return url;
+  if (/^data:image\/(jpeg|jpg|png|webp);base64,[a-z0-9+/=\s]+$/i.test(url) && url.length < 1_500_000) return url;
+  throw new Error("Use a JPEG, PNG, or WebP photo.");
+}
+
+async function debitWallet(sql: Awaited<ReturnType<typeof getSql>>, userId: string, cents: number) {
+  if (cents <= 0) return;
+  const rows = await sql<{ id: string }>`
+    update profiles set wallet_cents = wallet_cents - ${cents}
+    where id = ${userId} and wallet_cents >= ${cents}
+    returning id
+  `;
+  if (!rows[0]) throw new Error("Not enough in the wallet for that.");
+}
+
 export async function optionalUserId() {
   try {
     const { getSessionUser } = await import("@/lib/auth/verify.server");
@@ -865,12 +881,12 @@ export const togglePremium = createServerFn({ method: "POST" })
     if (me.walletCents < cost) {
       throw new Error(`Add more test credits on You to start Rummlee Plus. See Fees.`);
     }
+    await debitWallet(sql, context.userId, cost);
     const days = plan === "year" ? 365 : 30;
     const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
     await sql`
       update profiles
-      set is_premium = true, plus_plan = ${plan}, plus_until = ${until}::timestamptz,
-          wallet_cents = wallet_cents - ${cost}
+      set is_premium = true, plus_plan = ${plan}, plus_until = ${until}::timestamptz
       where id = ${context.userId}
     `;
     await sql`
@@ -892,10 +908,15 @@ export const topUpWallet = createServerFn({ method: "POST" })
     }
     const sql = await getSql();
     await ensureProfile(sql, context.userId);
-    await sql`update profiles set wallet_cents = wallet_cents + ${cents} where id = ${context.userId}`;
+    const room = await sql<{ wallet_cents: number }>`select wallet_cents from profiles where id = ${context.userId}`;
+    const have = Number(room[0]?.wallet_cents ?? 0);
+    const cap = 50000;
+    if (have >= cap) throw new Error("Test wallet is full. Beta credits stop at $500.");
+    const add = Math.min(cents, cap - have);
+    await sql`update profiles set wallet_cents = wallet_cents + ${add} where id = ${context.userId} and wallet_cents < ${cap}`;
     await sql`
       insert into wallet_tx (id, user_id, kind, amount_cents, note)
-      values (${crypto.randomUUID()}, ${context.userId}, ${"topup"}, ${cents}, ${"Test credits (beta — not real money)"})
+      values (${crypto.randomUUID()}, ${context.userId}, ${"topup"}, ${add}, ${"Test credits (beta — not real money)"})
     `;
     return ensureProfile(sql, context.userId);
   });
@@ -974,6 +995,7 @@ export const createSale = createServerFn({ method: "POST" })
       spotId = match[0]?.id ?? null;
     }
     const modes = splitModes(data.handoffModes.join(","));
+    if (quote.chargeCents > 0) await debitWallet(sql, context.userId, quote.chargeCents);
     await sql`
       insert into sales (
         id, seller_id, name, kind, neighborhood, starts_on, ends_on, handoff_modes, handoff_spot_id, status,
@@ -1001,7 +1023,6 @@ export const createSale = createServerFn({ method: "POST" })
       `;
     }
     if (quote.chargeCents > 0) {
-      await sql`update profiles set wallet_cents = wallet_cents - ${quote.chargeCents} where id = ${context.userId}`;
       await sql`
         insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
         values (
@@ -1054,11 +1075,7 @@ export const addListing = createServerFn({ method: "POST" })
     }
     const listFee = fees.find((row) => row.id === "list");
     if (listFee?.enabled && listFee.amountCents > 0) {
-      const seller = await ensureProfile(sql, context.userId);
-      if (seller.walletCents < listFee.amountCents) {
-        throw new Error("Add to your wallet to cover the list-an-item fee. See Fees.");
-      }
-      await sql`update profiles set wallet_cents = wallet_cents - ${listFee.amountCents} where id = ${context.userId}`;
+      await debitWallet(sql, context.userId, listFee.amountCents);
       await sql`
         insert into wallet_tx (id, user_id, kind, amount_cents, note)
         values (${crypto.randomUUID()}, ${context.userId}, ${"list"}, ${-listFee.amountCents}, ${"List an item"})
@@ -1077,7 +1094,7 @@ export const addListing = createServerFn({ method: "POST" })
         ${id}, ${data.saleId}, ${context.userId}, ${data.title}, ${data.description ?? ""},
         ${data.priceCents}, ${data.buyNowCents ?? data.priceCents}, ${null}, ${data.floorCents},
         ${data.category}, ${data.condition}, ${data.haul}, ${data.sizeLabel?.trim() || null}, ${sale[0].neighborhood},
-        ${splitModes(data.handoffModes.join(",")).join(",")}, ${data.photoUrl}, ${"live"}
+        ${splitModes(data.handoffModes.join(",")).join(",")}, ${safePhoto(data.photoUrl)}, ${"live"}
       )
     `;
     return { id };
@@ -1385,18 +1402,27 @@ export const buyNow = createServerFn({ method: "POST" })
         throw new Error("Official store handoff isn’t offered on this item. Pick another handoff location.");
       }
     }
-    if (me.walletCents < total) {
+    const held = await sql<{ id: string }>`
+      update listings set status = ${"held"} where id = ${item.id} and status = ${"live"} returning id
+    `;
+    if (!held[0]) throw new Error("Someone else just held this.");
+    const charged = await sql<{ id: string }>`
+      update profiles set wallet_cents = wallet_cents - ${total}
+      where id = ${context.userId} and wallet_cents >= ${total}
+      returning id
+    `;
+    if (!charged[0]) {
+      await sql`update listings set status = ${"live"} where id = ${item.id} and status = ${"held"}`;
       throw new Error(
         TEST_MODE
-          ? `Add ${Math.ceil((total - me.walletCents) / 100)} more test credits on You. Not real money.`
-          : `Add ${Math.ceil((total - me.walletCents) / 100)} more to your wallet to pay.`,
+          ? `Add more test credits on You. Not real money.`
+          : `Add more to your wallet to pay.`,
       );
     }
     const sellerScan = partyScan("S");
     const buyerScan = partyScan("B");
     const code = pickupCode();
     const orderId = crypto.randomUUID();
-    await sql`update listings set status = ${"held"} where id = ${item.id} and status = ${"live"}`;
     await sql`
       insert into orders (
         id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, tax_cents, buyer_fee_cents, seller_fee_cents, metro,
@@ -1407,7 +1433,6 @@ export const buyNow = createServerFn({ method: "POST" })
         ${"escrow"}, ${code}, ${sellerScan}, ${buyerScan}, ${handoffType}, ${spotId}, ${false}, ${isSeedUser(item.seller_id)}
       )
     `;
-    await sql`update profiles set wallet_cents = wallet_cents - ${total} where id = ${context.userId}`;
     await sql`
       insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
       values (${crypto.randomUUID()}, ${context.userId}, ${"hold"}, ${-total}, ${orderId}, ${
@@ -1444,6 +1469,9 @@ export const confirmPickup = createServerFn({ method: "POST" })
     const order = rows[0];
     if (!order) throw new Error("Pickup not found.");
     if (order.status !== "escrow") throw new Error("Already finished.");
+    if (order.handoff_type === "official") {
+      throw new Error("An official store closes when the counter scans the buyer code.");
+    }
     const normalized = data.code.replace(/\s|-/g, "").toUpperCase();
     const expect = order.pickup_code.replace(/\s|-/g, "").toUpperCase();
     if (normalized !== expect) throw new Error("That scan code doesn’t match.");
@@ -1491,7 +1519,13 @@ export async function settleOrder(sql: Awaited<ReturnType<typeof getSql>>, order
   const quote = checkoutQuote(fees, Number(order.amount_cents), { buyer: false, seller: sellerPlus }, meet);
   const storedSellerFee = Number(order.seller_fee_cents ?? 0);
   const payout = storedSellerFee > 0 ? Number(order.amount_cents) - storedSellerFee : quote.youGetCents;
-  await sql`update orders set status = ${"picked_up"}, buyer_confirmed = ${true}, seller_confirmed = ${true}, released_at = coalesce(released_at, now()) where id = ${order.id}`;
+  const won = await sql<{ id: string }>`
+    update orders
+    set status = ${"picked_up"}, buyer_confirmed = ${true}, seller_confirmed = ${true}, released_at = coalesce(released_at, now())
+    where id = ${order.id} and status = ${"escrow"}
+    returning id
+  `;
+  if (!won[0]) return;
   await sql`update listings set status = ${"sold"} where id = ${order.listing_id}`;
   await sql`update profiles set wallet_cents = wallet_cents + ${payout} where id = ${order.seller_id}`;
   await sql`
@@ -1719,13 +1753,9 @@ export const verifyId = createServerFn({ method: "POST" })
     const fees = await loadFees(sql);
     const row = feeById(fees, "id_verify");
     const charge = me.isPremium ? 0 : row?.enabled ? (row.unit === "cents" ? row.amountCents : 0) : 0;
-    if (charge > 0 && me.walletCents < charge) {
-      throw new Error(
-        TEST_MODE ? "Not enough test credits for ID verification." : "Not enough wallet for ID verification.",
-      );
-    }
+    if (charge > 0) await debitWallet(sql, me.id, charge);
+    await sql`update profiles set verified_at = now() where id = ${me.id}`;
     if (charge > 0) {
-      await sql`update profiles set wallet_cents = wallet_cents - ${charge}, verified_at = now() where id = ${me.id}`;
       await sql`
         insert into wallet_tx (id, user_id, kind, amount_cents, note)
         values (
@@ -1736,8 +1766,6 @@ export const verifyId = createServerFn({ method: "POST" })
           ${TEST_MODE ? "Test ID verification (no ID photo stored)" : "ID verification (no ID photo stored)"}
         )
       `;
-    } else {
-      await sql`update profiles set verified_at = now() where id = ${me.id}`;
     }
     await claimIdentity(sql, me.id);
     return { verified: true as const, chargedCents: charge };
@@ -1904,7 +1932,13 @@ export const claimOperator = createServerFn({ method: "POST" })
       throw new Error("An operator account is already set.");
     }
     await ensureProfile(sql, context.userId);
-    await sql`update profiles set is_staff = true where id = ${context.userId}`;
+    const claimed = await sql<{ id: string }>`
+      update profiles set is_staff = true
+      where id = ${context.userId}
+        and not exists (select 1 from profiles where is_staff = true)
+      returning id
+    `;
+    if (!claimed[0]) throw new Error("An operator account is already set.");
     return { ok: true as const };
   });
 

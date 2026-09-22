@@ -104,6 +104,8 @@ function PickupPage() {
             />
           )}
         </div>
+      ) : order.handoffType === "official" ? (
+        <p className="mt-6 text-sm text-muted">The store counter closes this when it scans the buyer code. You don’t confirm it yourself.</p>
       ) : (
         <form
           className="mt-6 space-y-3 text-left"

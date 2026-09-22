@@ -56,24 +56,42 @@ export const getCorporateDesk = createServerFn({ method: "GET" }).handler(async 
   const userId = await optionalUserId();
   if (!userId) return { signedIn: false as const, isStaff: false, metrics: null, queue: [] as Admission[] };
   const me = await ensureProfile(sql, userId);
-  const mine = await sql<{
-    id: string;
-    kind: string;
-    status: string;
-    org_name: string;
-    contact_name: string;
-    email: string;
-    city: string;
-    note: string | null;
-    applicant_id: string | null;
-    created_at: string;
-  }>`
-    select id, kind, status, org_name, contact_name, email, city, note, applicant_id, created_at
-    from admissions
-    where applicant_id = ${userId} or ${me.isStaff} = true
-    order by created_at desc
-    limit 80
-  `;
+  const mine = me.isStaff
+    ? await sql<{
+        id: string;
+        kind: string;
+        status: string;
+        org_name: string;
+        contact_name: string;
+        email: string;
+        city: string;
+        note: string | null;
+        applicant_id: string | null;
+        created_at: string;
+      }>`
+        select id, kind, status, org_name, contact_name, email, city, note, applicant_id, created_at
+        from admissions
+        order by created_at desc
+        limit 80
+      `
+    : await sql<{
+        id: string;
+        kind: string;
+        status: string;
+        org_name: string;
+        contact_name: string;
+        email: string;
+        city: string;
+        note: string | null;
+        applicant_id: string | null;
+        created_at: string;
+      }>`
+        select id, kind, status, org_name, contact_name, email, city, note, applicant_id, created_at
+        from admissions
+        where applicant_id = ${userId}
+        order by created_at desc
+        limit 20
+      `;
   const queue = mine.map(mapAdmission);
   if (!me.isStaff) return { signedIn: true as const, isStaff: false, metrics: null, queue };
   const metrics = await loadMetrics(sql);

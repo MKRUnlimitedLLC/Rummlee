@@ -90,12 +90,14 @@ export const scanAtCounter = createServerFn({ method: "POST" })
       return { kind: "in", packageNo };
     }
     if (order.package_no == null) return { kind: "wait", packageNo: null };
-    if (order.released_at || order.status === "picked_up") {
-      return { kind: "done", packageNo: Number(order.package_no) };
-    }
-    await sql`update orders set released_at = now() where id = ${order.id}`;
+    const released = await sql<{ package_no: number }>`
+      update orders set released_at = now()
+      where id = ${order.id} and released_at is null and status = ${"escrow"} and package_no is not null
+      returning package_no
+    `;
+    if (!released[0]) return { kind: "done", packageNo: Number(order.package_no) };
     await settleOrder(sql, order.id);
-    return { kind: "out", packageNo: Number(order.package_no) };
+    return { kind: "out", packageNo: Number(released[0].package_no) };
   });
 
 export const getCounterHome = createServerFn({ method: "GET" })

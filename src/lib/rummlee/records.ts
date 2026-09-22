@@ -196,6 +196,10 @@ export const openCase = createServerFn({ method: "POST" })
       if (!found[0]) throw new Error("No handle by that name.");
       profileId = found[0].id;
     }
+    const open = await sql<{ n: number }>`
+      select count(*)::int as n from support_cases where profile_id = ${profileId} and status = ${"open"}
+    `;
+    if (Number(open[0]?.n ?? 0) >= 5) throw new Error("You already have five open notes. Wait for a reply.");
     const id = crypto.randomUUID();
     await sql`
       insert into support_cases (id, profile_id, opened_by, status, subject, body)
