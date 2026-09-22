@@ -29,7 +29,7 @@ function PickupPage() {
       void qc.invalidateQueries({ queryKey: ["order", id] });
       void qc.invalidateQueries({ queryKey: ["inbox"] });
       void qc.invalidateQueries({ queryKey: ["me"] });
-      toast.success(res.done ? "Pickup confirmed. Seller is paid." : "You’re marked. Waiting on the other person.");
+      toast.success(res.done ? "Pickup confirmed. Seller got test credits — not real money." : "You’re marked. Waiting on the other person.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });

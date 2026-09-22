@@ -3,6 +3,7 @@ import { Inbox, Home, Plus, CalendarDays, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { Wordmark } from "./logo";
 import { cn } from "@/lib/utils";
+import { TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
 const TABS = [
@@ -40,6 +41,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
           <AuthChip />
         </div>
+        {TEST_MODE ? (
+          <p className="border-t border-border/60 bg-primary-soft px-4 py-1.5 text-center text-xs font-medium text-primary-ink">
+            {TEST_PAY_NOTE}
+          </p>
+        ) : null}
       </header>
       <div className={cn("mx-auto w-full max-w-5xl px-4", hideNav ? "pb-8" : "pb-28 md:pb-10")}>{children}</div>
       {hideNav ? null : (

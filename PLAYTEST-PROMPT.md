@@ -3,7 +3,7 @@
 **Live:** https://rummlee.com  
 Ask testers to **hard-refresh** or open a **private window** so they are not on an old cache.
 
-Wallet credits are **not a real bank**. Nothing ships. Meet at a handoff location. A handle, not a name.
+Wallet credits are **not a real bank**. Pay is **simulated test credits** — no cards, no cash. Nothing ships. Meet at a handoff location. A handle, not a name.
 
 ---
 

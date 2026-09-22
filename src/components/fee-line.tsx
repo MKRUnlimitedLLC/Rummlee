@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { HOLD_LINE } from "@/lib/rummlee/constants";
+import { HOLD_LINE, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { checkoutQuote, type FeeRow } from "@/lib/rummlee/fees";
 import { money } from "@/lib/rummlee/format";
 import { cn } from "@/lib/utils";
@@ -54,10 +54,11 @@ export function CheckoutPay({
         </p>
       ) : null}
       <p className="flex justify-between font-display text-xl font-semibold tracking-[-0.03em] text-primary-ink">
-        <span>You pay</span>
+        <span>{TEST_MODE ? "You pay (test)" : "You pay"}</span>
         <span className="tabular-nums">{money(quote.youPayCents)}</span>
       </p>
       <p className="text-sm font-medium text-primary-ink">{HOLD_LINE}</p>
+      {TEST_MODE ? <p className="text-sm text-muted">{TEST_PAY_NOTE}</p> : null}
       <p className="text-sm text-muted">
         <Link to="/fees" className="font-medium text-primary-ink">
           All fees

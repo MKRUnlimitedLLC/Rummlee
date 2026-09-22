@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/input";
 import { ListingCard } from "@/components/listing-card";
 import { LegalLinks } from "@/components/legal";
-import { NEIGHBORHOODS } from "@/lib/rummlee/constants";
+import { NEIGHBORHOODS, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { errMessage } from "@/lib/rummlee/errors";
 import { money, saleWindow } from "@/lib/rummlee/format";
 import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount } from "@/lib/rummlee/server";
@@ -29,7 +29,7 @@ function YouPage() {
     mutationFn: (cents: number) => topUpWallet({ data: cents }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["me"] });
-      toast.success("Wallet topped up.");
+      toast.success("Test credits added. Not real money.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -72,7 +72,7 @@ function YouPage() {
         <ul className="mt-6 space-y-2 text-sm text-muted">
           <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">A handle, not your name</li>
           <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
-            Wallet held until you both confirm
+            Wallet — test credits until both confirm
           </li>
           <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
             <Link to="/fees" className="font-medium text-primary-ink">
@@ -99,13 +99,15 @@ function YouPage() {
       </div>
 
       <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
-        <p className="text-sm text-muted">Wallet</p>
+        <p className="text-sm text-muted">{TEST_MODE ? "Test credits" : "Wallet"}</p>
         <p className="font-display text-4xl font-medium tabular-nums tracking-[-0.03em]">{me ? money(me.walletCents) : "—"}</p>
-        <p className="mt-1 text-sm text-subtle">Pay is held here until both of you confirm pickup.</p>
+        <p className="mt-1 text-sm text-subtle">
+          {TEST_MODE ? TEST_PAY_NOTE : "Pay is held here until both of you confirm pickup."}
+        </p>
         <div className="mt-4 flex gap-2">
           {[2000, 5000, 10000].map((c) => (
             <Button key={c} variant="secondary" size="sm" onClick={() => topUp.mutate(c)} disabled={topUp.isPending}>
-              Add {money(c)}
+              {TEST_MODE ? `Add ${money(c)} test` : `Add ${money(c)}`}
             </Button>
           ))}
         </div>

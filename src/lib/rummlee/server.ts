@@ -5,7 +5,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
 import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes, canonicalizeMode } from "./format";
 import { checkoutQuote, mapFeeRow, minAskingCents, type FeeRow } from "./fees";
-import { MIN_PRICE_CENTS } from "./constants";
+import { MIN_PRICE_CENTS, TEST_MODE, TEST_STARTER_CENTS } from "./constants";
 import type {
   HandoffMode,
   HandoffSpot,
@@ -109,6 +109,22 @@ async function viewerPremium(sql: Awaited<ReturnType<typeof getSql>>, userId: st
   return Boolean(rows[0]?.is_premium);
 }
 
+async function grantTestCredits(
+  sql: Awaited<ReturnType<typeof getSql>>,
+  userId: string,
+  currentCents: number,
+): Promise<number> {
+  if (!TEST_MODE) return currentCents;
+  const txs = await sql<{ id: string }>`select id from wallet_tx where user_id = ${userId} limit 1`;
+  if (txs[0] || currentCents > 0) return currentCents;
+  await sql`update profiles set wallet_cents = ${TEST_STARTER_CENTS} where id = ${userId}`;
+  await sql`
+    insert into wallet_tx (id, user_id, kind, amount_cents, note)
+    values (${crypto.randomUUID()}, ${userId}, ${"beta"}, ${TEST_STARTER_CENTS}, ${"Beta test credits — not real money"})
+  `;
+  return TEST_STARTER_CENTS;
+}
+
 async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: string): Promise<Profile> {
   const existing = await sql<{
     id: string;
@@ -121,6 +137,7 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
   }>`select id, handle, neighborhood, zip, is_premium, is_staff, wallet_cents from profiles where id = ${userId}`;
   if (existing[0]) {
     const p = existing[0];
+    const walletCents = await grantTestCredits(sql, userId, Number(p.wallet_cents));
     return {
       id: p.id,
       handle: p.handle,
@@ -128,7 +145,7 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
       zip: p.zip,
       isPremium: Boolean(p.is_premium),
       isStaff: Boolean(p.is_staff),
-      walletCents: Number(p.wallet_cents),
+      walletCents,
     };
   }
   let handle = makeHandle();
@@ -137,10 +154,17 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     if (!clash[0]) break;
     handle = makeHandle();
   }
+  const start = TEST_MODE ? TEST_STARTER_CENTS : 0;
   await sql`
-    insert into profiles (id, handle, neighborhood, zip)
-    values (${userId}, ${handle}, ${null}, ${null})
+    insert into profiles (id, handle, neighborhood, zip, wallet_cents)
+    values (${userId}, ${handle}, ${null}, ${null}, ${start})
   `;
+  if (TEST_MODE && start > 0) {
+    await sql`
+      insert into wallet_tx (id, user_id, kind, amount_cents, note)
+      values (${crypto.randomUUID()}, ${userId}, ${"beta"}, ${start}, ${"Beta test credits — not real money"})
+    `;
+  }
   return {
     id: userId,
     handle,
@@ -148,7 +172,7 @@ async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: st
     zip: null,
     isPremium: false,
     isStaff: false,
-    walletCents: 0,
+    walletCents: start,
   };
 }
 
@@ -516,12 +540,15 @@ export const topUpWallet = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((cents: unknown) => z.number().int().min(1000).max(20000).parse(cents))
   .handler(async ({ context, data: cents }) => {
+    if (!TEST_MODE) {
+      throw new Error("Real billing isn’t on. Beta uses test credits only.");
+    }
     const sql = await getSql();
     await ensureProfile(sql, context.userId);
     await sql`update profiles set wallet_cents = wallet_cents + ${cents} where id = ${context.userId}`;
     await sql`
       insert into wallet_tx (id, user_id, kind, amount_cents, note)
-      values (${crypto.randomUUID()}, ${context.userId}, ${"topup"}, ${cents}, ${"Wallet top-up"})
+      values (${crypto.randomUUID()}, ${context.userId}, ${"topup"}, ${cents}, ${"Test credits (beta — not real money)"})
     `;
     return ensureProfile(sql, context.userId);
   });
@@ -943,7 +970,11 @@ export const buyNow = createServerFn({ method: "POST" })
       }
     }
     if (me.walletCents < total) {
-      throw new Error(`Add ${Math.ceil((total - me.walletCents) / 100)} more to your wallet to pay.`);
+      throw new Error(
+        TEST_MODE
+          ? `Add ${Math.ceil((total - me.walletCents) / 100)} more test credits on You. Not real money.`
+          : `Add ${Math.ceil((total - me.walletCents) / 100)} more to your wallet to pay.`,
+      );
     }
     const code = pickupCode();
     const orderId = crypto.randomUUID();
@@ -955,7 +986,9 @@ export const buyNow = createServerFn({ method: "POST" })
     await sql`update profiles set wallet_cents = wallet_cents - ${total} where id = ${context.userId}`;
     await sql`
       insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
-      values (${crypto.randomUUID()}, ${context.userId}, ${"hold"}, ${-total}, ${orderId}, ${"Held until pickup — " + item.title})
+      values (${crypto.randomUUID()}, ${context.userId}, ${"hold"}, ${-total}, ${orderId}, ${
+        TEST_MODE ? "Test hold (beta — not real money) — " + item.title : "Held until pickup — " + item.title
+      })
     `;
     await sql`
       update offers set status = ${"declined"}, updated_at = now()
@@ -1004,7 +1037,9 @@ export const confirmPickup = createServerFn({ method: "POST" })
       await sql`update profiles set wallet_cents = wallet_cents + ${Number(order.amount_cents)} where id = ${order.seller_id}`;
       await sql`
         insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
-        values (${crypto.randomUUID()}, ${order.seller_id}, ${"payout"}, ${Number(order.amount_cents)}, ${order.id}, ${"Sale payout"})
+        values (${crypto.randomUUID()}, ${order.seller_id}, ${"payout"}, ${Number(order.amount_cents)}, ${order.id}, ${
+          TEST_MODE ? "Test payout (beta — not real money)" : "Sale payout"
+        })
       `;
       return { done: true };
     }

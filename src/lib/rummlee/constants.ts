@@ -4,6 +4,11 @@ export const MIN_PRICE_CENTS = 500;
 export const PASTE_CAP = 40;
 export const HOLD_LINE = "Held until you both confirm.";
 
+/** Beta: full product until pay. Pay is simulated test credits — never a card or bank. Flip off only when real billing is live. */
+export const TEST_MODE = true;
+export const TEST_STARTER_CENTS = 20000;
+export const TEST_PAY_NOTE = "Beta — test credits. Not real money. No card is charged.";
+
 export const NEIGHBORHOODS = [
   "Park Slope, Brooklyn",
   "Silver Lake, Los Angeles",

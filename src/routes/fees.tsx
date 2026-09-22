@@ -41,7 +41,7 @@ function FeesPage() {
   return (
     <LegalPage
       title="Fees"
-      lede="Every Rummlee fee, in one table. Browse and list start free. What you pay at checkout is this table, live — not a surprise on a listing card."
+      lede="Beta. Every Rummlee fee, in one table. Checkout still runs the table — paid in test credits, not real money. No card is charged."
     >
       <div className="overflow-x-auto rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
         <table className="w-full min-w-[36rem] text-left text-sm">

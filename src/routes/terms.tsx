@@ -34,10 +34,10 @@ function Terms() {
 
       <LegalSection title="Money">
         <p>
-          Offers and buy-now use an in-app wallet. Credits are held until both of you confirm pickup. Every Rummlee fee
+          Offers and buy-now use an in-app wallet of <strong>test credits</strong>. This is a beta. Nothing is a real
+          card charge, bank transfer, or cash. Credits are held until both of you confirm pickup. Every Rummlee fee
           lives on the Fees page and is applied at checkout from that live table — not as a surprise on a listing card.
-          Wallet top-ups in this version credit your balance inside Rummlee; they are not a bank transfer or a card
-          charge through Apple.
+          Wallet top-ups add more test credits. They are not money.
         </p>
         <p>
           If we later take real payments, digital extras such as Premium would go through the platform’s required

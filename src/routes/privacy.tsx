@@ -28,7 +28,8 @@ function Privacy() {
             other neighbors.
           </li>
           <li>
-            <strong>Profile.</strong> Neighborhood you pick, optional zip, Premium status, and in-app wallet balance.
+            <strong>Profile.</strong> Neighborhood you pick, optional zip, Premium status, and in-app test-credit
+            wallet. Beta pay is simulated. We do not take card numbers.
           </li>
           <li>
             <strong>Listings.</strong> Titles, descriptions, prices, photos you upload, sale dates, and how you want to
@@ -81,8 +82,8 @@ function Privacy() {
 
       <LegalSection title="Questions">
         <p>
-          Privacy questions belong on Support. If we add real card payments or a new sign-in method later, this page
-          will say so before we collect anything extra.
+          Privacy questions belong on Support. Beta pay is test credits only. If we add real card payments or a new
+          sign-in method later, this page will say so before we collect anything extra.
         </p>
       </LegalSection>
     </LegalPage>
