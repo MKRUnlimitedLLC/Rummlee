@@ -221,6 +221,19 @@ export const DEFAULT_FEES: FeeRow[] = [
     sort: 120,
     enabled: true,
   },
+  {
+    id: "location_device",
+    label: "Location counter",
+    description:
+      "Rummlee software on a store’s counter. Hardware is $0 until a device ships — set the price here when you charge for one. Not a buyer or seller fee.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 0,
+    chargedTo: "none",
+    chargedWhen: "upgrade",
+    sort: 130,
+    enabled: true,
+  },
 ];
 
 export function mapFeeRow(row: {

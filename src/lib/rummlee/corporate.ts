@@ -260,6 +260,9 @@ export const decideAdmission = createServerFn({ method: "POST" })
         )
         on conflict (id) do nothing
       `;
+      if (row.applicant_id) {
+        await sql`update profiles set desk_spot_id = ${spotId} where id = ${row.applicant_id}`;
+      }
     }
     if (data.decision === "admit" && row.kind === "staff" && row.applicant_id) {
       await sql`update profiles set is_staff = true where id = ${row.applicant_id}`;

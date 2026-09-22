@@ -7,8 +7,9 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { errMessage } from "@/lib/rummlee/errors";
 import { money } from "@/lib/rummlee/format";
 import { decideAdmission, getCorporateDesk, submitAdmission, type CorporateMetrics } from "@/lib/rummlee/corporate";
-import { closeCase, getCustomerStatement, type Statement } from "@/lib/rummlee/records";
+import { assignDesk, listPartnerSpots, pairCounter } from "@/lib/rummlee/desk";
 import { StatementView } from "@/components/statement";
+import { closeCase, getCustomerStatement, type Statement } from "@/lib/rummlee/records";
 
 export const Route = createFileRoute("/corporate")({
   component: CorporatePage,
@@ -76,6 +77,7 @@ function CorporatePage() {
       </p>
 
       {data?.isStaff && data.metrics ? <Metrics metrics={data.metrics} /> : null}
+      {data?.isStaff ? <Counters /> : null}
 
       {data?.isStaff ? (
         <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
@@ -232,6 +234,80 @@ function CorporatePage() {
         ) : null}
       </section>
     </main>
+  );
+}
+
+function Counters() {
+  const spots = useQuery({ queryKey: ["partner-spots"], queryFn: () => listPartnerSpots() });
+  const [spotId, setSpotId] = useState("");
+  const [label, setLabel] = useState("Front counter");
+  const [handle, setHandle] = useState("");
+  const [secret, setSecret] = useState("");
+  const pair = useMutation({
+    mutationFn: () => pairCounter({ data: { spotId, label } }),
+    onSuccess: (res) => {
+      setSecret(res.secret);
+      toast.success(`Paired ${res.spotName}. Copy the code onto that device once.`);
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const assign = useMutation({
+    mutationFn: () => assignDesk({ data: { handle, spotId } }),
+    onSuccess: () => toast.success("That handle can open the counter."),
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  return (
+    <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-xl">Store counters</h2>
+      <p className="mt-1 text-sm text-muted">
+        A counter only scans. Seller code checks a package in and prints a number. Buyer code shows that number. The
+        device fee is on Fees — $0 until you set a hardware price.
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="text-sm">
+          Official store
+          <select
+            className="mt-1 w-full rounded-xl border border-border bg-bg px-3 py-2"
+            value={spotId}
+            onChange={(e) => setSpotId(e.target.value)}
+          >
+            <option value="">Choose</option>
+            {(spots.data ?? []).map((spot) => (
+              <option key={spot.id} value={spot.id}>
+                {spot.name} · {spot.area}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div>
+          <Label htmlFor="counter-label">Device name</Label>
+          <Input id="counter-label" value={label} onChange={(e) => setLabel(e.target.value)} />
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button disabled={!spotId || pair.isPending} onClick={() => pair.mutate()}>
+          Pair a device
+        </Button>
+      </div>
+      {secret ? (
+        <p className="mt-3 break-all rounded-xl bg-bg px-3 py-3 font-mono text-sm">
+          {secret}
+          <span className="mt-1 block font-sans text-muted">Shown once. Enter it at /desk on that screen.</span>
+        </p>
+      ) : null}
+      <form
+        className="mt-4 flex flex-wrap gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          assign.mutate();
+        }}
+      >
+        <Input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@handle for this store" className="max-w-xs" />
+        <Button type="submit" variant="secondary" disabled={!spotId || assign.isPending}>
+          Give them counter login
+        </Button>
+      </form>
+    </section>
   );
 }
 

@@ -144,6 +144,14 @@ export function pickupCode() {
   return `${out.slice(0, 3)}-${out.slice(3)}`;
 }
 
+export function partyScan(side: "S" | "B") {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = side;
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  for (const b of bytes) out += alphabet[b % alphabet.length];
+  return out;
+}
+
 export function isSeedUser(id: string) {
   return id.startsWith("seed-");
 }

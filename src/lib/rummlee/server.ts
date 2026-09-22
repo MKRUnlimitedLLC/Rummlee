@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
-import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, splitModes, canonicalizeMode, cityOf } from "./format";
+import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
 import { MAX_SALE_DAYS, MIN_PRICE_CENTS, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
 import { overallThumb, type Thumb } from "./trust";
@@ -768,6 +768,7 @@ export const getMe = createServerFn({ method: "GET" })
       [context.userId],
     );
     const pendingRates = await loadPendingRates(sql, context.userId);
+    const desk = await sql<{ desk_spot_id: string | null }>`select desk_spot_id from profiles where id = ${context.userId}`;
     const usedFree = await freeSaleDaysUsed(sql, context.userId);
     const receivedDowns = await sql<{
       rating_id: string;
@@ -799,6 +800,7 @@ export const getMe = createServerFn({ method: "GET" })
       plusSaleDaysLeft: me.isPremium ? Math.max(0, PLUS_SALE_DAYS_PER_MONTH - usedFree) : 0,
       saved: savedRows.map((r) => mapListing(r, true)),
       pendingRates,
+      isDesk: Boolean(desk[0]?.desk_spot_id),
       receivedDowns: receivedDowns.map(
         (r): ReceivedDown => ({
           ratingId: r.rating_id,
@@ -1390,17 +1392,19 @@ export const buyNow = createServerFn({ method: "POST" })
           : `Add ${Math.ceil((total - me.walletCents) / 100)} more to your wallet to pay.`,
       );
     }
+    const sellerScan = partyScan("S");
+    const buyerScan = partyScan("B");
     const code = pickupCode();
     const orderId = crypto.randomUUID();
     await sql`update listings set status = ${"held"} where id = ${item.id} and status = ${"live"}`;
     await sql`
       insert into orders (
         id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, tax_cents, buyer_fee_cents, seller_fee_cents, metro,
-        status, pickup_code, handoff_type, handoff_spot_id, buyer_confirmed, seller_confirmed
+        status, pickup_code, seller_scan, buyer_scan, handoff_type, handoff_spot_id, buyer_confirmed, seller_confirmed
       )
       values (
         ${orderId}, ${item.id}, ${context.userId}, ${item.seller_id}, ${base}, ${buyerFee}, ${tax}, ${buyerFee}, ${sellerFee}, ${metro},
-        ${"escrow"}, ${code}, ${handoffType}, ${spotId}, ${false}, ${isSeedUser(item.seller_id)}
+        ${"escrow"}, ${code}, ${sellerScan}, ${buyerScan}, ${handoffType}, ${spotId}, ${false}, ${isSeedUser(item.seller_id)}
       )
     `;
     await sql`update profiles set wallet_cents = wallet_cents - ${total} where id = ${context.userId}`;
@@ -1455,36 +1459,54 @@ export const confirmPickup = createServerFn({ method: "POST" })
       where id = ${order.id}
     `;
     if (buyerOk && sellerOk) {
-      const fees = await loadFees(sql);
-      const sellerPlus = await viewerPremium(sql, order.seller_id);
-      const meet =
-        order.handoff_type === "person" || order.handoff_type === "porch"
-          ? "person"
-          : order.handoff_type === "public"
-            ? "public"
-            : "official";
-      const quote = checkoutQuote(fees, Number(order.amount_cents), { buyer: false, seller: sellerPlus }, meet);
-      const storedSellerFee = Number(order.seller_fee_cents ?? 0);
-      const payout = storedSellerFee > 0 ? Number(order.amount_cents) - storedSellerFee : quote.youGetCents;
-      await sql`update orders set status = ${"picked_up"} where id = ${order.id}`;
-      await sql`update listings set status = ${"sold"} where id = ${order.listing_id}`;
-      await sql`update profiles set wallet_cents = wallet_cents + ${payout} where id = ${order.seller_id}`;
-      await sql`
-        insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
-        values (${crypto.randomUUID()}, ${order.seller_id}, ${"payout"}, ${payout}, ${order.id}, ${
-          TEST_MODE
-            ? quote.sellerHandoffFeeCents
-              ? "Test payout minus official store fee (beta — not real money)"
-              : "Test payout (beta — not real money)"
-            : quote.sellerHandoffFeeCents
-              ? "Sale payout minus official store fee"
-              : "Sale payout"
-        })
-      `;
+      await settleOrder(sql, order.id);
       return { done: true };
     }
     return { done: false };
   });
+
+export async function settleOrder(sql: Awaited<ReturnType<typeof getSql>>, orderId: string) {
+  const rows = await sql<{
+    id: string;
+    listing_id: string;
+    seller_id: string;
+    amount_cents: number;
+    seller_fee_cents: number;
+    status: string;
+    handoff_type: string;
+  }>`
+    select id, listing_id, seller_id, amount_cents, seller_fee_cents, status, handoff_type
+    from orders where id = ${orderId}
+  `;
+  const order = rows[0];
+  if (!order || order.status !== "escrow") return;
+  const fees = await loadFees(sql);
+  const sellerPlus = await viewerPremium(sql, order.seller_id);
+  const meet =
+    order.handoff_type === "person" || order.handoff_type === "porch"
+      ? "person"
+      : order.handoff_type === "public"
+        ? "public"
+        : "official";
+  const quote = checkoutQuote(fees, Number(order.amount_cents), { buyer: false, seller: sellerPlus }, meet);
+  const storedSellerFee = Number(order.seller_fee_cents ?? 0);
+  const payout = storedSellerFee > 0 ? Number(order.amount_cents) - storedSellerFee : quote.youGetCents;
+  await sql`update orders set status = ${"picked_up"}, buyer_confirmed = ${true}, seller_confirmed = ${true}, released_at = coalesce(released_at, now()) where id = ${order.id}`;
+  await sql`update listings set status = ${"sold"} where id = ${order.listing_id}`;
+  await sql`update profiles set wallet_cents = wallet_cents + ${payout} where id = ${order.seller_id}`;
+  await sql`
+    insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
+    values (${crypto.randomUUID()}, ${order.seller_id}, ${"payout"}, ${payout}, ${order.id}, ${
+      TEST_MODE
+        ? quote.sellerHandoffFeeCents
+          ? "Test payout minus official store fee (beta — not real money)"
+          : "Test payout (beta — not real money)"
+        : quote.sellerHandoffFeeCents
+          ? "Sale payout minus official store fee"
+          : "Sale payout"
+    })
+  `;
+}
 
 export const getInbox = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
@@ -1638,6 +1660,8 @@ export const getOrder = createServerFn({ method: "GET" })
       fee_cents: number;
       status: Order["status"];
       pickup_code: string;
+      seller_scan: string | null;
+      buyer_scan: string | null;
       buyer_confirmed: boolean;
       seller_confirmed: boolean;
       handoff_type: Order["handoffType"];
@@ -1645,8 +1669,8 @@ export const getOrder = createServerFn({ method: "GET" })
     }>`
       select o.id, o.listing_id, l.title as listing_title, l.photo_url as listing_photo,
              o.buyer_id, b.handle as buyer_handle, o.seller_id, se.handle as seller_handle,
-             o.amount_cents, o.fee_cents, o.status, o.pickup_code, o.buyer_confirmed, o.seller_confirmed,
-             o.handoff_type, o.created_at
+             o.amount_cents, o.fee_cents, o.status, o.pickup_code, o.seller_scan, o.buyer_scan,
+             o.buyer_confirmed, o.seller_confirmed, o.handoff_type, o.created_at
       from orders o
       join listings l on l.id = o.listing_id
       join profiles b on b.id = o.buyer_id
@@ -1675,6 +1699,7 @@ export const getOrder = createServerFn({ method: "GET" })
       feeCents: Number(o.fee_cents),
       status: o.status,
       pickupCode: o.pickup_code,
+      myScan: iAmBuyer ? o.buyer_scan : o.seller_scan,
       buyerConfirmed: Boolean(o.buyer_confirmed),
       sellerConfirmed: Boolean(o.seller_confirmed),
       handoffType: o.handoff_type,

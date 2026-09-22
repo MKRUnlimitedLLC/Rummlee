@@ -10,6 +10,7 @@ import { errMessage } from "@/lib/rummlee/errors";
 import { handoffLabel, money } from "@/lib/rummlee/format";
 import { confirmPickup, getOrder } from "@/lib/rummlee/server";
 import { RateHandoff, VerifiedBadge } from "@/components/trust";
+import { PartyCode } from "@/components/party-code";
 
 export const Route = createFileRoute("/pickup/$id")({ component: PickupPage });
 
@@ -69,11 +70,22 @@ function PickupPage() {
 
       <div className="mx-auto mt-6 overflow-hidden rounded-[28px] bg-surface p-6 shadow-[var(--shadow-card)]">
         <img src={order.listingPhoto} alt={order.listingTitle} className="mx-auto mb-5 aspect-[4/3] w-full rounded-2xl object-cover" />
-        <ScanFace code={order.pickupCode} />
-        <p className="mt-4 font-mono text-3xl font-medium tracking-[0.28em] text-fg">{order.pickupCode}</p>
-        <p className="mt-2 text-sm text-muted">
-          Show this code at the official store locker or desk. A public place or in person still uses a scan.
-        </p>
+        {order.handoffType === "official" && order.myScan ? (
+          <>
+            <PartyCode value={order.myScan} />
+            <p className="mt-4 text-sm text-muted">
+              {iAmBuyer
+                ? "Your buyer code. The counter scans it and shows a package number. Not your name."
+                : "Your seller code. The counter scans it and assigns a package number. Not your name."}
+            </p>
+          </>
+        ) : (
+          <>
+            <ScanFace code={order.pickupCode} />
+            <p className="mt-4 font-mono text-3xl font-medium tracking-[0.28em] text-fg">{order.pickupCode}</p>
+            <p className="mt-2 text-sm text-muted">Show this at the handoff. The other person has a different code.</p>
+          </>
+        )}
       </div>
 
       {done ? (

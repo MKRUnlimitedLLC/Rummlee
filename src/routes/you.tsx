@@ -143,6 +143,11 @@ function YouPage() {
           <p className="mt-1 text-sm text-subtle">Neighbors see this. Your real name stays yours.</p>
           <p className="mt-1 text-sm text-muted">Neighbors never see your address — only a neighborhood label, if you set one.</p>
           <ThumbTally up={me?.thumbsUp} down={me?.thumbsDown} className="mt-1 block" />
+          {q.data?.isDesk ? (
+            <Link to="/desk" className="mt-2 inline-block text-sm font-medium text-primary-ink">
+              Open the counter
+            </Link>
+          ) : null}
         </div>
         <UserButton />
       </div>

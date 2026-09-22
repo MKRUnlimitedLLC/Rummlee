@@ -127,6 +127,7 @@ export type Order = {
   sellerConfirmed: boolean;
   handoffType: HandoffMode;
   createdAt: string;
+  myScan?: string | null;
   myRatingOverall?: "up" | "down" | null;
   otherVerified?: boolean;
 };

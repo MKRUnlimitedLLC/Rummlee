@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as CorporateRouteImport } from './routes/corporate'
+import { Route as DeskRouteImport } from './routes/desk'
 import { Route as FeesRouteImport } from './routes/fees'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
@@ -41,6 +42,11 @@ const BrowseRoute = BrowseRouteImport.update({
 const CorporateRoute = CorporateRouteImport.update({
   id: '/corporate',
   path: '/corporate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeskRoute = DeskRouteImport.update({
+  id: '/desk',
+  path: '/desk',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeesRoute = FeesRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/browse': typeof BrowseRoute
   '/corporate': typeof CorporateRoute
+  '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/browse': typeof BrowseRoute
   '/corporate': typeof CorporateRoute
+  '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/browse': typeof BrowseRoute
   '/corporate': typeof CorporateRoute
+  '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/'
     | '/browse'
     | '/corporate'
+    | '/desk'
     | '/fees'
     | '/inbox'
     | '/login'
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/'
     | '/browse'
     | '/corporate'
+    | '/desk'
     | '/fees'
     | '/inbox'
     | '/login'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/'
     | '/browse'
     | '/corporate'
+    | '/desk'
     | '/fees'
     | '/inbox'
     | '/login'
@@ -247,6 +259,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BrowseRoute: typeof BrowseRoute
   CorporateRoute: typeof CorporateRoute
+  DeskRoute: typeof DeskRoute
   FeesRoute: typeof FeesRoute
   InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
@@ -285,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/corporate'
       fullPath: '/corporate'
       preLoaderRoute: typeof CorporateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desk': {
+      id: '/desk'
+      path: '/desk'
+      fullPath: '/desk'
+      preLoaderRoute: typeof DeskRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fees': {
@@ -399,6 +419,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrowseRoute: BrowseRoute,
   CorporateRoute: CorporateRoute,
+  DeskRoute: DeskRoute,
   FeesRoute: FeesRoute,
   InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,
