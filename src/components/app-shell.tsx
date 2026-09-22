@@ -2,6 +2,7 @@ import { Link, getRouteApi, useRouterState } from "@tanstack/react-router";
 import { Inbox, Home, Plus, CalendarDays, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { Wordmark } from "./logo";
+import { BetaNotice } from "./beta-notice";
 import { cn } from "@/lib/utils";
 import { TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -79,6 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </ul>
         </nav>
       )}
+      <BetaNotice />
     </div>
   );
 }
