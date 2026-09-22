@@ -89,7 +89,7 @@ function mapListing(row: ListingRow, saved = false): Listing {
   };
 }
 
-async function optionalUserId() {
+export async function optionalUserId() {
   try {
     const { getSessionUser } = await import("@/lib/auth/verify.server");
     const u = await getSessionUser();
@@ -146,7 +146,7 @@ async function grantTestCredits(
   return TEST_STARTER_CENTS;
 }
 
-async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: string): Promise<Profile> {
+export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, userId: string): Promise<Profile> {
   const existing = await sql<{
     id: string;
     handle: string;

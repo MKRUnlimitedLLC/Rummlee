@@ -355,6 +355,12 @@ function YouPage() {
         <section className="mt-10 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
           <h2 className="font-display text-xl">Support — ID reset</h2>
           <p className="mt-2 text-sm text-muted">
+            Makes this handle the live account for that ID. Thumbs do not reset.{" "}
+            <Link to="/corporate" className="font-medium text-primary-ink">
+              Corporate admissions
+            </Link>
+          </p>
+          <p className="mt-2 text-sm text-muted">
             Makes this handle the live account for that ID. Thumbs do not reset.
           </p>
           <form

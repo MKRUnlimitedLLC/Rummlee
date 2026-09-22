@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BrowseRouteImport } from './routes/browse'
+import { Route as CorporateRouteImport } from './routes/corporate'
 import { Route as FeesRouteImport } from './routes/fees'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
@@ -34,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
 const BrowseRoute = BrowseRouteImport.update({
   id: '/browse',
   path: '/browse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CorporateRoute = CorporateRouteImport.update({
+  id: '/corporate',
+  path: '/corporate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FeesRoute = FeesRouteImport.update({
@@ -110,6 +116,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/browse': typeof BrowseRoute
+  '/corporate': typeof CorporateRoute
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/browse': typeof BrowseRoute
+  '/corporate': typeof CorporateRoute
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/browse': typeof BrowseRoute
+  '/corporate': typeof CorporateRoute
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/browse'
+    | '/corporate'
     | '/fees'
     | '/inbox'
     | '/login'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/browse'
+    | '/corporate'
     | '/fees'
     | '/inbox'
     | '/login'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/browse'
+    | '/corporate'
     | '/fees'
     | '/inbox'
     | '/login'
@@ -222,6 +234,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BrowseRoute: typeof BrowseRoute
+  CorporateRoute: typeof CorporateRoute
   FeesRoute: typeof FeesRoute
   InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       path: '/browse'
       fullPath: '/browse'
       preLoaderRoute: typeof BrowseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/corporate': {
+      id: '/corporate'
+      path: '/corporate'
+      fullPath: '/corporate'
+      preLoaderRoute: typeof CorporateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fees': {
@@ -358,6 +378,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrowseRoute: BrowseRoute,
+  CorporateRoute: CorporateRoute,
   FeesRoute: FeesRoute,
   InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,

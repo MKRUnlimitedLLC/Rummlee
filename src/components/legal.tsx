@@ -54,6 +54,11 @@ export function LegalLinks({ className }: { className?: string }) {
             Support
           </Link>
         </li>
+        <li>
+          <Link to="/corporate" className="underline-offset-4 hover:underline">
+            Corporate
+          </Link>
+        </li>
       </ul>
     </nav>
   );

@@ -25,7 +25,10 @@ function SalesPage() {
     <main className="py-6">
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">This weekend</h1>
       <p className="mt-1 text-muted">
-        Neighborhood sales from Brooklyn to Scottsdale. Offer now — meet at a handoff location, never a home address.
+        Neighborhood sales from Brooklyn to Scottsdale. Offer now — meet at a handoff location, never a home address.{" "}
+        <Link to="/corporate" className="font-medium text-primary-ink">
+          Stores: apply
+        </Link>
       </p>
 
       <ul className="mt-6 space-y-3">
