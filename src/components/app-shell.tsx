@@ -1,4 +1,5 @@
 import { Link, getRouteApi, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Inbox, Home, Plus, CalendarDays, UserRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -7,6 +8,9 @@ import { BetaNotice } from "./beta-notice";
 import { cn } from "@/lib/utils";
 import { TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { getMe } from "@/lib/rummlee/server";
+
+const SEEN_HANDLE = "rummlee.seenHandle";
 
 const TABS = [
   { to: "/", label: "Browse", icon: Home, match: (p: string) => p === "/" || (p.startsWith("/listings") && p !== "/listings/new") },
@@ -58,6 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
           <AuthChip />
         </div>
+        <SessionDrift />
         {TEST_MODE ? (
           <p className="border-t border-border/60 bg-primary-soft px-4 py-2 text-center text-base font-medium text-primary-ink">
             {TEST_PAY_NOTE}
@@ -107,10 +112,16 @@ function AuthChip() {
   const { sessionUser } = rootApi.useRouteContext();
   const { user, isPending } = useCurrentUserState();
   const signedIn = isPending ? Boolean(sessionUser) : Boolean(user);
+  const meQ = useQuery({
+    queryKey: ["me"],
+    queryFn: () => getMe(),
+    enabled: signedIn,
+  });
+  const handle = meQ.data?.me.handle;
   if (signedIn) {
     return (
-      <Link to="/you" className="inline-flex h-9 items-center rounded-full bg-bg-warm px-3.5 text-sm font-medium text-fg">
-        You
+      <Link to="/you" className="inline-flex h-9 max-w-40 items-center truncate rounded-full bg-bg-warm px-3.5 text-sm font-medium text-fg">
+        {handle ? `@${handle}` : "You"}
       </Link>
     );
   }
@@ -119,7 +130,37 @@ function AuthChip() {
       to="/login"
       className="inline-flex h-9 items-center rounded-full bg-primary px-3.5 text-sm font-medium text-primary-fg"
     >
-      Sign in or create account
+      Sign in
     </Link>
+  );
+}
+
+function SessionDrift() {
+  const { sessionUser } = rootApi.useRouteContext();
+  const { user, isPending } = useCurrentUserState();
+  const signedIn = isPending ? Boolean(sessionUser) : Boolean(user);
+  const meQ = useQuery({
+    queryKey: ["me"],
+    queryFn: () => getMe(),
+    enabled: signedIn,
+  });
+  const handle = meQ.data?.me.handle;
+  const [other, setOther] = useState<string | null>(null);
+  useEffect(() => {
+    if (!handle) return;
+    const seen = sessionStorage.getItem(SEEN_HANDLE);
+    if (!seen) {
+      sessionStorage.setItem(SEEN_HANDLE, handle);
+      setOther(null);
+      return;
+    }
+    if (seen !== handle) setOther(seen);
+    else setOther(null);
+  }, [handle]);
+  if (!other || !handle) return null;
+  return (
+    <p className="border-t border-border/60 bg-primary-soft px-4 py-2 text-center text-sm text-fg">
+      This browser is signed in as @{handle}, not @{other}. Sign out if that isn’t you. A listing publishes as whoever is signed in.
+    </p>
   );
 }

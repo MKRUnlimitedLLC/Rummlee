@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { toast } from "sonner";
 import { OutgoingOfferCard, SellerOfferCard } from "@/components/deal";
 import { GuestGate, useAuthGate } from "@/components/guest-gate";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { errMessage } from "@/lib/rummlee/errors";
 import { money } from "@/lib/rummlee/format";
 import { getInbox, respondOffer } from "@/lib/rummlee/server";
@@ -45,17 +48,28 @@ function InboxPage() {
   if (!data) return null;
 
   const empty =
-    data.offersIn.length + data.offersOut.length + data.orders.length + data.messages.length + data.pendingRates.length === 0;
+    data.offersIn.length + data.offersOut.length + data.orders.length + data.messages.length + data.pendingRates.length + data.notices.length ===
+    0;
 
   return (
     <main className="py-6">
       <h1 className="font-display text-3xl font-medium tracking-[-0.03em]">Inbox</h1>
       <p className="mt-1 text-muted">One offer. Yes, counteroffer, or decline. One decline ends it.</p>
 
-      {empty ? (
-        <p className="mt-8 rounded-2xl bg-surface px-4 py-10 text-center text-muted shadow-[var(--shadow-card)]">
-          Quiet for now. Browse a sale and send an offer.
-        </p>
+      {data.offersIn.length === 0 ? <PracticeSeller /> : null}
+
+      {data.notices.length > 0 ? (
+        <section className="mt-6">
+          <h2 className="font-display text-xl">Updates</h2>
+          <ul className="mt-3 space-y-3">
+            {data.notices.map((n) => (
+              <li key={n.id} className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
+                <p className="font-medium">{n.title}</p>
+                <p className="mt-1 text-sm text-muted">{n.body}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       {data.orders.length > 0 ? (
@@ -68,7 +82,18 @@ function InboxPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-medium">{o.listingTitle}</p>
                   <p className="text-sm text-muted">
-                    {money(o.amountCents)} · {o.status === "escrow" ? "held until pickup" : "picked up"}
+                    {money(o.amountCents)} ·{" "}
+                    {o.status === "cancelled"
+                      ? "cancelled"
+                      : o.status === "escrow"
+                        ? o.checkedIn
+                          ? "at the counter"
+                          : "held until pickup"
+                        : o.disputeStatus === "open"
+                          ? "payout held"
+                          : o.paidOutAt
+                            ? "seller paid"
+                            : "seller paid in 48 hours"}
                     {o.handoffType === "official"
                       ? " · Official store handoff"
                       : o.handoffType === "public"
@@ -143,5 +168,62 @@ function InboxPage() {
         </section>
       ) : null}
     </main>
+  );
+}
+
+function PracticeSeller() {
+  const [counter, setCounter] = useState("");
+  const [done, setDone] = useState<"yes" | "counter" | "decline" | null>(null);
+  return (
+    <section className="mt-6 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-xl">Practice — not a real offer</h2>
+      <p className="mt-1 text-sm text-muted">
+        One account can try the seller buttons here. Nothing is listed, held, or charged.
+      </p>
+      <p className="mt-3 font-medium">Sample lamp · asking $40 · offer $30</p>
+      {done ? (
+        <p className="mt-3 text-sm text-fg">
+          {done === "yes"
+            ? "You said yes. On a real offer they would pay the agreed price."
+            : done === "counter"
+              ? "Counteroffer sent. On a real offer, one decline from either of you would end it."
+              : "Declined. A real offer would end. They could still pay asking."}
+        </p>
+      ) : (
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" onClick={() => { setDone("yes"); toast.success("Practice: you said yes."); }}>
+              Yes
+            </Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => { setDone("decline"); toast.success("Practice: declined. The offer is over."); }}>
+              Decline
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              inputMode="decimal"
+              value={counter}
+              onChange={(event) => setCounter(event.target.value)}
+              placeholder="Counteroffer"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                const amount = Number(counter);
+                if (!Number.isFinite(amount) || amount <= 0) {
+                  toast.error("Enter a counteroffer amount.");
+                  return;
+                }
+                setDone("counter");
+                toast.success(`Practice: counteroffer $${amount.toFixed(2)}.`);
+              }}
+            >
+              Counteroffer
+            </Button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

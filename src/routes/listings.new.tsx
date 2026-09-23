@@ -26,7 +26,7 @@ import {
 import { errMessage } from "@/lib/rummlee/errors";
 import { cityOf, money, nextSaturdayIso, splitModes } from "@/lib/rummlee/format";
 import { countSaleDays, DEFAULT_FEES, feeById, formatFeeValue, quoteSaleDays } from "@/lib/rummlee/fees";
-import { addListing, bootstrapPublic, createSale, getMe } from "@/lib/rummlee/server";
+import { addListing, bootstrapPublic, createSale, getMe, topUpWallet } from "@/lib/rummlee/server";
 import type { HandoffMode } from "@/lib/rummlee/types";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +71,7 @@ function NewListingPage() {
   const [paste, setPaste] = useState("");
   const [saved, setSaved] = useState(false);
   const [step, setStep] = useState(1);
+  const [publishNote, setPublishNote] = useState<string | null>(null);
 
   useEffect(() => {
     const savedDraft = loadDraft();
@@ -198,6 +199,7 @@ function NewListingPage() {
       return { saleId, ids };
     },
     onSuccess: ({ saleId, ids }) => {
+      setPublishNote(null);
       saveDraft({ ...draft, saleId, lines: [blankLine({ category: draft.lines[0]?.category ?? "furniture", haul: draft.lines[0]?.haul ?? "one" })] });
       void qc.invalidateQueries({ queryKey: ["bootstrap"] });
       void qc.invalidateQueries({ queryKey: ["me"] });
@@ -205,7 +207,25 @@ function NewListingPage() {
       if (ids.length === 1) void navigate({ to: "/listings/$id", params: { id: ids[0] } });
       else void navigate({ to: "/sales/$id", params: { id: saleId } });
     },
-    onError: (error) => toast.error(errMessage(error)),
+    onError: (error) => {
+      const message = errMessage(error);
+      setPublishNote(message);
+      toast.error(message);
+    },
+  });
+
+  const addCredits = useMutation({
+    mutationFn: () => topUpWallet({ data: 2000 }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["me"] });
+      setPublishNote(null);
+      toast.success("Test credits added. Not real money. You can publish now.");
+    },
+    onError: (error) => {
+      const message = errMessage(error);
+      setPublishNote(message);
+      toast.error(message);
+    },
   });
 
   function onSaveDraft() {
@@ -229,6 +249,20 @@ function NewListingPage() {
       toast.error("This draft is too big for this browser. Remove a photo and try again.");
     }
   }
+
+  const saleDays = countSaleDays(draft.startsOn, draft.endsOn);
+  const dayFeeCents = feeById(DEFAULT_FEES, "sale_day")?.amountCents ?? 299;
+  const plus = Boolean(meQ.data?.me.isPremium);
+  const freeLeft = meQ.data?.plusSaleDaysLeft ?? 0;
+  const saleQuote = quoteSaleDays({
+    dayFeeCents,
+    days: saleDays,
+    plus,
+    freeUsed: plus ? Math.max(0, PLUS_SALE_DAYS_PER_MONTH - freeLeft) : 0,
+    freePerMonth: PLUS_SALE_DAYS_PER_MONTH,
+  });
+  const wallet = meQ.data?.me.walletCents ?? 0;
+  const saleShort = Boolean(user) && saleQuote.chargeCents > wallet;
 
   return (
     <main className="mx-auto max-w-lg py-6">
@@ -563,6 +597,20 @@ function NewListingPage() {
         </Button>
         ) : null}
 
+        {publishNote ? (
+          <p className="rounded-xl bg-primary-soft px-3 py-2 text-sm text-fg">{publishNote}</p>
+        ) : null}
+        {step === 3 && user && saleQuote.chargeCents > 0 ? (
+          <p className="text-sm text-fg">
+            This sale is {money(saleQuote.chargeCents)} in test credits ({saleQuote.paidDays} date
+            {saleQuote.paidDays === 1 ? "" : "s"}). You have {money(wallet)}.
+          </p>
+        ) : null}
+        {step === 3 && saleShort ? (
+          <Button type="button" variant="secondary" className="w-full" disabled={addCredits.isPending} onClick={() => addCredits.mutate()}>
+            {addCredits.isPending ? "Adding test credits…" : "Add $20 test credits, then publish"}
+          </Button>
+        ) : null}
         <div className="flex gap-2">
           {step > 1 ? (
             <Button type="button" variant="secondary" className="flex-1" onClick={() => setStep((s) => s - 1)}>
@@ -582,8 +630,8 @@ function NewListingPage() {
               Checking your account…
             </Button>
           ) : user ? (
-            <Button type="submit" className="flex-1" disabled={publish.isPending || meQ.isPending}>
-              {publish.isPending ? "Publishing…" : "Publish"}
+            <Button type="submit" className="flex-1" disabled={publish.isPending || meQ.isPending || saleShort}>
+              {publish.isPending ? "Publishing…" : meQ.data?.me.handle ? `Publish as @${meQ.data.me.handle}` : "Publish"}
             </Button>
           ) : (
             <Button type="submit" className="flex-1">

@@ -14,7 +14,7 @@ import { lastCity, loadSavedIds, rememberAfterLogin, toggleLocalSaved } from "@/
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
 import { categoryLabel, cityOf, haulLabel, money, payBaseCents, saleWindow } from "@/lib/rummlee/format";
 import { checkoutQuote } from "@/lib/rummlee/fees";
-import { buyNow, getListing, respondOffer, sendMessage, sendOffer, toggleSaved } from "@/lib/rummlee/server";
+import { buyNow, getListing, respondOffer, sendMessage, sendOffer, toggleSaved, topUpWallet } from "@/lib/rummlee/server";
 
 export const Route = createFileRoute("/listings/$id")({
   loader: ({ params }) => getListing({ data: params.id }),
@@ -116,8 +116,11 @@ function ListingPage() {
       void qc.invalidateQueries({ queryKey: ["bootstrap"] });
     },
     onError: (e) => {
-      if (isUnauthorized(e)) void navigate({ to: "/login" });
-      else toast.error(errMessage(e));
+      if (isUnauthorized(e)) {
+        rememberAfterLogin(`/listings/${listing.id}`);
+        toast.error("Your sign-in ended. Sign in again to save this. The listing stays here.");
+        void navigate({ to: "/login" });
+      } else toast.error(errMessage(e));
     },
   });
 
@@ -177,7 +180,7 @@ function ListingPage() {
       const msg = errMessage(e);
       if (/test credits|wallet/i.test(msg)) {
         setNeedCredits(true);
-        toast.error("Add more test credits on You. This item is still available.");
+        toast.error("Add test credits here, then pay again. This item is still available.");
         return;
       }
       toast.error(msg);
@@ -191,9 +194,22 @@ function ListingPage() {
       void qc.invalidateQueries({ queryKey: ["listing", id] });
     },
     onError: (e) => {
-      if (isUnauthorized(e)) void navigate({ to: "/login" });
-      else toast.error(errMessage(e));
+      if (isUnauthorized(e)) {
+        rememberAfterLogin(`/listings/${listing.id}`);
+        toast.error("Your sign-in ended. Sign in again to send that note.");
+        void navigate({ to: "/login" });
+      } else toast.error(errMessage(e));
     },
+  });
+
+  const addCredits = useMutation({
+    mutationFn: () => topUpWallet({ data: 2000 }),
+    onSuccess: () => {
+      setNeedCredits(false);
+      void qc.invalidateQueries({ queryKey: ["me"] });
+      toast.success("Test credits added. Not real money. Pay again.");
+    },
+    onError: (e) => toast.error(errMessage(e)),
   });
 
   const passMut = useMutation({
@@ -418,6 +434,10 @@ function ListingPage() {
           )}
 
           <p className="text-sm font-medium">3. Pay to hold it</p>
+          <p className="text-base text-fg">
+            Asking {money(payBase)}. You pay {money(due.youPayCents)}
+            {TEST_MODE ? " in test credits" : ""}.
+          </p>
           <CheckoutPay
             baseCents={payBase}
             premium={premium}
@@ -427,12 +447,14 @@ function ListingPage() {
             priceLabel={payingAgreed ? "Agreed" : "Asking"}
           />
           {needCredits ? (
-            <p className="text-base text-fg">
-              Add more test credits on You, then pay again. This item is still available.{" "}
-              <Link to="/you" className="font-medium text-primary-ink">
-                Open You
-              </Link>
-            </p>
+            <div className="space-y-2 rounded-xl bg-primary-soft px-3 py-3">
+              <p className="text-base text-fg">
+                Not enough test credits for {money(due.youPayCents)}. The item is still available.
+              </p>
+              <Button type="button" variant="secondary" className="w-full" disabled={addCredits.isPending} onClick={() => addCredits.mutate()}>
+                {addCredits.isPending ? "Adding test credits…" : "Add $20 test credits"}
+              </Button>
+            </div>
           ) : null}
           {data.myOffer?.status === "accepted" || data.myOffer?.status === "countered" ? (
             <p className="text-base text-muted">

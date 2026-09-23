@@ -71,6 +71,7 @@ function YouPage() {
     mutationFn: () => setHandle({ data: { handle: nextHandle } }),
     onSuccess: (res) => {
       setNextHandle("");
+      sessionStorage.setItem("rummlee.seenHandle", res.handle);
       void qc.invalidateQueries({ queryKey: ["me"] });
       void qc.invalidateQueries({ queryKey: ["bootstrap"] });
       toast.success(`Neighbors will see @${res.handle}.`);

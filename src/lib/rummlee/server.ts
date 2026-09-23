@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
-import { feeOn, isSeedUser, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
+import { feeOn, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
 import { MAX_SALE_DAYS, MIN_PRICE_CENTS, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
 import { overallThumb, type Thumb } from "./trust";
@@ -187,6 +187,16 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
   }
   if (existing[0]) {
     const p = existing[0];
+    let handle = p.handle;
+    if (looksLikeAccountLabel(handle)) {
+      handle = makeHandle();
+      for (let i = 0; i < 8; i += 1) {
+        const clash = await sql<{ id: string }>`select id from profiles where handle = ${handle}`;
+        if (!clash[0]) break;
+        handle = makeHandle();
+      }
+      await sql`update profiles set handle = ${handle} where id = ${userId}`;
+    }
     const walletCents = await grantTestCredits(sql, userId, Number(p.wallet_cents));
     const isPremium = plusActive(Boolean(p.is_premium), p.plus_until);
     await syncIdentity(sql, userId);
@@ -195,7 +205,7 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
     `;
     return {
       id: p.id,
-      handle: p.handle,
+      handle,
       neighborhood: p.neighborhood,
       zip: p.zip,
       isPremium,

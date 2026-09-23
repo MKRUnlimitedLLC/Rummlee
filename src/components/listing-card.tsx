@@ -5,6 +5,7 @@ import type { Listing } from "@/lib/rummlee/types";
 import { HOLD_LINE } from "@/lib/rummlee/constants";
 import { checkoutQuote, DEFAULT_FEES } from "@/lib/rummlee/fees";
 import { money, placeName, saleWindow, spotKindLabel } from "@/lib/rummlee/format";
+import { cn } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing; premium?: boolean }) {
   const partner = listing.handoffSpotKind === "partner";
@@ -25,12 +26,18 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         <span className="absolute left-2.5 top-2.5 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium text-fg backdrop-blur-sm">
           {saleWindow(listing.saleStartsOn, listing.saleEndsOn)}
         </span>
-        {listing.sellerId.startsWith("seed-") && listing.status === "live" ? (
+        {listing.sellerId.startsWith("seed-") ? (
           <span className="absolute right-2.5 top-2.5 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium text-fg">
             Sample
           </span>
-        ) : listing.status === "sold" || listing.status === "held" ? (
-          <span className="absolute right-2.5 top-2.5 rounded-md bg-fg/85 px-2 py-1 text-sm font-medium text-primary-fg">
+        ) : null}
+        {listing.status === "sold" || listing.status === "held" ? (
+          <span
+            className={cn(
+              "absolute right-2.5 rounded-md bg-fg/85 px-2 py-1 text-sm font-medium text-primary-fg",
+              listing.sellerId.startsWith("seed-") ? "top-11" : "top-2.5",
+            )}
+          >
             {listing.status === "held" ? "Held" : "Sold"}
           </span>
         ) : null}
@@ -48,6 +55,12 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
           <p className="text-base font-medium text-fg">{listing.sizeLabel}</p>
         ) : null}
         <p className="font-display text-2xl font-semibold tracking-[-0.03em] text-primary-ink">{money(listing.priceCents)}</p>
+        {listing.sellerId.startsWith("seed-") ? (
+          <p className="text-base font-medium text-primary-ink">Sample. Not a real item.</p>
+        ) : null}
+        {listing.status === "held" ? (
+          <p className="text-base font-medium text-fg">Held by someone else. Pick another.</p>
+        ) : null}
         {feeHint ? (
           <p className="text-base text-muted">About {money(youPay)} with fee</p>
         ) : null}

@@ -126,6 +126,11 @@ export function normalizeHandle(raw: string) {
   return handle;
 }
 
+/** Old accounts stored an email fragment as the handle. Neighbors should never see that. */
+export function looksLikeAccountLabel(handle: string) {
+  return /[.@\s]/.test(handle);
+}
+
 export function nextSaturdayIso() {
   const d = new Date();
   const add = (6 - d.getDay() + 7) % 7 || 7;

@@ -80,7 +80,7 @@ export function CheckoutPay({
           </p>
           {official ? (
             <p className="flex justify-between text-sm">
-              <span className="text-muted">Official store, you</span>
+              <span className="text-muted">Official store fee, your side</span>
               <span className="tabular-nums">
                 {quote.handoffFeeCents > 0 ? money(quote.handoffFeeCents) : premium ? "Waived with Plus" : money(0)}
               </span>
@@ -93,7 +93,7 @@ export function CheckoutPay({
           ) : null}
           {official && storeSellerRow?.enabled ? (
             <p className="flex justify-between text-sm">
-              <span className="text-muted">Official store, seller</span>
+              <span className="text-muted">Official store fee, seller’s side</span>
               <span className="tabular-nums text-muted">
                 {quote.sellerHandoffFeeCents > 0
                   ? `${money(quote.sellerHandoffFeeCents)} from their payout`
