@@ -784,7 +784,7 @@ function SaleDates({
               rows={2}
             />
             <p className="mt-1 text-sm text-muted">
-              Shown only after someone pays for in-person handoff, or you accept their offer. It never goes on Browse.
+              Shown only after someone pays for in-person handoff. It never goes on Browse, and an official-store pickup does not reveal it.
             </p>
           </div>
         </div>

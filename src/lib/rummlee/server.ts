@@ -332,7 +332,7 @@ function mapSale(s: SaleMapRow): Sale {
     startsOn: s.starts_on,
     endsOn: s.ends_on,
     channel: parseChannel(s.channel),
-    physicalLocation: s.physical_location?.trim() ? s.physical_location.trim() : null,
+    physicalLocation: null,
     hoursStart: s.hours_start ?? null,
     hoursEnd: s.hours_end ?? null,
     handoffModes: splitModes(s.handoff_modes),
@@ -369,14 +369,7 @@ async function meetupNoteForViewer(
       and handoff_type = ${"person"} and status <> ${"cancelled"}
     limit 1
   `;
-  if (paid[0]) return note;
-  const accepted = await sql<{ id: string }>`
-    select id from offers
-    where listing_id = ${args.listingId} and buyer_id = ${args.userId}
-      and status in (${"accepted"}, ${"countered"})
-    limit 1
-  `;
-  return accepted[0] ? note : null;
+  return paid[0] ? note : null;
 }
 
 function hashIdentity(raw: string) {

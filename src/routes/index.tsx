@@ -181,11 +181,7 @@ function Home() {
             All sales
           </Link>
         </div>
-        {city === null ? (
-          <p className="rounded-2xl bg-surface px-4 py-10 text-center text-muted shadow-[var(--shadow-card)]">
-            Finding listings for your city…
-          </p>
-        ) : listings.length === 0 ? (
+        {listings.length === 0 ? (
           <div className="rounded-2xl bg-surface px-4 py-10 text-center shadow-[var(--shadow-card)]">
             <p className="text-muted">
               {city === "all" ? "Nothing matched those filters." : `Nothing in ${city} this weekend.`}
