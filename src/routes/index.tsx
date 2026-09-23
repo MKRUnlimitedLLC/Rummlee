@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, EyeOff, Store } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,9 @@ function Home() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
   const [city, setCity] = useState<string | null>(null);
+  const cityTouched = useRef(false);
   useEffect(() => {
+    if (cityTouched.current) return;
     const saved = lastCity();
     setCity(saved && saved !== "all" ? saved : "all");
   }, []);
@@ -115,6 +117,7 @@ function Home() {
           <Chip
             active={city === "all"}
             onClick={() => {
+              cityTouched.current = true;
               setCity("all");
               rememberCity("all");
             }}
@@ -126,6 +129,7 @@ function Home() {
               key={c}
               active={city === c}
               onClick={() => {
+                cityTouched.current = true;
                 setCity(c);
                 rememberCity(c);
               }}
@@ -191,6 +195,7 @@ function Home() {
                 type="button"
                 className="mt-3 text-sm font-medium text-primary-ink"
                 onClick={() => {
+                  cityTouched.current = true;
                   setCity("all");
                   rememberCity("all");
                 }}

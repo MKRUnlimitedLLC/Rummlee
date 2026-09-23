@@ -257,6 +257,14 @@ function NewListingPage() {
         onSubmit={(event) => {
           event.preventDefault();
           if (step < 3) {
+            if (step === 1) {
+              const active = draft.lines.filter((line) => line.title.trim() || line.price.trim() || line.photoUrl);
+              const rows = active.length ? active : draft.lines.slice(0, 1);
+              if (rows.some((line) => !line.photoUrl)) {
+                toast.error("Add a photo of this item before you continue.");
+                return;
+              }
+            }
             setStep((s) => s + 1);
             return;
           }
@@ -410,6 +418,7 @@ function NewListingPage() {
             <legend className="px-1 text-sm font-medium">Item {index + 1}</legend>
             <div className={cn(step === 1 ? "space-y-3" : "hidden")}>
             <PhotoInput value={line.photoUrl} onChange={(photoUrl) => updateLine(line.id, { photoUrl })} />
+            <p className="text-base font-medium">Add a photo of this item before you continue.</p>
             <div>
               <Label htmlFor={`title-${line.id}`}>What is it?</Label>
               <Input
@@ -558,7 +567,11 @@ function NewListingPage() {
             </Button>
           ) : null}
           {step < 3 ? (
-            <Button type="submit" className="flex-1">
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={step === 1 && draft.lines.every((line) => !line.photoUrl)}
+            >
               Next
             </Button>
           ) : showLoading ? (

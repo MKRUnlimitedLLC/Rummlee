@@ -27,12 +27,14 @@ export function CheckoutPay({
   sellerPlus = false,
   fees,
   handoff,
+  priceLabel = "Asking",
 }: {
   baseCents: number;
   premium: boolean;
   sellerPlus?: boolean;
   fees: FeeRow[];
   handoff: "official" | "public" | "person" | "partner";
+  priceLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const quote = checkoutQuote(fees, baseCents, { buyer: premium, seller: sellerPlus }, handoff);
@@ -45,7 +47,7 @@ export function CheckoutPay({
     <div className="space-y-2 rounded-2xl bg-bg px-4 py-3">
       <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">Checkout</p>
       <p className="flex justify-between text-sm">
-        <span className="text-muted">Asking</span>
+        <span className="text-muted">{priceLabel}</span>
         <span className="tabular-nums">{money(quote.baseCents)}</span>
       </p>
       <p className="flex justify-between text-sm">

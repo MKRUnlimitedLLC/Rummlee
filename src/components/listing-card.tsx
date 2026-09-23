@@ -45,16 +45,16 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         ) : null}
         <p className="font-display text-2xl font-semibold tracking-[-0.03em] text-primary-ink">{money(listing.priceCents)}</p>
         {feeHint ? (
-          <p className="text-sm text-muted">About {money(youPay)} total · fees & tax at checkout</p>
+          <p className="text-base text-muted">About {money(youPay)} with fee</p>
         ) : null}
-        <p className="text-sm font-medium text-primary-ink">{HOLD_LINE}</p>
-        <p className="flex items-center gap-1 text-sm text-muted">
+        <p className="text-base font-medium text-primary-ink">{HOLD_LINE}</p>
+        <p className="flex items-center gap-1 text-base text-muted">
           <MapPin className="size-3.5" strokeWidth={1.75} />
           {listing.handoffSpotName ?? listing.neighborhood}
           {" · "}
           {placeName(listing.neighborhood)}
         </p>
-        <p className="text-sm text-subtle">
+        <p className="text-base text-subtle">
           {listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : "Handoff location"}
           {" · "}@{listing.sellerHandle}
           {listing.sellerVerified ? (

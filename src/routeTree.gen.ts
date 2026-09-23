@@ -16,6 +16,7 @@ import { Route as DeskRouteImport } from './routes/desk'
 import { Route as FeesRouteImport } from './routes/fees'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RecordsRouteImport } from './routes/records'
 import { Route as SellRouteImport } from './routes/sell'
@@ -62,6 +63,11 @@ const InboxRoute = InboxRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartnersRoute = PartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
+  '/partners': typeof PartnersRoute
   '/privacy': typeof PrivacyRoute
   '/records': typeof RecordsRoute
   '/sell': typeof SellRoute
@@ -154,6 +161,7 @@ export interface FileRoutesByTo {
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
+  '/partners': typeof PartnersRoute
   '/privacy': typeof PrivacyRoute
   '/records': typeof RecordsRoute
   '/sell': typeof SellRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
   '/login': typeof LoginRoute
+  '/partners': typeof PartnersRoute
   '/privacy': typeof PrivacyRoute
   '/records': typeof RecordsRoute
   '/sell': typeof SellRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/fees'
     | '/inbox'
     | '/login'
+    | '/partners'
     | '/privacy'
     | '/records'
     | '/sell'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/fees'
     | '/inbox'
     | '/login'
+    | '/partners'
     | '/privacy'
     | '/records'
     | '/sell'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/fees'
     | '/inbox'
     | '/login'
+    | '/partners'
     | '/privacy'
     | '/records'
     | '/sell'
@@ -263,6 +275,7 @@ export interface RootRouteChildren {
   FeesRoute: typeof FeesRoute
   InboxRoute: typeof InboxRoute
   LoginRoute: typeof LoginRoute
+  PartnersRoute: typeof PartnersRoute
   PrivacyRoute: typeof PrivacyRoute
   RecordsRoute: typeof RecordsRoute
   SellRoute: typeof SellRoute
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/partners': {
+      id: '/partners'
+      path: '/partners'
+      fullPath: '/partners'
+      preLoaderRoute: typeof PartnersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -423,6 +443,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeesRoute: FeesRoute,
   InboxRoute: InboxRoute,
   LoginRoute: LoginRoute,
+  PartnersRoute: PartnersRoute,
   PrivacyRoute: PrivacyRoute,
   RecordsRoute: RecordsRoute,
   SellRoute: SellRoute,

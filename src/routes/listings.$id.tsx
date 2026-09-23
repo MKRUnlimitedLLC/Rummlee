@@ -38,6 +38,7 @@ function ListingPage() {
   const [meet, setMeet] = useState<"partner" | "public" | "person">("partner");
   const [offerOpen, setOfferOpen] = useState(false);
   const [localSaved, setLocalSaved] = useState(false);
+  const [needCredits, setNeedCredits] = useState(false);
   useEffect(() => {
     if (data?.listing) setLocalSaved(loadSavedIds().includes(data.listing.id));
   }, [data?.listing]);
@@ -102,6 +103,11 @@ function ListingPage() {
     { buyer: premium, seller: sellerPlus },
     selected === "person" ? "person" : selected === "public" ? "public" : "official",
   );
+  const payingAgreed = data.myOffer?.status === "accepted" || data.myOffer?.status === "countered";
+  const payBase = payingAgreed ? base : asking;
+  const handoffKey = selected === "person" ? "person" : selected === "public" ? "public" : "official";
+  const officialPay = checkoutQuote(fees, payBase, { buyer: premium, seller: sellerPlus }, "official").youPayCents;
+  const otherPay = checkoutQuote(fees, payBase, { buyer: premium, seller: sellerPlus }, "public").youPayCents;
 
   const saveMut = useMutation({
     mutationFn: () => toggleSaved({ data: listing.id }),
@@ -124,10 +130,10 @@ function ListingPage() {
           note: note || undefined,
         },
       }),
-    onSuccess: (res) => {
-      void qc.invalidateQueries({ queryKey: ["listing", id] });
+    onSuccess: async (res) => {
+      await qc.refetchQueries({ queryKey: ["listing", id] });
       void qc.invalidateQueries({ queryKey: ["inbox"] });
-      if (res.status === "accepted") toast.success("They said yes. Sign in is done — pay to hold it.");
+      if (res.status === "accepted") toast.success("They said yes. Pay the agreed price to hold it.");
       else if (res.status === "declined") toast.success("No deal on that offer. You can still pay asking.");
       else toast.success("Offer sent. They get one answer — yes, counteroffer, or decline.");
       setOffer("");
@@ -155,15 +161,26 @@ function ListingPage() {
         },
       }),
     onSuccess: (res) => {
-      toast.success(TEST_MODE ? "Test payment. Not real money. Held until you both confirm." : "Paid. Held until you both confirm.");
+      setNeedCredits(false);
+      toast.success(TEST_MODE ? "Your money is held. Test credits, not a card." : "Your money is held until you both confirm pickup.");
+      void qc.invalidateQueries({ queryKey: ["listing", id] });
       void navigate({ to: "/pickup/$id", params: { id: res.orderId } });
     },
     onError: (e) => {
+      void qc.invalidateQueries({ queryKey: ["listing", id] });
       if (isUnauthorized(e)) {
         rememberAfterLogin(`/listings/${listing.id}`);
         toast.error("Sign in to pay.");
         void navigate({ to: "/login" });
-      } else toast.error(errMessage(e));
+        return;
+      }
+      const msg = errMessage(e);
+      if (/test credits|wallet/i.test(msg)) {
+        setNeedCredits(true);
+        toast.error("Add more test credits on You. This item is still available.");
+        return;
+      }
+      toast.error(msg);
     },
   });
 
@@ -192,12 +209,12 @@ function ListingPage() {
   const sellerMut = useMutation({
     mutationFn: (data: { offerId: string; action: "accept" | "decline" | "counter"; counterCents?: number }) =>
       respondOffer({ data }),
-    onSuccess: (_res, vars) => {
-      void qc.invalidateQueries({ queryKey: ["listing", id] });
+    onSuccess: async (_res, vars) => {
+      await qc.refetchQueries({ queryKey: ["listing", id] });
       void qc.invalidateQueries({ queryKey: ["inbox"] });
-      if (vars.action === "accept") toast.success("You said yes. Waiting for them to pay.");
+      if (vars.action === "accept") toast.success("You said yes. Waiting for them to pay. Not sold yet.");
       else if (vars.action === "counter") toast.success("Counteroffer sent.");
-      else toast.success("Declined. The offer is over.");
+      else toast.success("Offer ended. They can still pay asking.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -378,6 +395,11 @@ function ListingPage() {
               In person handoff. You still meet as handles. No home address is posted.
             </p>
           ) : null}
+          {officialOk && officialPay !== otherPay ? (
+            <p className="text-base text-fg">
+              Official store: you pay {money(officialPay)}. Public or in person: {money(otherPay)}. The store fee is the difference.
+            </p>
+          ) : null}
 
           <p className="text-sm font-medium">2. Price</p>
           {data.myOffer?.status === "declined" ? (
@@ -394,12 +416,21 @@ function ListingPage() {
 
           <p className="text-sm font-medium">3. Pay to hold it</p>
           <CheckoutPay
-            baseCents={asking}
+            baseCents={payBase}
             premium={premium}
             sellerPlus={sellerPlus}
             fees={fees}
-            handoff={selected === "person" ? "person" : selected === "public" ? "public" : "official"}
+            handoff={handoffKey}
+            priceLabel={payingAgreed ? "Agreed" : "Asking"}
           />
+          {needCredits ? (
+            <p className="text-base text-fg">
+              Add more test credits on You, then pay again. This item is still available.{" "}
+              <Link to="/you" className="font-medium text-primary-ink">
+                Open You
+              </Link>
+            </p>
+          ) : null}
           {data.myOffer?.status === "accepted" || data.myOffer?.status === "countered" ? (
             <p className="text-base text-muted">
               Agreed offer {money(base)} · {TEST_MODE ? "test " : ""}you pay {money(due.youPayCents)} if you take that deal.

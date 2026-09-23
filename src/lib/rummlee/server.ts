@@ -8,12 +8,14 @@ import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode,
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
 import { MAX_SALE_DAYS, MIN_PRICE_CENTS, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
 import { overallThumb, type Thumb } from "./trust";
+import { PAYOUT_HOLD_HOURS, releaseDuePayouts, writeLedger, writeNotice, refundEscrow } from "./books";
 import type {
   HandoffMode,
   HandoffSpot,
   InboxPayload,
   Listing,
   Message,
+  Notice,
   Offer,
   Order,
   PendingRate,
@@ -90,7 +92,9 @@ function mapListing(row: ListingRow, saved = false): Listing {
 }
 
 function safePhoto(url: string) {
-  if (url.startsWith("/listings/") && !url.includes("..") && !url.includes("\\") && url.length < 180) return url;
+  if (url.startsWith("/listings/")) {
+    throw new Error("Use your own photo. Sample listing pictures can’t be reused.");
+  }
   if (/^data:image\/(jpeg|jpg|png|webp);base64,[a-z0-9+/=\s]+$/i.test(url) && url.length < 1_500_000) return url;
   throw new Error("Use a JPEG, PNG, or WebP photo.");
 }
@@ -176,7 +180,11 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
     verified_at: string | null;
     thumbs_up: number | null;
     thumbs_down: number | null;
-  }>`select id, handle, neighborhood, zip, is_premium, plus_plan, plus_until, is_staff, wallet_cents, verified_at, thumbs_up, thumbs_down from profiles where id = ${userId}`;
+    deleted_at: string | null;
+  }>`select id, handle, neighborhood, zip, is_premium, plus_plan, plus_until, is_staff, wallet_cents, verified_at, thumbs_up, thumbs_down, deleted_at from profiles where id = ${userId}`;
+  if (existing[0]?.deleted_at) {
+    throw new Error("This account is closed. Sale records stay on file. Email support to reopen.");
+  }
   if (existing[0]) {
     const p = existing[0];
     const walletCents = await grantTestCredits(sql, userId, Number(p.wallet_cents));
@@ -761,6 +769,7 @@ export const getMe = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sql = await getSql();
     await ensureSeed(sql);
+    await releaseDuePayouts(sql);
     const me = await ensureProfile(sql, context.userId);
     const txs = await sql<{
       id: string;
@@ -893,9 +902,18 @@ export const togglePremium = createServerFn({ method: "POST" })
       insert into wallet_tx (id, user_id, kind, amount_cents, note)
       values (
         ${crypto.randomUUID()}, ${context.userId}, ${"premium"}, ${-cost},
-        ${plan === "year" ? "Rummlee Plus — 1 year (test)" : "Rummlee Plus — 1 month (test)"}
+        ${plan === "year" ? "Rummlee Plus — 1 year (test, billed on its own)" : "Rummlee Plus — 1 month (test, billed on its own)"}
       )
     `;
+    if (plan === "year") {
+      const earned = Math.round(cost / 12);
+      await writeLedger(sql, { userId: context.userId, account: "plus_monthly", amountCents: earned, note: "Plus year, this month" });
+      await writeLedger(sql, { userId: context.userId, account: "plus_deferred", amountCents: cost - earned, note: "Plus year, still unearned" });
+    } else {
+      await writeLedger(sql, { userId: context.userId, account: "plus_monthly", amountCents: cost, note: "Plus month" });
+    }
+    const { syncReferralBooks } = await import("./referrals");
+    await syncReferralBooks(sql);
     return { isPremium: true, plusPlan: plan };
   });
 
@@ -1333,7 +1351,17 @@ export const buyNow = createServerFn({ method: "POST" })
       where l.id = ${listingId}
     `;
     const item = listing[0];
-    if (!item || item.status !== "live") throw new Error("This item isn’t available.");
+    if (!item) throw new Error("This item isn’t available.");
+    if (item.status === "held") {
+      const openHold = await sql<{ id: string }>`
+        select id from orders where listing_id = ${item.id} and status = ${"escrow"} limit 1
+      `;
+      if (!openHold[0]) {
+        await sql`update listings set status = ${"live"} where id = ${item.id} and status = ${"held"}`;
+        item.status = "live";
+      }
+    }
+    if (item.status !== "live") throw new Error("This item isn’t available.");
     if (item.seller_id === context.userId) throw new Error("That’s your listing.");
     const offerRows = await sql<{ status: string; amount_cents: number; counter_cents: number | null }>`
       select status, amount_cents, counter_cents from offers
@@ -1363,6 +1391,13 @@ export const buyNow = createServerFn({ method: "POST" })
     const sellerFee = quote.sellerFeeCents + quote.sellerHandoffFeeCents;
     const tax = quote.salesTaxCents;
     const total = quote.youPayCents;
+    if (me.walletCents < total) {
+      throw new Error(
+        TEST_MODE
+          ? "Add more test credits on You. Not real money. This item is still available."
+          : "Add more to your wallet to pay. This item is still available.",
+      );
+    }
     const metro = cityOf(item.neighborhood);
     const meet = data.meet ?? (canonicalizeMode(data.handoffType) === "person" ? "person" : "partner");
     let handoffType: HandoffMode = "official";
@@ -1415,8 +1450,8 @@ export const buyNow = createServerFn({ method: "POST" })
       await sql`update listings set status = ${"live"} where id = ${item.id} and status = ${"held"}`;
       throw new Error(
         TEST_MODE
-          ? `Add more test credits on You. Not real money.`
-          : `Add more to your wallet to pay.`,
+          ? "Add more test credits on You. Not real money. This item is still available."
+          : "Add more to your wallet to pay. This item is still available.",
       );
     }
     const sellerScan = partyScan("S");
@@ -1425,14 +1460,26 @@ export const buyNow = createServerFn({ method: "POST" })
     const orderId = crypto.randomUUID();
     await sql`
       insert into orders (
-        id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, tax_cents, buyer_fee_cents, seller_fee_cents, metro,
+        id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, tax_cents, buyer_fee_cents, seller_fee_cents,
+        buyer_percent_cents, buyer_store_cents, seller_percent_cents, seller_store_cents, buyer_paid_cents, metro,
         status, pickup_code, seller_scan, buyer_scan, handoff_type, handoff_spot_id, buyer_confirmed, seller_confirmed
       )
       values (
-        ${orderId}, ${item.id}, ${context.userId}, ${item.seller_id}, ${base}, ${buyerFee}, ${tax}, ${buyerFee}, ${sellerFee}, ${metro},
+        ${orderId}, ${item.id}, ${context.userId}, ${item.seller_id}, ${base}, ${buyerFee}, ${tax}, ${buyerFee}, ${sellerFee},
+        ${quote.buyerFeeCents}, ${quote.handoffFeeCents}, ${quote.sellerFeeCents}, ${quote.sellerHandoffFeeCents}, ${total}, ${metro},
         ${"escrow"}, ${code}, ${sellerScan}, ${buyerScan}, ${handoffType}, ${spotId}, ${false}, ${isSeedUser(item.seller_id)}
       )
     `;
+    await writeLedger(sql, { orderId, userId: context.userId, account: "customer_hold", amountCents: base, note: item.title });
+    if (quote.buyerFeeCents) {
+      await writeLedger(sql, { orderId, userId: context.userId, account: "fee_buyer_percent", amountCents: quote.buyerFeeCents, note: "Buyer fee" });
+    }
+    if (quote.handoffFeeCents) {
+      await writeLedger(sql, { orderId, userId: context.userId, account: "fee_buyer_store", amountCents: quote.handoffFeeCents, note: "Official store, buyer" });
+    }
+    if (tax) {
+      await writeLedger(sql, { orderId, userId: context.userId, account: "tax_payable", amountCents: tax, note: metro });
+    }
     await sql`
       insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
       values (${crypto.randomUUID()}, ${context.userId}, ${"hold"}, ${-total}, ${orderId}, ${
@@ -1519,33 +1566,40 @@ export async function settleOrder(sql: Awaited<ReturnType<typeof getSql>>, order
   const quote = checkoutQuote(fees, Number(order.amount_cents), { buyer: false, seller: sellerPlus }, meet);
   const storedSellerFee = Number(order.seller_fee_cents ?? 0);
   const payout = storedSellerFee > 0 ? Number(order.amount_cents) - storedSellerFee : quote.youGetCents;
+  const payableAt = new Date(Date.now() + PAYOUT_HOLD_HOURS * 60 * 60 * 1000).toISOString();
   const won = await sql<{ id: string }>`
     update orders
-    set status = ${"picked_up"}, buyer_confirmed = ${true}, seller_confirmed = ${true}, released_at = coalesce(released_at, now())
+    set status = ${"picked_up"}, buyer_confirmed = ${true}, seller_confirmed = ${true},
+        released_at = coalesce(released_at, now()),
+        payable_at = ${payableAt}::timestamptz,
+        payout_cents = ${payout}
     where id = ${order.id} and status = ${"escrow"}
     returning id
   `;
   if (!won[0]) return;
   await sql`update listings set status = ${"sold"} where id = ${order.listing_id}`;
-  await sql`update profiles set wallet_cents = wallet_cents + ${payout} where id = ${order.seller_id}`;
-  await sql`
-    insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
-    values (${crypto.randomUUID()}, ${order.seller_id}, ${"payout"}, ${payout}, ${order.id}, ${
-      TEST_MODE
-        ? quote.sellerHandoffFeeCents
-          ? "Test payout minus official store fee (beta — not real money)"
-          : "Test payout (beta — not real money)"
-        : quote.sellerHandoffFeeCents
-          ? "Sale payout minus official store fee"
-          : "Sale payout"
-    })
-  `;
+  if (quote.sellerFeeCents) {
+    await writeLedger(sql, { orderId: order.id, userId: order.seller_id, account: "fee_seller_percent", amountCents: quote.sellerFeeCents, note: "Seller fee" });
+  }
+  if (quote.sellerHandoffFeeCents) {
+    await writeLedger(sql, { orderId: order.id, userId: order.seller_id, account: "fee_seller_store", amountCents: quote.sellerHandoffFeeCents, note: "Official store, seller" });
+  }
+  await writeLedger(sql, { orderId: order.id, userId: order.seller_id, account: "seller_payable", amountCents: payout, note: "Waiting 48 hours" });
+  const waitCopy = TEST_MODE
+    ? "Handoff is done. The seller is paid in 48 hours if the buyer doesn’t report a problem. Test credits, not real money."
+    : "Handoff is done. The seller is paid in 48 hours if the buyer doesn’t report a problem.";
+  const buyerId = await sql<{ buyer_id: string }>`select buyer_id from orders where id = ${order.id}`;
+  if (buyerId[0]) {
+    await writeNotice(sql, { userId: buyerId[0].buyer_id, kind: "handoff", title: "You have the item", body: waitCopy, refId: order.id });
+  }
+  await writeNotice(sql, { userId: order.seller_id, kind: "handoff", title: "Handoff done", body: waitCopy, refId: order.id });
 }
 
 export const getInbox = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<InboxPayload> => {
     const sql = await getSql();
+    await releaseDuePayouts(sql);
     await ensureProfile(sql, context.userId);
     const offerRows = await sql<{
       id: string;
@@ -1609,11 +1663,15 @@ export const getInbox = createServerFn({ method: "GET" })
       seller_confirmed: boolean;
       handoff_type: Order["handoffType"];
       created_at: string;
+      payable_at: string | null;
+      paid_out_at: string | null;
+      dispute_status: string | null;
+      checked_in_at: string | null;
     }>`
       select o.id, o.listing_id, l.title as listing_title, l.photo_url as listing_photo,
              o.buyer_id, b.handle as buyer_handle, o.seller_id, se.handle as seller_handle,
              o.amount_cents, o.fee_cents, o.status, o.pickup_code, o.buyer_confirmed, o.seller_confirmed,
-             o.handoff_type, o.created_at
+             o.handoff_type, o.created_at, o.payable_at, o.paid_out_at, o.dispute_status, o.checked_in_at
       from orders o
       join listings l on l.id = o.listing_id
       join profiles b on b.id = o.buyer_id
@@ -1660,6 +1718,10 @@ export const getInbox = createServerFn({ method: "GET" })
         sellerConfirmed: Boolean(o.seller_confirmed),
         handoffType: canonicalizeMode(o.handoff_type) ?? "official",
         createdAt: o.created_at,
+        payableAt: o.payable_at,
+        paidOutAt: o.paid_out_at,
+        disputeStatus: o.dispute_status,
+        checkedIn: Boolean(o.checked_in_at),
       })),
       messages: messages.map((m) => ({
         id: m.id,
@@ -1672,6 +1734,21 @@ export const getInbox = createServerFn({ method: "GET" })
         createdAt: m.created_at,
       })),
       pendingRates: await loadPendingRates(sql, context.userId),
+      notices: (
+        await sql<{ id: string; title: string; body: string; created_at: string }>`
+          select id, title, body, created_at from notices
+          where user_id = ${context.userId}
+          order by created_at desc
+          limit 12
+        `
+      ).map(
+        (n): Notice => ({
+          id: n.id,
+          title: n.title,
+          body: n.body,
+          createdAt: n.created_at,
+        }),
+      ),
     };
   });
 
@@ -1680,6 +1757,7 @@ export const getOrder = createServerFn({ method: "GET" })
   .validator((id: string) => id)
   .handler(async ({ context, data: id }) => {
     const sql = await getSql();
+    await releaseDuePayouts(sql);
     await ensureProfile(sql, context.userId);
     const rows = await sql<{
       id: string;
@@ -1700,11 +1778,16 @@ export const getOrder = createServerFn({ method: "GET" })
       seller_confirmed: boolean;
       handoff_type: Order["handoffType"];
       created_at: string;
+      payable_at: string | null;
+      paid_out_at: string | null;
+      dispute_status: string | null;
+      checked_in_at: string | null;
     }>`
       select o.id, o.listing_id, l.title as listing_title, l.photo_url as listing_photo,
              o.buyer_id, b.handle as buyer_handle, o.seller_id, se.handle as seller_handle,
              o.amount_cents, o.fee_cents, o.status, o.pickup_code, o.seller_scan, o.buyer_scan,
-             o.buyer_confirmed, o.seller_confirmed, o.handoff_type, o.created_at
+             o.buyer_confirmed, o.seller_confirmed, o.handoff_type, o.created_at,
+             o.payable_at, o.paid_out_at, o.dispute_status, o.checked_in_at
       from orders o
       join listings l on l.id = o.listing_id
       join profiles b on b.id = o.buyer_id
@@ -1738,6 +1821,10 @@ export const getOrder = createServerFn({ method: "GET" })
       sellerConfirmed: Boolean(o.seller_confirmed),
       handoffType: o.handoff_type,
       createdAt: o.created_at,
+      payableAt: o.payable_at,
+      paidOutAt: o.paid_out_at,
+      disputeStatus: o.dispute_status,
+      checkedIn: Boolean(o.checked_in_at),
       myRatingOverall: mine[0]?.overall === "up" || mine[0]?.overall === "down" ? mine[0].overall : null,
       otherVerified: Boolean(other[0]?.verified_at),
     } satisfies Order;
@@ -1880,13 +1967,38 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
       where profile_id = ${uid}
     `;
     await syncIdentity(sql, uid);
-    await sql`delete from sale_days where sale_id in (select id from sales where seller_id = ${uid})`;
-    await sql`delete from orders where buyer_id = ${uid} or seller_id = ${uid}`;
-    await sql`delete from listings where seller_id = ${uid}`;
-    await sql`delete from sales where seller_id = ${uid}`;
-    await sql`delete from wallet_tx where user_id = ${uid}`;
-    await sql`delete from profiles where id = ${uid}`;
-    await sql.query(`delete from "user" where id = $1`, [uid]);
+    const open = await sql<{ id: string }>`
+      select id from orders
+      where (buyer_id = ${uid} or seller_id = ${uid}) and status = ${"escrow"}
+    `;
+    for (const order of open) {
+      const refunded = await refundEscrow(sql, order.id, "Account closed before handoff");
+      if (!refunded) continue;
+      const other = refunded.buyer_id === uid ? refunded.seller_id : refunded.buyer_id;
+      await writeNotice(sql, {
+        userId: other,
+        kind: "refund",
+        title: "Handoff cancelled",
+        body: "The other person closed their account before pickup. The buyer was refunded in test credits.",
+        refId: order.id,
+      });
+    }
+    await sql`update listings set status = ${"withdrawn"} where seller_id = ${uid} and status = ${"live"}`;
+    await sql`delete from messages where from_id = ${uid} or to_id = ${uid}`;
+    await sql.query(`delete from "session" where "userId" = $1`, [uid]);
+    const closed = `closed-${uid}`;
+    await sql`
+      update profiles set
+        deleted_at = now(),
+        handle = ${closed},
+        neighborhood = null,
+        zip = null,
+        is_premium = false,
+        plus_plan = null,
+        plus_until = null,
+        desk_spot_id = null
+      where id = ${uid}
+    `;
     return { ok: true as const };
   });
 

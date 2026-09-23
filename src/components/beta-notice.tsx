@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TEST_MODE } from "@/lib/rummlee/constants";
 
-const KEY = "rummlee.betaNotice.v1";
+/** Extra first-visit dialog. The header banner is the one that always paints, including on first HTML. */
+const KEY = "rummlee.betaNotice.v2";
 
 export function BetaNotice() {
   const [open, setOpen] = useState(false);

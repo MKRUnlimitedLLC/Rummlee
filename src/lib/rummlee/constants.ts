@@ -2,7 +2,7 @@ export const FEE_RATE = 0.05;
 export const PREMIUM_FEE_RATE = 0;
 export const MIN_PRICE_CENTS = 500;
 export const PASTE_CAP = 40;
-export const HOLD_LINE = "Your money stays held until pickup.";
+export const HOLD_LINE = "Money held until both confirm pickup.";
 
 /** Beta: full product until pay. Pay is simulated test credits — never a card or bank. Flip off only when real billing is live. */
 export const TEST_MODE = true;
@@ -121,6 +121,9 @@ export const HANDLE_NOUN = [
 /** Short / legacy listing URLs → live seed ids. */
 export const LISTING_ALIASES: Record<string, string> = {
   "cream-mixer": "mixer",
+  "cream-sofa": "fm-couch",
+  "cream-couch": "fm-couch",
+  sofa: "fm-couch",
   couch: "fm-couch",
   desk: "fm-desk",
   ladder: "fm-ladder",
