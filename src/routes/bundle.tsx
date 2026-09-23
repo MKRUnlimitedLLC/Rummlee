@@ -108,6 +108,7 @@ function BundlePage() {
           ? "Pick your items. Set one asking price and one hidden lowest price. They leave the browse page until you take the bundle down."
           : `Pick live items from @${data.sellerHandle}. One offer on the total. One decline ends it. The lowest prices stay hidden.`}
       </p>
+      {data.mine ? <SellerExample /> : null}
       <ul className="space-y-2">
         {items.map((item) => (
           <li key={item.id}>
@@ -173,5 +174,27 @@ function BundlePage() {
         Back to browse
       </Link>
     </main>
+  );
+}
+
+function SellerExample() {
+  return (
+    <section className="space-y-3 rounded-2xl bg-primary-soft px-4 py-4 text-sm text-fg">
+      <h2 className="font-display text-lg font-semibold">Example</h2>
+      <p>A lamp is listed at $40. A chair is listed at $100. Together that is $140. You can ask less for the pair.</p>
+      <ol className="list-decimal space-y-2 pl-5">
+        <li>List each item on its own first, with a photo, an asking price, and a lowest price.</li>
+        <li>Open either listing and tap Bundle items from this sale.</li>
+        <li>Check the lamp and the chair. You need at least two, from the same neighborhood.</li>
+        <li>Name it Lamp and chair.</li>
+        <li>Asking price: 120. Lowest you’ll take: 100. Buyers never see 100.</li>
+        <li>Tap Publish bundle. The lamp and the chair leave browse. One listing stays up.</li>
+      </ol>
+      <p>
+        A buyer can pay $120, or offer under it. You get one counteroffer. One decline ends the deal. The store fee is
+        charged once, if both pieces are in an outer box and weigh 50 lb or less together.
+      </p>
+      <p>If nobody has paid, open the bundle and tap Put the items back on their own.</p>
+    </section>
   );
 }
