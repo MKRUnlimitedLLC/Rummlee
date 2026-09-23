@@ -3,6 +3,7 @@ import { BadgeCheck, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { PhotoInput } from "@/components/photo-input";
 import { errMessage } from "@/lib/rummlee/errors";
 import { submitRating } from "@/lib/rummlee/server";
 import { ratingCriteria, type Thumb } from "@/lib/rummlee/trust";
@@ -51,6 +52,7 @@ export function RateHandoff({
     packaged: null,
   });
   const [comment, setComment] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
   const save = useMutation({
     mutationFn: () =>
       submitRating({
@@ -61,13 +63,14 @@ export function RateHandoff({
           respectful: marks.respectful as Thumb,
           packaged: role === "buyer" ? (marks.packaged as Thumb) : undefined,
           comment: comment.trim() || undefined,
+          photoUrl: photoUrl || undefined,
         },
       }),
     onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["inbox"] });
       void qc.invalidateQueries({ queryKey: ["me"] });
       void qc.invalidateQueries({ queryKey: ["order", orderId] });
-      toast.success(res.overall === "up" ? "Thumbs up sent. Comment stays private." : "Thumbs down sent. Comment stays private.");
+      toast.success(res.overall === "up" ? "Thumbs up sent. The comment and photo stay private." : "Thumbs down sent. The comment and photo stay private.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -123,6 +126,18 @@ export function RateHandoff({
           placeholder="Only Rummlee sees this — used if they challenge a thumbs down."
         />
       </label>
+      <div>
+        <p className="text-sm font-medium">Photo with the comment (optional)</p>
+        <p className="text-sm text-muted">Private, same as the comment. They never see it.</p>
+        <div className="mt-2">
+          <PhotoInput value={photoUrl} onChange={setPhotoUrl} />
+        </div>
+        {photoUrl ? (
+          <button type="button" className="mt-2 text-sm font-medium text-muted" onClick={() => setPhotoUrl("")}>
+            Remove photo
+          </button>
+        ) : null}
+      </div>
       <Button type="submit" className="w-full" disabled={!ready || save.isPending}>
         {save.isPending ? "Saving…" : "Send rating"}
       </Button>

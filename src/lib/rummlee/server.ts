@@ -2030,6 +2030,7 @@ export const submitRating = createServerFn({ method: "POST" })
         respectful: z.enum(["up", "down"]),
         packaged: z.enum(["up", "down"]).optional(),
         comment: z.string().max(500).optional(),
+        photoUrl: z.string().max(1_500_000).optional(),
       })
       .parse(data),
   )
@@ -2062,14 +2063,15 @@ export const submitRating = createServerFn({ method: "POST" })
     };
     const overall = overallThumb(marks);
     const comment = data.comment?.trim() ? data.comment.trim() : null;
+    const photo = data.photoUrl ? safePhoto(data.photoUrl) : null;
     await sql`
       insert into ratings (
         id, order_id, rater_id, subject_id, role,
-        showed_up, as_agreed, respectful, packaged, overall, comment
+        showed_up, as_agreed, respectful, packaged, overall, comment, photo_url
       ) values (
         ${crypto.randomUUID()}, ${order.id}, ${context.userId}, ${subjectId},
         ${isBuyer ? "buyer" : "seller"},
-        ${marks.showed_up}, ${marks.as_agreed}, ${marks.respectful}, ${marks.packaged}, ${overall}, ${comment}
+        ${marks.showed_up}, ${marks.as_agreed}, ${marks.respectful}, ${marks.packaged}, ${overall}, ${comment}, ${photo}
       )
     `;
     await recountThumbs(sql, subjectId);
@@ -2218,9 +2220,10 @@ export const exportMyData = createServerFn({ method: "GET" })
       other_handle: string;
       overall: string;
       comment: string | null;
+      photo_url: string | null;
       created_at: string;
     }>`
-      select r.id, r.order_id, p.handle as other_handle, r.overall, r.comment, r.created_at
+      select r.id, r.order_id, p.handle as other_handle, r.overall, r.comment, r.photo_url, r.created_at
       from ratings r join profiles p on p.id = r.subject_id
       where r.rater_id = ${uid} order by r.created_at
     `;
@@ -2229,10 +2232,9 @@ export const exportMyData = createServerFn({ method: "GET" })
       order_id: string;
       other_handle: string;
       overall: string;
-      comment: string | null;
       created_at: string;
     }>`
-      select r.id, r.order_id, p.handle as other_handle, r.overall, r.comment, r.created_at
+      select r.id, r.order_id, p.handle as other_handle, r.overall, r.created_at
       from ratings r join profiles p on p.id = r.rater_id
       where r.subject_id = ${uid} order by r.created_at
     `;
