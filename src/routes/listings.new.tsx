@@ -139,6 +139,9 @@ function NewListingPage() {
 
   const publish = useMutation({
     mutationFn: async () => {
+      if (!user?.id || meQ.data?.me?.id !== user.id) {
+        throw new Error("Sign in again, then publish. The listing has to be yours.");
+      }
       const ready = draft.lines.filter((line) => line.title.trim() && line.photoUrl && dollarsToCents(line.price) >= MIN_PRICE_CENTS);
       if (!ready.length) throw new Error("Each item needs a photo of that item and an asking price of at least $5.");
       if (ready.some((line) => line.photoUrl.startsWith("/listings/"))) {

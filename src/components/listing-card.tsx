@@ -25,7 +25,11 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         <span className="absolute left-2.5 top-2.5 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium text-fg backdrop-blur-sm">
           {saleWindow(listing.saleStartsOn, listing.saleEndsOn)}
         </span>
-        {listing.status === "sold" || listing.status === "held" ? (
+        {listing.sellerId.startsWith("seed-") && listing.status === "live" ? (
+          <span className="absolute right-2.5 top-2.5 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium text-fg">
+            Sample
+          </span>
+        ) : listing.status === "sold" || listing.status === "held" ? (
           <span className="absolute right-2.5 top-2.5 rounded-md bg-fg/85 px-2 py-1 text-sm font-medium text-primary-fg">
             {listing.status === "held" ? "Held" : "Sold"}
           </span>

@@ -14,7 +14,7 @@ import { NEIGHBORHOODS, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants
 import { errMessage } from "@/lib/rummlee/errors";
 import { money, saleWindow } from "@/lib/rummlee/format";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
-import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, verifyId, challengeRating, releaseIdentity } from "@/lib/rummlee/server";
+import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, verifyId, challengeRating, releaseIdentity, setHandle } from "@/lib/rummlee/server";
 
 export const Route = createFileRoute("/you")({ component: YouPage });
 
@@ -65,6 +65,18 @@ function YouPage() {
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [challengeNote, setChallengeNote] = useState("");
   const [releaseHandle, setReleaseHandle] = useState("");
+  const [nextHandle, setNextHandle] = useState("");
+
+  const handleSave = useMutation({
+    mutationFn: () => setHandle({ data: { handle: nextHandle } }),
+    onSuccess: (res) => {
+      setNextHandle("");
+      void qc.invalidateQueries({ queryKey: ["me"] });
+      void qc.invalidateQueries({ queryKey: ["bootstrap"] });
+      toast.success(`Neighbors will see @${res.handle}.`);
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
 
   const verify = useMutation({
     mutationFn: () => verifyId(),
@@ -141,6 +153,29 @@ function YouPage() {
             @{me?.handle ?? "…"} <VerifiedBadge verified={me?.verified} className="ml-1 align-middle" />
           </h1>
           <p className="mt-1 text-sm text-subtle">Neighbors see this. Your real name stays yours.</p>
+          <form
+            className="mt-3 flex flex-wrap items-center gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleSave.mutate();
+            }}
+          >
+            <Label htmlFor="handle" className="sr-only">
+              New handle
+            </Label>
+            <Input
+              id="handle"
+              value={nextHandle}
+              onChange={(event) => setNextHandle(event.target.value)}
+              placeholder={me?.handle ?? "linen_lark"}
+              autoCapitalize="off"
+              autoCorrect="off"
+              className="max-w-52"
+            />
+            <Button type="submit" size="sm" variant="secondary" disabled={handleSave.isPending || nextHandle.trim().length < 3}>
+              {handleSave.isPending ? "Saving…" : "Change handle"}
+            </Button>
+          </form>
           <p className="mt-1 text-sm text-muted">Neighbors never see your address — only a neighborhood label, if you set one.</p>
           <ThumbTally up={me?.thumbsUp} down={me?.thumbsDown} className="mt-1 block" />
           {q.data?.isDesk ? (
@@ -173,8 +208,8 @@ function YouPage() {
           <p className="mt-1 text-sm text-muted">
             Official store is {formatFeeValue(feeById(DEFAULT_FEES, "official_handoff") ?? DEFAULT_FEES[0])} each side per
             pickup. Plus waives <em>your</em> side when you buy or sell there. Buyer fee is 0% with Plus, 5% without.
-            ID verification is free with Plus. Plus also includes a 3-day sale each month — extra sale days are $2.99
-            each. Four official-store pickups cover a $9.99 month.
+            Plus is its own charge. It is never added to an item. On an iPhone, Plus will be billed by Apple. The item
+            stays a separate payment. Plus also includes a 3-day sale each month — extra sale days are $2.99 each.
           </p>
           {me?.isPremium ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -203,8 +238,9 @@ function YouPage() {
         <p className="font-medium">Verified badge</p>
         <p className="mt-1 text-sm text-muted">
           ID check, one time. Free with Plus, or {formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])}.
-          Rummlee does not keep a photo of your ID — neighbors see the badge and your handle, not your name. One live
-          account per ID. A new account does not clear thumbs. Support can reset the live account if you lose access.
+          This beta badge does not check a government ID. When real payouts turn on, the payment company checks identity.
+          Rummlee does not keep a photo of your ID, and we do not take a tax number here. Neighbors see the badge and
+          your handle, not your name. One live account per ID. A new account does not clear thumbs.
         </p>
         {me?.verified ? (
           <p className="mt-3 text-sm text-fg">
@@ -394,8 +430,8 @@ function YouPage() {
       <section className="mt-10 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display text-xl">Account</h2>
         <p className="mt-2 text-sm text-muted">
-          Delete removes your handle, listings, and wallet. Thumbs stay with your ID. A new account on the same ID does
-          not start at zero. One live verified account at a time — email support to reset.
+          Closing the account hides your handle and takes live listings down. Orders, fees, and tax records stay. Test
+          credits are not paid out. Thumbs stay with your ID. Email support if you need the login back.
         </p>
         {confirmDelete ? (
           <div className="mt-4 flex flex-wrap gap-2">
@@ -405,7 +441,7 @@ function YouPage() {
               disabled={removeAccount.isPending}
               onClick={() => removeAccount.mutate()}
             >
-              {removeAccount.isPending ? "Deleting…" : "Yes, delete forever"}
+              {removeAccount.isPending ? "Closing…" : "Yes, close the account"}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setConfirmDelete(false)}>
               Keep account

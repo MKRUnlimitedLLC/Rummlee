@@ -288,7 +288,7 @@ function SignedHero() {
         This weekend nearby
       </p>
       <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">The good stuff is already listed</h1>
-      <p className="mt-1 text-sm text-muted">Offer now. Meet at a handoff location — never a home address.</p>
+      <p className="mt-1 text-sm text-muted">Offer now. Meet at a handoff location — never a home address. Nothing ships.</p>
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
         {HOLD_LINE}
       </p>

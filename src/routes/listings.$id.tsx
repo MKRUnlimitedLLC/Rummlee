@@ -260,6 +260,9 @@ function ListingPage() {
               </p>
             ) : null}
           </div>
+          {listing.sellerId.startsWith("seed-") ? (
+            <p className="text-base font-medium text-primary-ink">Sample listing. Not a real item. Pay is still test credits.</p>
+          ) : null}
           <p className="text-pretty text-base leading-relaxed text-fg">{listing.description}</p>
           <dl className="grid grid-cols-2 gap-2 text-base">
             <Meta label="Condition" value={listing.condition} />

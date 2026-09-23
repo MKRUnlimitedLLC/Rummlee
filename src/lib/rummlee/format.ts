@@ -117,6 +117,15 @@ export function makeHandle() {
   return `${a}_${n}_${num}`;
 }
 
+/** A public handle. Not an email, not a real name field. */
+export function normalizeHandle(raw: string) {
+  const handle = raw.trim().toLowerCase().replace(/^@/, "");
+  if (!/^[a-z][a-z0-9_]{2,22}$/.test(handle)) {
+    throw new Error("Use 3–23 letters, numbers, or underscores. Start with a letter.");
+  }
+  return handle;
+}
+
 export function nextSaturdayIso() {
   const d = new Date();
   const add = (6 - d.getDay() + 7) % 7 || 7;

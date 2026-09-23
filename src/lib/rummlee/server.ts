@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
-import { feeOn, isSeedUser, makeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
+import { feeOn, isSeedUser, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
 import { MAX_SALE_DAYS, MIN_PRICE_CENTS, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
 import { overallThumb, type Thumb } from "./trust";
@@ -860,6 +860,26 @@ export const updateProfile = createServerFn({ method: "POST" })
       where id = ${context.userId}
     `;
     return ensureProfile(sql, context.userId);
+  });
+
+export const setHandle = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ handle: z.string().min(2).max(40) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensureProfile(sql, context.userId);
+    let handle: string;
+    try {
+      handle = normalizeHandle(data.handle);
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : "That handle won’t work.");
+    }
+    const taken = await sql<{ id: string }>`
+      select id from profiles where handle = ${handle} and id <> ${context.userId} limit 1
+    `;
+    if (taken[0]) throw new Error("That handle is taken. Try another.");
+    await sql`update profiles set handle = ${handle} where id = ${context.userId}`;
+    return { handle };
   });
 
 export const togglePremium = createServerFn({ method: "POST" })
