@@ -3,6 +3,7 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { TEST_MODE } from "./constants";
+import { releaseBundleChildren } from "./bundles";
 import { syncReferralBooks } from "./referrals";
 
 /** Seller is not paid until this window passes with no open problem. */
@@ -208,7 +209,11 @@ export async function refundEscrow(sql: Sql, orderId: string, reason: string) {
     note: reason,
   });
   if (!order.checked_in_at) {
-    await sql`update listings set status = ${"live"} where id = ${order.listing_id} and status = ${"held"}`;
+    await releaseBundleChildren(sql, order.listing_id);
+    await sql`
+      update listings set status = case when bundle_kind = ${"buyer"} then ${"bundle"} else ${"live"} end
+      where id = ${order.listing_id} and status = ${"held"}
+    `;
   }
   return order;
 }

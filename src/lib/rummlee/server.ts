@@ -10,6 +10,7 @@ import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quote
 import { CITIES, IDENTITY_CAP, IDENTITY_ENABLED, MAX_SALE_DAYS, MIN_PRICE_CENTS, NEIGHBORHOODS, PHOTO_FILL_ENABLED, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
 import { beginIdentity, finishIdentity } from "./identity";
 import { suggestFromPhoto } from "./photo-fill";
+import { childIds, holdBundleChildren, releaseBundleChildren, soldBundleChildren, useBundleOffers, voidBuyerBundlesContaining } from "./bundles";
 import { overallThumb, type Thumb } from "./trust";
 import { PAYOUT_HOLD_HOURS, releaseDuePayouts, writeLedger, writeNotice, refundEscrow } from "./books";
 import type {
@@ -852,8 +853,18 @@ export const getListing = createServerFn({ method: "GET" })
       listingId: id,
       modes: row.handoff_modes,
     });
+    const bundleRows = await sql<{ id: string; title: string; price_cents: number }>`
+      select l.id, l.title, l.price_cents
+      from bundle_items b
+      join listings l on l.id = b.listing_id
+      where b.bundle_id = ${id}
+      order by l.title
+    `;
+    const kindRow = await sql<{ bundle_kind: string | null }>`select bundle_kind from listings where id = ${id}`;
     return {
       listing: mapListing(row, saved),
+      bundleItems: bundleRows.map((item) => ({ id: item.id, title: item.title, priceCents: Number(item.price_cents) })),
+      bundleKind: kindRow[0]?.bundle_kind ?? null,
       myOffer,
       myOrder,
       sellerOffers,
@@ -894,7 +905,10 @@ export const getSale = createServerFn({ method: "GET" })
     );
     const sale = sales[0];
     if (!sale) return null;
-    const rows = await sql.query<ListingRow>(listingSelect + " where l.sale_id = $1 order by l.created_at desc", [id]);
+    const rows = await sql.query<ListingRow>(
+      listingSelect + " where l.sale_id = $1 and l.status not in ('bundled', 'bundle') order by l.created_at desc",
+      [id],
+    );
     const userId = await optionalUserId();
     let saved = new Set<string>();
     if (userId) {
@@ -1432,6 +1446,10 @@ export const sendOffer = createServerFn({ method: "POST" })
     if (existing[0]) {
       throw new Error("You already used your one offer on this item. You can still pay asking.");
     }
+    const usedUp = await sql<{ listing_id: string }>`
+      select listing_id from offer_uses where listing_id = ${listingId} and buyer_id = ${context.userId}
+    `;
+    if (usedUp[0]) throw new Error("You already used your one offer on this item. You can still pay asking.");
     const ask = Number(item.price_cents);
     const floor = Number(item.floor_cents ?? item.price_cents);
     if (data.amountCents >= ask) {
@@ -1459,6 +1477,7 @@ export const sendOffer = createServerFn({ method: "POST" })
         )
       `;
     }
+    if (status === "declined") await useBundleOffers(sql, listingId, context.userId);
     return { id, status, counterCents: null as number | null, declinedBy };
   });
 
@@ -1540,6 +1559,7 @@ export const respondOffer = createServerFn({ method: "POST" })
         update offers set status = ${"declined"}, declined_by = ${who}, updated_at = now()
         where id = ${offer.id}
       `;
+      await useBundleOffers(sql, offer.listing_id, offer.buyer_id);
       return { ok: true };
     }
     if (!isSeller) throw new Error("Only the seller can say yes.");
@@ -1625,9 +1645,11 @@ export const buyNow = createServerFn({ method: "POST" })
       handoff_modes: string;
       neighborhood: string;
       handoff_spot_id: string | null;
+      bundle_kind: string | null;
+      bundle_for: string | null;
     }>`
       select l.id, l.seller_id, l.title, l.status, l.price_cents, l.handoff_modes, l.neighborhood,
-             s.handoff_spot_id
+             s.handoff_spot_id, l.bundle_kind, l.bundle_for
       from listings l
       join sales s on s.id = l.sale_id
       where l.id = ${listingId}
@@ -1639,11 +1661,16 @@ export const buyNow = createServerFn({ method: "POST" })
         select id from orders where listing_id = ${item.id} and status = ${"escrow"} limit 1
       `;
       if (!openHold[0]) {
-        await sql`update listings set status = ${"live"} where id = ${item.id} and status = ${"held"}`;
-        item.status = "live";
+        await releaseBundleChildren(sql, item.id);
+        const back = item.bundle_kind === "buyer" ? "bundle" : "live";
+        await sql`update listings set status = ${back} where id = ${item.id} and status = ${"held"}`;
+        item.status = back;
       }
     }
-    if (item.status !== "live") throw new Error("This item isn’t available.");
+    if (item.status === "bundle" && item.bundle_for && item.bundle_for !== context.userId) {
+      throw new Error("This bundle isn’t yours to pay.");
+    }
+    if (item.status !== "live" && item.status !== "bundle") throw new Error("This item isn’t available.");
     if (item.seller_id === context.userId) throw new Error("That’s your listing.");
     const offerRows = await sql<{ status: string; amount_cents: number; counter_cents: number | null }>`
       select status, amount_cents, counter_cents from offers
@@ -1720,16 +1747,25 @@ export const buyNow = createServerFn({ method: "POST" })
       }
     }
     const held = await sql<{ id: string }>`
-      update listings set status = ${"held"} where id = ${item.id} and status = ${"live"} returning id
+      update listings set status = ${"held"}
+      where id = ${item.id} and status in (${"live"}, ${"bundle"})
+      returning id
     `;
     if (!held[0]) throw new Error("Someone else just held this.");
+    try {
+      await holdBundleChildren(sql, item.id);
+    } catch (error) {
+      await sql`update listings set status = ${item.status} where id = ${item.id} and status = ${"held"}`;
+      throw error;
+    }
     const charged = await sql<{ id: string }>`
       update profiles set wallet_cents = wallet_cents - ${total}
       where id = ${context.userId} and wallet_cents >= ${total}
       returning id
     `;
     if (!charged[0]) {
-      await sql`update listings set status = ${"live"} where id = ${item.id} and status = ${"held"}`;
+      await releaseBundleChildren(sql, item.id);
+      await sql`update listings set status = ${item.status} where id = ${item.id} and status = ${"held"}`;
       throw new Error(
         TEST_MODE
           ? "Add more test credits on You. Not real money. This item is still available."
@@ -1772,6 +1808,14 @@ export const buyNow = createServerFn({ method: "POST" })
       update offers set status = ${"declined"}, updated_at = now()
       where listing_id = ${item.id} and status in (${"pending"}, ${"countered"})
     `;
+    await voidBuyerBundlesContaining(sql, item.id);
+    for (const child of await childIds(sql, item.id)) {
+      await sql`
+        update offers set status = ${"declined"}, updated_at = now()
+        where listing_id = ${child} and status in (${"pending"}, ${"countered"})
+      `;
+      await voidBuyerBundlesContaining(sql, child);
+    }
     return { orderId, pickupCode: code, feeCents: buyerFee };
   });
 
@@ -1860,6 +1904,7 @@ export async function settleOrder(sql: Awaited<ReturnType<typeof getSql>>, order
   `;
   if (!won[0]) return;
   await sql`update listings set status = ${"sold"} where id = ${order.listing_id}`;
+  await soldBundleChildren(sql, order.listing_id);
   if (quote.sellerFeeCents) {
     await writeLedger(sql, { orderId: order.id, userId: order.seller_id, account: "fee_seller_percent", amountCents: quote.sellerFeeCents, note: "Seller fee" });
   }

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BrowseRouteImport } from './routes/browse'
+import { Route as BundleRouteImport } from './routes/bundle'
 import { Route as CorporateRouteImport } from './routes/corporate'
 import { Route as DeskRouteImport } from './routes/desk'
 import { Route as FeesRouteImport } from './routes/fees'
@@ -41,6 +42,11 @@ const IndexRoute = IndexRouteImport.update({
 const BrowseRoute = BrowseRouteImport.update({
   id: '/browse',
   path: '/browse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BundleRoute = BundleRouteImport.update({
+  id: '/bundle',
+  path: '/bundle',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CorporateRoute = CorporateRouteImport.update({
@@ -152,6 +158,7 @@ const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/browse': typeof BrowseRoute
+  '/bundle': typeof BundleRoute
   '/corporate': typeof CorporateRoute
   '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/browse': typeof BrowseRoute
+  '/bundle': typeof BundleRoute
   '/corporate': typeof CorporateRoute
   '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/browse': typeof BrowseRoute
+  '/bundle': typeof BundleRoute
   '/corporate': typeof CorporateRoute
   '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/browse'
+    | '/bundle'
     | '/corporate'
     | '/desk'
     | '/fees'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/browse'
+    | '/bundle'
     | '/corporate'
     | '/desk'
     | '/fees'
@@ -280,6 +291,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/browse'
+    | '/bundle'
     | '/corporate'
     | '/desk'
     | '/fees'
@@ -306,6 +318,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BrowseRoute: typeof BrowseRoute
+  BundleRoute: typeof BundleRoute
   CorporateRoute: typeof CorporateRoute
   DeskRoute: typeof DeskRoute
   FeesRoute: typeof FeesRoute
@@ -343,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/browse'
       fullPath: '/browse'
       preLoaderRoute: typeof BrowseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bundle': {
+      id: '/bundle'
+      path: '/bundle'
+      fullPath: '/bundle'
+      preLoaderRoute: typeof BundleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/corporate': {
@@ -498,6 +518,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrowseRoute: BrowseRoute,
+  BundleRoute: BundleRoute,
   CorporateRoute: CorporateRoute,
   DeskRoute: DeskRoute,
   FeesRoute: FeesRoute,

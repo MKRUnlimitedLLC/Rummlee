@@ -1,6 +1,6 @@
 /** In person handoff. Legacy DB rows may still say `porch`; canonicalize on read. */
 export type HandoffMode = "official" | "public" | "person";
-export type ListingStatus = "live" | "sold" | "held" | "outside";
+export type ListingStatus = "live" | "sold" | "held" | "outside" | "bundle" | "bundled" | "withdrawn";
 export type OfferStatus = "pending" | "countered" | "accepted" | "declined";
 export type OrderStatus = "escrow" | "picked_up" | "cancelled";
 export type SaleStatus = "live" | "ended" | "draft";

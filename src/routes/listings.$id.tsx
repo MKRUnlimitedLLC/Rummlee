@@ -15,6 +15,7 @@ import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
 import { categoryLabel, cityOf, fitsOfficialCounter, haulLabel, liveWindowLine, money, onlineWindowLine, packLabel, payBaseCents, PERSON_ONLY_LINE, saleWindow } from "@/lib/rummlee/format";
 import { checkoutQuote } from "@/lib/rummlee/fees";
 import { buyNow, getListing, markSoldOutside, respondOffer, sendMessage, sendOffer, toggleSaved, topUpWallet } from "@/lib/rummlee/server";
+import { dissolveBundle } from "@/lib/rummlee/bundles";
 
 export const Route = createFileRoute("/listings/$id")({
   loader: ({ params }) => getListing({ data: params.id }),
@@ -226,6 +227,15 @@ function ListingPage() {
     onError: (e) => toast.error(errMessage(e)),
   });
 
+  const dissolve = useMutation({
+    mutationFn: () => dissolveBundle({ data: { listingId: listing.id } }),
+    onSuccess: () => {
+      toast.success("Bundle taken down. The items are listed on their own again.");
+      void qc.invalidateQueries({ queryKey: ["listing", id] });
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+
   const sellerMut = useMutation({
     mutationFn: (data: { offerId: string; action: "accept" | "decline" | "counter"; counterCents?: number }) =>
       respondOffer({ data }),
@@ -316,6 +326,22 @@ function ListingPage() {
           <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary-ink">
             Handoff location
           </span>
+          {data.bundleItems?.length ? (
+            <ul className="space-y-1 text-base text-fg">
+              {data.bundleItems.map((item) => (
+                <li key={item.id}>
+                  {item.title} · {money(item.priceCents)}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <Link
+            to="/bundle"
+            search={{ seller: listing.sellerId, from: listing.id }}
+            className="block text-base font-medium text-primary-ink"
+          >
+            {mine ? "Bundle items from this sale" : "Bundle other items from this seller"}
+          </Link>
           <Link to="/sales/$id" params={{ id: listing.saleId }} className="block text-base font-medium text-primary-ink">
             See the rest of this sale
           </Link>
@@ -326,7 +352,7 @@ function ListingPage() {
         </div>
       </div>
 
-      {listing.status !== "live" ? (
+      {listing.status !== "live" && listing.status !== "bundle" ? (
         myOrder ? (
           <section className="mt-5 space-y-3 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
             <h2 className="font-display text-xl font-semibold">
@@ -345,7 +371,7 @@ function ListingPage() {
           </section>
         ) : (
           <p className="mt-5 rounded-2xl bg-surface px-4 py-6 text-center text-muted shadow-[var(--shadow-card)]">
-            {listing.status === "held" ? "Someone’s already holding this. Your money would stay held until pickup." : listing.status === "outside" ? "Ended. Sold outside Rummlee. No hold was taken." : "This one already sold."}
+            {listing.status === "held" ? "Someone’s already holding this. Your money would stay held until pickup." : listing.status === "outside" ? "Ended. Sold outside Rummlee. No hold was taken." : listing.status === "bundled" ? "This item is in a bundle." : "This one already sold."}
           </p>
         )
       ) : mine ? (
@@ -355,6 +381,11 @@ function ListingPage() {
             Yes, counteroffer, or decline. One decline ends the offer.
             {data.floorCents != null ? ` Lowest you’ll take (hidden): ${money(data.floorCents)}.` : ""}
           </p>
+          {data.bundleKind === "seller" ? (
+            <Button variant="secondary" disabled={dissolve.isPending} onClick={() => dissolve.mutate()}>
+              {dissolve.isPending ? "Taking it down…" : "Put the items back on their own"}
+            </Button>
+          ) : null}
           {(data.sellerOffers ?? []).length ? (
             <ul className="space-y-3">
               {(data.sellerOffers ?? []).map((o) => (
