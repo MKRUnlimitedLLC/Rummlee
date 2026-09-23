@@ -215,3 +215,9 @@ export function partyScan(side: "S" | "B") {
 export function isSeedUser(id: string) {
   return id.startsWith("seed-");
 }
+
+export function packLabel(pack: string | null | undefined) {
+  if (pack === "box") return "Outer box";
+  if (pack === "as_is") return "As is";
+  return null;
+}

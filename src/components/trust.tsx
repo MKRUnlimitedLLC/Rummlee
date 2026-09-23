@@ -48,6 +48,7 @@ export function RateHandoff({
     showed_up: null,
     as_agreed: null,
     respectful: null,
+    packaged: null,
   });
   const [comment, setComment] = useState("");
   const save = useMutation({
@@ -58,6 +59,7 @@ export function RateHandoff({
           showedUp: marks.showed_up as Thumb,
           asAgreed: marks.as_agreed as Thumb,
           respectful: marks.respectful as Thumb,
+          packaged: role === "buyer" ? (marks.packaged as Thumb) : undefined,
           comment: comment.trim() || undefined,
         },
       }),

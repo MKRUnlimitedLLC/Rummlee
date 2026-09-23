@@ -41,6 +41,7 @@ type ListingRow = {
   condition: string;
   haul: string;
   size_label: string | null;
+  pack: string | null;
   neighborhood: string;
   handoff_modes: string;
   handoff_spot_name: string | null;
@@ -81,6 +82,7 @@ function mapListing(row: ListingRow, saved = false): Listing {
     condition: row.condition,
     haul: row.haul,
     sizeLabel: row.size_label?.trim() ? row.size_label.trim() : null,
+    pack: row.pack === "box" || row.pack === "as_is" ? row.pack : null,
     neighborhood: row.neighborhood,
     handoffModes: splitModes(row.handoff_modes),
     handoffSpotName: row.handoff_spot_name,
@@ -527,7 +529,7 @@ async function loadPendingRates(sql: Awaited<ReturnType<typeof getSql>>, userId:
 const listingSelect = `
   select l.id, l.sale_id, s.name as sale_name, l.seller_id, p.handle as seller_handle,
          l.title, l.description, l.price_cents, l.buy_now_cents, l.original_cents, l.floor_cents,
-         l.category, l.condition, l.haul, l.size_label, l.neighborhood, l.handoff_modes, l.photo_url,
+         l.category, l.condition, l.haul, l.size_label, l.pack, l.neighborhood, l.handoff_modes, l.photo_url,
          l.status, s.starts_on, s.ends_on,
          s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close,
          hs.name as handoff_spot_name, hs.area as handoff_spot_area, hs.hint as handoff_spot_hint,
@@ -1205,6 +1207,7 @@ const listingInput = z.object({
   condition: z.string(),
   haul: z.string(),
   sizeLabel: z.string().max(40).optional(),
+  pack: z.enum(["box", "as_is"]),
   photoUrl: z.string().min(4),
   handoffModes: z.array(z.enum(["official", "public", "person", "porch"])).min(1),
 });
@@ -1242,11 +1245,11 @@ export const addListing = createServerFn({ method: "POST" })
     await sql`
       insert into listings (
         id, sale_id, seller_id, title, description, price_cents, buy_now_cents, original_cents, floor_cents,
-        category, condition, haul, size_label, neighborhood, handoff_modes, photo_url, status
+        category, condition, haul, size_label, pack, neighborhood, handoff_modes, photo_url, status
       ) values (
         ${id}, ${data.saleId}, ${context.userId}, ${data.title}, ${data.description ?? ""},
         ${data.priceCents}, ${data.buyNowCents ?? data.priceCents}, ${null}, ${data.floorCents},
-        ${data.category}, ${data.condition}, ${data.haul}, ${data.sizeLabel?.trim() || null}, ${sale[0].neighborhood},
+        ${data.category}, ${data.condition}, ${data.haul}, ${data.sizeLabel?.trim() || null}, ${data.pack}, ${sale[0].neighborhood},
         ${splitModes(data.handoffModes.join(",")).join(",")}, ${safePhoto(data.photoUrl)}, ${"live"}
       )
     `;
@@ -2012,6 +2015,7 @@ export const submitRating = createServerFn({ method: "POST" })
         showedUp: z.enum(["up", "down"]),
         asAgreed: z.enum(["up", "down"]),
         respectful: z.enum(["up", "down"]),
+        packaged: z.enum(["up", "down"]).optional(),
         comment: z.string().max(500).optional(),
       })
       .parse(data),
@@ -2031,6 +2035,7 @@ export const submitRating = createServerFn({ method: "POST" })
     const isBuyer = order.buyer_id === context.userId;
     const isSeller = order.seller_id === context.userId;
     if (!isBuyer && !isSeller) throw new Error("Not your handoff.");
+    if (isBuyer && !data.packaged) throw new Error("Rate how it was packed for the handoff.");
     const subjectId = isBuyer ? order.seller_id : order.buyer_id;
     const existing = await sql<{ id: string }>`
       select id from ratings where order_id = ${order.id} and rater_id = ${context.userId}
@@ -2040,17 +2045,18 @@ export const submitRating = createServerFn({ method: "POST" })
       showed_up: data.showedUp as Thumb,
       as_agreed: data.asAgreed as Thumb,
       respectful: data.respectful as Thumb,
+      packaged: isBuyer ? (data.packaged as Thumb) : null,
     };
     const overall = overallThumb(marks);
     const comment = data.comment?.trim() ? data.comment.trim() : null;
     await sql`
       insert into ratings (
         id, order_id, rater_id, subject_id, role,
-        showed_up, as_agreed, respectful, overall, comment
+        showed_up, as_agreed, respectful, packaged, overall, comment
       ) values (
         ${crypto.randomUUID()}, ${order.id}, ${context.userId}, ${subjectId},
         ${isBuyer ? "buyer" : "seller"},
-        ${marks.showed_up}, ${marks.as_agreed}, ${marks.respectful}, ${overall}, ${comment}
+        ${marks.showed_up}, ${marks.as_agreed}, ${marks.respectful}, ${marks.packaged}, ${overall}, ${comment}
       )
     `;
     await recountThumbs(sql, subjectId);

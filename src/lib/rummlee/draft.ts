@@ -59,6 +59,7 @@ export type DraftLine = {
   condition: string;
   haul: string;
   sizeLabel: string;
+  pack: "box" | "as_is";
   photoUrl: string;
 };
 
@@ -150,6 +151,7 @@ export function blankLine(partial?: Partial<DraftLine>): DraftLine {
     condition: "Good",
     haul: "one",
     sizeLabel: "",
+    pack: "box",
     photoUrl: "",
     ...partial,
   };

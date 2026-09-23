@@ -12,7 +12,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { TEST_MODE } from "@/lib/rummlee/constants";
 import { lastCity, loadSavedIds, rememberAfterLogin, toggleLocalSaved } from "@/lib/rummlee/draft";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
-import { categoryLabel, cityOf, haulLabel, liveWindowLine, money, onlineWindowLine, payBaseCents, saleWindow } from "@/lib/rummlee/format";
+import { categoryLabel, cityOf, haulLabel, liveWindowLine, money, onlineWindowLine, packLabel, payBaseCents, saleWindow } from "@/lib/rummlee/format";
 import { checkoutQuote } from "@/lib/rummlee/fees";
 import { buyNow, getListing, markSoldOutside, respondOffer, sendMessage, sendOffer, toggleSaved, topUpWallet } from "@/lib/rummlee/server";
 
@@ -304,6 +304,7 @@ function ListingPage() {
             <Meta label="Category" value={categoryLabel(listing.category)} />
             <Meta label="Haul" value={haulLabel(listing.haul)} />
             {listing.sizeLabel ? <Meta label="Size" value={listing.sizeLabel} /> : null}
+            {packLabel(listing.pack) ? <Meta label="Packed" value={packLabel(listing.pack) ?? ""} /> : null}
             <Meta label="Sale" value={listing.saleName} />
           </dl>
           <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary-ink">

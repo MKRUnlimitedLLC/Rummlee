@@ -207,6 +207,7 @@ function NewListingPage() {
             haul: line.haul,
             photoUrl: line.photoUrl,
             sizeLabel: line.sizeLabel.trim() || undefined,
+            pack: line.pack === "as_is" ? "as_is" : "box",
             handoffModes: modes,
           },
         });
@@ -503,6 +504,32 @@ function NewListingPage() {
                 />
               </div>
             ) : null}
+            <div>
+              <p className="text-sm font-medium">How you’ll pack it</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(
+                  [
+                    ["box", "Outer box"],
+                    ["as_is", "As is"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={cn(
+                      "rounded-full px-3.5 py-2 text-sm font-medium",
+                      (line.pack ?? "box") === id ? "bg-fg text-primary-fg" : "bg-bg text-muted",
+                    )}
+                    onClick={() => updateLine(line.id, { pack: id })}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-sm text-muted">
+                Prefer an outer box when it fits. As-is is for something a box would not help. Buyers rate this at the handoff.
+              </p>
+            </div>
             </div>
             <div className={cn(step === 2 ? "space-y-3" : "hidden")}>
             <div>

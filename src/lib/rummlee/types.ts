@@ -75,6 +75,7 @@ export type Listing = {
   condition: string;
   haul: string;
   sizeLabel: string | null;
+  pack: "box" | "as_is" | null;
   neighborhood: string;
   handoffModes: HandoffMode[];
   handoffSpotName: string | null;
