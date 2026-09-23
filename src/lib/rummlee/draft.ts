@@ -74,6 +74,14 @@ export type ListingDraft = {
   physicalLocation: string;
   hoursStart: string;
   hoursEnd: string;
+  onlineStartDow: number;
+  onlineEndDow: number;
+  liveOn: boolean;
+  liveStartDow: number;
+  liveEndDow: number;
+  liveOpen: string;
+  liveClose: string;
+  meetupNote: string;
   lines: DraftLine[];
 };
 
@@ -162,6 +170,14 @@ export function loadDraft(): ListingDraft | null {
       physicalLocation: parsed.physicalLocation ?? "",
       hoursStart: parsed.hoursStart || "08:00",
       hoursEnd: parsed.hoursEnd || "14:00",
+      onlineStartDow: parsed.onlineStartDow ?? 2,
+      onlineEndDow: parsed.onlineEndDow ?? 4,
+      liveOn: Boolean(parsed.liveOn),
+      liveStartDow: parsed.liveStartDow ?? 5,
+      liveEndDow: parsed.liveEndDow ?? 0,
+      liveOpen: parsed.liveOpen || "09:00",
+      liveClose: parsed.liveClose || "15:00",
+      meetupNote: parsed.meetupNote ?? "",
       lines: parsed.lines.map((line) => ({
         ...blankLine(),
         ...line,

@@ -9,6 +9,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { errMessage } from "@/lib/rummlee/errors";
 import { handoffLabel, money } from "@/lib/rummlee/format";
 import { confirmPickup, getOrder } from "@/lib/rummlee/server";
+import { cancelHold, reportProblem } from "@/lib/rummlee/books";
 import { RateHandoff, VerifiedBadge } from "@/components/trust";
 import { PartyCode } from "@/components/party-code";
 
@@ -24,6 +25,7 @@ function PickupPage() {
     enabled: Boolean(user),
   });
   const [code, setCode] = useState("");
+  const [problem, setProblem] = useState("");
 
   const confirm = useMutation({
     mutationFn: () => confirmPickup({ data: { orderId: id, code: code || q.data?.pickupCode || "" } }),
@@ -31,12 +33,34 @@ function PickupPage() {
       void qc.invalidateQueries({ queryKey: ["order", id] });
       void qc.invalidateQueries({ queryKey: ["inbox"] });
       void qc.invalidateQueries({ queryKey: ["me"] });
-      toast.success(res.done ? "Pickup confirmed. Seller got test credits — not real money." : "You’re marked. Waiting on the other person.");
+      toast.success(
+        res.done
+          ? "Handoff recorded. The seller is paid in 48 hours if there’s no problem. Test credits, not real money."
+          : "You’re marked. Waiting on the other person.",
+      );
     },
     onError: (e) => toast.error(errMessage(e)),
   });
 
-  if (isPending) return <div className="py-16 text-center text-muted">Loading…</div>;
+  const cancel = useMutation({
+    mutationFn: () => cancelHold({ data: { orderId: id } }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["order", id] });
+      void qc.invalidateQueries({ queryKey: ["me"] });
+      toast.success("Hold cancelled. Test credits are back with the buyer.");
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+
+  const report = useMutation({
+    mutationFn: () => reportProblem({ data: { orderId: id, note: problem } }),
+    onSuccess: () => {
+      setProblem("");
+      void qc.invalidateQueries({ queryKey: ["order", id] });
+      toast.success("Problem reported. The seller is not paid until support decides.");
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
   if (!user) return <RedirectToSignIn />;
   if (q.isPending) return <div className="py-16 text-center text-muted">Loading pickup…</div>;
   const order = q.data;
@@ -62,6 +86,7 @@ function PickupPage() {
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">{order.listingTitle}</h1>
       <p className="mt-2 text-muted">
         Held {money(order.amountCents)} until you both confirm pickup · {handoffLabel(order.handoffType)}
+        {order.handoffType === "person" && order.meetupNote ? ` · ${order.meetupNote}` : ""}
       </p>
       <p className="text-sm text-subtle">
         {iAmBuyer ? `Seller @${order.sellerHandle}` : `Buyer @${order.buyerHandle}`}
@@ -90,7 +115,35 @@ function PickupPage() {
 
       {done ? (
         <div className="mt-6 space-y-4">
-          <p className="text-sm text-success">Both of you confirmed. The seller has been paid.</p>
+          <p className="text-sm text-success">
+            {order.disputeStatus === "open"
+              ? "You reported a problem. The seller is not paid until support decides."
+              : order.disputeStatus === "refunded"
+                ? "Support refunded this handoff. The seller was not paid."
+                : order.paidOutAt
+                  ? "The 48-hour window passed. The seller has been paid in test credits."
+                  : "Handoff is done. The seller is paid 48 hours after this, unless the buyer reports a problem."}
+          </p>
+          {iAmBuyer && !order.paidOutAt && order.disputeStatus !== "open" && order.disputeStatus !== "refunded" ? (
+            <form
+              className="space-y-2 text-left"
+              onSubmit={(e) => {
+                e.preventDefault();
+                report.mutate();
+              }}
+            >
+              <Label htmlFor="problem">Report a problem</Label>
+              <Input
+                id="problem"
+                value={problem}
+                onChange={(e) => setProblem(e.target.value)}
+                placeholder="What was wrong with the item"
+              />
+              <Button type="submit" variant="secondary" className="w-full" disabled={report.isPending || problem.trim().length < 8}>
+                Hold the payout
+              </Button>
+            </form>
+          ) : null}
           {order.myRatingOverall ? (
             <p className="text-sm text-muted">
               You rated this handoff {order.myRatingOverall === "up" ? "thumbs up" : "thumbs down"}. Comment stays
@@ -105,7 +158,16 @@ function PickupPage() {
           )}
         </div>
       ) : order.handoffType === "official" ? (
-        <p className="mt-6 text-sm text-muted">The store counter closes this when it scans the buyer code. You don’t confirm it yourself.</p>
+        <div className="mt-6 space-y-3">
+          <p className="text-sm text-muted">The store counter closes this when it scans the buyer code. You don’t confirm it yourself.</p>
+          {!order.checkedIn ? (
+            <Button variant="secondary" className="w-full" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
+              Cancel this hold
+            </Button>
+          ) : (
+            <p className="text-sm text-muted">The counter has the package. A clerk can refuse it. You can’t cancel from here.</p>
+          )}
+        </div>
       ) : (
         <form
           className="mt-6 space-y-3 text-left"
@@ -128,6 +190,9 @@ function PickupPage() {
           <p className="text-center text-xs text-subtle">
             Buyer confirmed: {order.buyerConfirmed ? "yes" : "not yet"} · Seller: {order.sellerConfirmed ? "yes" : "not yet"}
           </p>
+          <Button type="button" variant="secondary" className="w-full" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
+            Cancel this hold
+          </Button>
         </form>
       )}
     </main>

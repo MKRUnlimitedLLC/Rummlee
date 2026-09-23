@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MapPin, Store } from "lucide-react";
 import { bootstrapPublic } from "@/lib/rummlee/server";
-import { saleWindow } from "@/lib/rummlee/format";
+import { liveWindowLine, onlineWindowLine, saleWindow } from "@/lib/rummlee/format";
 import { SALE_KINDS } from "@/lib/rummlee/constants";
 import type { HandoffSpot } from "@/lib/rummlee/types";
 
@@ -52,7 +52,8 @@ function SalesPage() {
                   <p className="mt-1 text-sm text-subtle">
                     {spot ? `${spot.name} · ` : ""}
                     {saleWindow(s.startsOn, s.endsOn)}
-                    {s.channel === "physical" ? " · physical" : s.channel === "both" ? " · online + physical" : " · online"}
+                    {onlineWindowLine(s) ? ` · ${onlineWindowLine(s)}` : " · online"}
+                    {liveWindowLine(s) ? ` · ${liveWindowLine(s)}` : ""}
                     {" · "}
                     {s.itemCount} {s.itemCount === 1 ? "item" : "items"}
                   </p>

@@ -12,9 +12,9 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { TEST_MODE } from "@/lib/rummlee/constants";
 import { lastCity, loadSavedIds, rememberAfterLogin, toggleLocalSaved } from "@/lib/rummlee/draft";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
-import { categoryLabel, cityOf, haulLabel, money, payBaseCents, saleWindow } from "@/lib/rummlee/format";
+import { categoryLabel, cityOf, haulLabel, liveWindowLine, money, onlineWindowLine, payBaseCents, saleWindow } from "@/lib/rummlee/format";
 import { checkoutQuote } from "@/lib/rummlee/fees";
-import { buyNow, getListing, respondOffer, sendMessage, sendOffer, toggleSaved, topUpWallet } from "@/lib/rummlee/server";
+import { buyNow, getListing, markSoldOutside, respondOffer, sendMessage, sendOffer, toggleSaved, topUpWallet } from "@/lib/rummlee/server";
 
 export const Route = createFileRoute("/listings/$id")({
   loader: ({ params }) => getListing({ data: params.id }),
@@ -235,6 +235,16 @@ function ListingPage() {
     onError: (e) => toast.error(errMessage(e)),
   });
 
+  const outsideMut = useMutation({
+    mutationFn: () => markSoldOutside({ data: { listingId: listing.id } }),
+    onSuccess: async () => {
+      await qc.refetchQueries({ queryKey: ["listing", id] });
+      void qc.invalidateQueries({ queryKey: ["bootstrap"] });
+      toast.success("Ended. Sold outside Rummlee. Open offers are closed. No hold was taken.");
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+
   return (
     <article className="py-5">
       <div className="overflow-hidden rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
@@ -280,6 +290,15 @@ function ListingPage() {
             <p className="text-base font-medium text-primary-ink">Sample listing. Not a real item. Pay is still test credits.</p>
           ) : null}
           <p className="text-pretty text-base leading-relaxed text-fg">{listing.description}</p>
+          {onlineWindowLine(listing) ? <p className="text-base text-muted">{onlineWindowLine(listing)}</p> : null}
+          {liveWindowLine(listing) ? (
+            <p className="text-base text-fg">{liveWindowLine(listing)} · In person · hours only. No home address.</p>
+          ) : null}
+          {data.meetupNote ? (
+            <p className="rounded-xl bg-primary-soft px-3 py-2 text-base text-fg">
+              In-person meetup note: {data.meetupNote}
+            </p>
+          ) : null}
           <dl className="grid grid-cols-2 gap-2 text-base">
             <Meta label="Condition" value={listing.condition} />
             <Meta label="Category" value={categoryLabel(listing.category)} />
@@ -319,7 +338,7 @@ function ListingPage() {
           </section>
         ) : (
           <p className="mt-5 rounded-2xl bg-surface px-4 py-6 text-center text-muted shadow-[var(--shadow-card)]">
-            {listing.status === "held" ? "Someone’s already holding this. Your money would stay held until pickup." : "This one already sold."}
+            {listing.status === "held" ? "Someone’s already holding this. Your money would stay held until pickup." : listing.status === "outside" ? "Ended. Sold outside Rummlee. No hold was taken." : "This one already sold."}
           </p>
         )
       ) : mine ? (
@@ -348,6 +367,17 @@ function ListingPage() {
           <Button asChild variant="secondary" className="w-full">
             <Link to="/listings/new">Add another item to this sale</Link>
           </Button>
+          {listing.status === "live" ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              disabled={outsideMut.isPending}
+              onClick={() => outsideMut.mutate()}
+            >
+              {outsideMut.isPending ? "Ending…" : "Sold outside app"}
+            </Button>
+          ) : null}
         </section>
       ) : (
         <section className="mt-5 space-y-4 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">

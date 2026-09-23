@@ -4,7 +4,7 @@ import { VerifiedBadge } from "@/components/trust";
 import type { Listing } from "@/lib/rummlee/types";
 import { HOLD_LINE } from "@/lib/rummlee/constants";
 import { checkoutQuote, DEFAULT_FEES } from "@/lib/rummlee/fees";
-import { money, placeName, saleWindow, spotKindLabel } from "@/lib/rummlee/format";
+import { liveWindowLine, money, onlineWindowLine, placeName, saleWindow, spotKindLabel } from "@/lib/rummlee/format";
 import { cn } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing; premium?: boolean }) {
@@ -65,6 +65,10 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
           <p className="text-base text-muted">About {money(youPay)} with fee</p>
         ) : null}
         <p className="text-base font-medium text-primary-ink">{HOLD_LINE}</p>
+        {onlineWindowLine(listing) ? <p className="text-base text-muted">{onlineWindowLine(listing)}</p> : null}
+        {liveWindowLine(listing) ? (
+          <p className="text-base text-fg">{liveWindowLine(listing)} · Neighborhood meetup after you pay</p>
+        ) : null}
         <p className="flex items-center gap-1 text-base text-muted">
           <MapPin className="size-3.5" strokeWidth={1.75} />
           {listing.handoffSpotName ?? listing.neighborhood}

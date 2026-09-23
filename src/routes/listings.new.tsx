@@ -47,8 +47,16 @@ function freshDraft(): ListingDraft {
     endsOn: sat,
     channel: "online",
     physicalLocation: "",
-    hoursStart: "08:00",
-    hoursEnd: "14:00",
+    hoursStart: "09:00",
+    hoursEnd: "15:00",
+    onlineStartDow: 2,
+    onlineEndDow: 4,
+    liveOn: false,
+    liveStartDow: 5,
+    liveEndDow: 0,
+    liveOpen: "09:00",
+    liveClose: "15:00",
+    meetupNote: "",
     lines: [blankLine({ id: "draft-line" })],
   };
 }
@@ -163,10 +171,18 @@ function NewListingPage() {
             neighborhood: draft.neighborhood,
             startsOn: draft.startsOn,
             endsOn: draft.endsOn,
-            channel: draft.channel,
-            physicalLocation: draft.physicalLocation || undefined,
-            hoursStart: draft.hoursStart || undefined,
-            hoursEnd: draft.hoursEnd || undefined,
+            channel: draft.liveOn ? "both" : "online",
+            physicalLocation: undefined,
+            hoursStart: draft.liveOn ? draft.liveOpen : undefined,
+            hoursEnd: draft.liveOn ? draft.liveClose : undefined,
+            onlineStartDow: draft.onlineStartDow,
+            onlineEndDow: draft.onlineEndDow,
+            liveOn: draft.liveOn,
+            liveStartDow: draft.liveStartDow,
+            liveEndDow: draft.liveEndDow,
+            liveOpen: draft.liveOpen,
+            liveClose: draft.liveClose,
+            meetupNote: draft.meetupNote,
             handoffModes: modes,
             handoffSpotId: draft.handoffSpotId || null,
           },
@@ -682,7 +698,6 @@ function SaleDates({
     freeUsed: plus ? Math.max(0, PLUS_SALE_DAYS_PER_MONTH - freeLeft) : 0,
     freePerMonth: PLUS_SALE_DAYS_PER_MONTH,
   });
-  const physical = draft.channel === "physical" || draft.channel === "both";
   return (
     <div className="space-y-3 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
       <p className="font-medium">Sale dates</p>
@@ -721,68 +736,61 @@ function SaleDates({
             : `${days} day${days === 1 ? "" : "s"} · ${quote.freeDays ? `${quote.freeDays} Plus free · ` : ""}${quote.paidDays} × ${money(dayFeeCents)} = ${money(quote.chargeCents)}`}
       </p>
       <div>
-        <p className="text-sm font-medium">How neighbors find it</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {(
-            [
-              ["online", "Online"],
-              ["physical", "Physical"],
-              ["both", "Both"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={cn(
-                "rounded-full px-3.5 py-2 text-sm font-medium",
-                draft.channel === id ? "bg-fg text-primary-fg" : "bg-bg text-muted",
-              )}
-              onClick={() => onChange({ channel: id })}
-            >
-              {label}
-            </button>
-          ))}
+        <p className="text-sm font-medium">Online window</p>
+        <p className="mt-1 text-sm text-muted">Offers and pay-asking stay open these days. Default is Tuesday through Thursday.</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <DowSelect id="online-start" label="Online from" value={draft.onlineStartDow} onChange={(onlineStartDow) => onChange({ onlineStartDow })} />
+          <DowSelect id="online-end" label="Online through" value={draft.onlineEndDow} onChange={(onlineEndDow) => onChange({ onlineEndDow })} />
         </div>
+      </div>
+      <div>
+        <button
+          type="button"
+          className={cn(
+            "rounded-full px-3.5 py-2 text-sm font-medium",
+            draft.liveOn ? "bg-fg text-primary-fg" : "bg-bg text-muted",
+          )}
+          onClick={() => onChange({ liveOn: !draft.liveOn, channel: !draft.liveOn ? "both" : "online" })}
+        >
+          {draft.liveOn ? "Live in-person hours on" : "Add live in-person hours"}
+        </button>
         <p className="mt-1 text-sm text-muted">
-          Online = listed on Rummlee. Physical = in-person sale with hours. Both = listed and in person.
+          Optional. Neighbors see the days and hours, plus the neighborhood. Never a street address.
         </p>
       </div>
-      {physical ? (
+      {draft.liveOn ? (
         <div className="space-y-3">
-          <div>
-            <Label htmlFor="phys">Physical location</Label>
-            <Input
-              id="phys"
-              value={draft.physicalLocation}
-              onChange={(e) => onChange({ physicalLocation: e.target.value })}
-              placeholder="Library lot, 4th & Main"
-            />
-            <p className="mt-1 text-sm text-muted">
-              A public place or official store is better than a house number. Neighbors will see this if you set it.
-            </p>
+          <div className="grid grid-cols-2 gap-2">
+            <DowSelect id="live-start" label="In person from" value={draft.liveStartDow} onChange={(liveStartDow) => onChange({ liveStartDow })} />
+            <DowSelect id="live-end" label="In person through" value={draft.liveEndDow} onChange={(liveEndDow) => onChange({ liveEndDow })} />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="hstart">Opens</Label>
-              <Input
-                id="hstart"
-                type="time"
-                value={draft.hoursStart}
-                onChange={(e) => onChange({ hoursStart: e.target.value })}
-              />
+              <Label htmlFor="lopen">Opens</Label>
+              <Input id="lopen" type="time" value={draft.liveOpen} onChange={(e) => onChange({ liveOpen: e.target.value })} />
             </div>
             <div>
-              <Label htmlFor="hend">Closes</Label>
-              <Input
-                id="hend"
-                type="time"
-                value={draft.hoursEnd}
-                onChange={(e) => onChange({ hoursEnd: e.target.value })}
-              />
+              <Label htmlFor="lclose">Closes</Label>
+              <Input id="lclose" type="time" value={draft.liveClose} onChange={(e) => onChange({ liveClose: e.target.value })} />
             </div>
           </div>
+          <div>
+            <Label htmlFor="meetup">In-person meetup note</Label>
+            <Textarea
+              id="meetup"
+              value={draft.meetupNote}
+              onChange={(e) => onChange({ meetupNote: e.target.value })}
+              placeholder="Neighborhood meetup after you pay. No house number."
+              rows={2}
+            />
+            <p className="mt-1 text-sm text-muted">
+              Shown only after someone pays for in-person handoff, or you accept their offer. It never goes on Browse.
+            </p>
+          </div>
         </div>
-      ) : null}
+      ) : (
+        <p className="text-sm text-muted">Live hours off. This sale stays online for its whole run.</p>
+      )}
     </div>
   );
 }
@@ -791,4 +799,44 @@ function dollarsToCents(price: string) {
   const amount = Number(price);
   if (!Number.isFinite(amount)) return 0;
   return Math.round(amount * 100);
+}
+
+const WEEKDAYS = [
+  ["Sun", 0],
+  ["Mon", 1],
+  ["Tue", 2],
+  ["Wed", 3],
+  ["Thu", 4],
+  ["Fri", 5],
+  ["Sat", 6],
+] as const;
+
+function DowSelect({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: number;
+  onChange: (dow: number) => void;
+}) {
+  return (
+    <div>
+      <Label htmlFor={id}>{label}</Label>
+      <select
+        id={id}
+        className="h-11 w-full rounded-lg bg-bg px-3 text-base"
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      >
+        {WEEKDAYS.map(([name, dow]) => (
+          <option key={dow} value={dow}>
+            {name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
 }

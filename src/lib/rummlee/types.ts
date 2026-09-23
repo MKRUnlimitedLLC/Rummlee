@@ -1,6 +1,6 @@
 /** In person handoff. Legacy DB rows may still say `porch`; canonicalize on read. */
 export type HandoffMode = "official" | "public" | "person";
-export type ListingStatus = "live" | "sold" | "held";
+export type ListingStatus = "live" | "sold" | "held" | "outside";
 export type OfferStatus = "pending" | "countered" | "accepted" | "declined";
 export type OrderStatus = "escrow" | "picked_up" | "cancelled";
 export type SaleStatus = "live" | "ended" | "draft";
@@ -48,6 +48,13 @@ export type Sale = {
   handoffSpotId: string | null;
   status: SaleStatus;
   itemCount: number;
+  onlineStartDow: number | null;
+  onlineEndDow: number | null;
+  liveOn: boolean;
+  liveStartDow: number | null;
+  liveEndDow: number | null;
+  liveOpen: string | null;
+  liveClose: string | null;
 };
 
 export type Listing = {
@@ -79,6 +86,13 @@ export type Listing = {
   saleStartsOn: string;
   saleEndsOn: string;
   saved?: boolean;
+  onlineStartDow?: number | null;
+  onlineEndDow?: number | null;
+  liveOn?: boolean;
+  liveStartDow?: number | null;
+  liveEndDow?: number | null;
+  liveOpen?: string | null;
+  liveClose?: string | null;
 };
 
 export type Offer = {
@@ -134,6 +148,7 @@ export type Order = {
   paidOutAt?: string | null;
   disputeStatus?: string | null;
   checkedIn?: boolean;
+  meetupNote?: string | null;
 };
 
 export type Notice = {

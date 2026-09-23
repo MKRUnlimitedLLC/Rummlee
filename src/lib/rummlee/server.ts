@@ -55,6 +55,13 @@ type ListingRow = {
   seller_verified?: boolean;
   seller_thumbs_up?: number;
   seller_thumbs_down?: number;
+  online_start_dow?: number | null;
+  online_end_dow?: number | null;
+  live_on?: boolean | null;
+  live_start_dow?: number | null;
+  live_end_dow?: number | null;
+  live_open?: string | null;
+  live_close?: string | null;
 };
 
 function mapListing(row: ListingRow, saved = false): Listing {
@@ -88,6 +95,13 @@ function mapListing(row: ListingRow, saved = false): Listing {
     sellerVerified: Boolean(row.seller_verified),
     sellerThumbsUp: Number(row.seller_thumbs_up ?? 0),
     sellerThumbsDown: Number(row.seller_thumbs_down ?? 0),
+    onlineStartDow: row.online_start_dow == null ? null : Number(row.online_start_dow),
+    onlineEndDow: row.online_end_dow == null ? null : Number(row.online_end_dow),
+    liveOn: Boolean(row.live_on),
+    liveStartDow: row.live_start_dow == null ? null : Number(row.live_start_dow),
+    liveEndDow: row.live_end_dow == null ? null : Number(row.live_end_dow),
+    liveOpen: row.live_open ?? null,
+    liveClose: row.live_close ?? null,
   };
 }
 
@@ -298,6 +312,13 @@ type SaleMapRow = {
   physical_location?: string | null;
   hours_start?: string | null;
   hours_end?: string | null;
+  online_start_dow?: number | null;
+  online_end_dow?: number | null;
+  live_on?: boolean | null;
+  live_start_dow?: number | null;
+  live_end_dow?: number | null;
+  live_open?: string | null;
+  live_close?: string | null;
 };
 
 function mapSale(s: SaleMapRow): Sale {
@@ -318,7 +339,44 @@ function mapSale(s: SaleMapRow): Sale {
     handoffSpotId: s.handoff_spot_id,
     status: s.status,
     itemCount: Number(s.item_count),
+    onlineStartDow: s.online_start_dow == null ? null : Number(s.online_start_dow),
+    onlineEndDow: s.online_end_dow == null ? null : Number(s.online_end_dow),
+    liveOn: Boolean(s.live_on),
+    liveStartDow: s.live_start_dow == null ? null : Number(s.live_start_dow),
+    liveEndDow: s.live_end_dow == null ? null : Number(s.live_end_dow),
+    liveOpen: s.live_open ?? null,
+    liveClose: s.live_close ?? null,
   };
+}
+
+async function sellerMeetupNote(sql: Awaited<ReturnType<typeof getSql>>, saleId: string) {
+  const rows = await sql<{ meetup_note: string | null }>`select meetup_note from sales where id = ${saleId}`;
+  const note = rows[0]?.meetup_note?.trim();
+  return note || null;
+}
+
+async function meetupNoteForViewer(
+  sql: Awaited<ReturnType<typeof getSql>>,
+  args: { userId: string | null; sellerId: string; saleId: string; listingId: string; modes: string },
+) {
+  const note = await sellerMeetupNote(sql, args.saleId);
+  if (!note || !args.userId) return null;
+  if (args.userId === args.sellerId) return note;
+  if (!splitModes(args.modes).includes("person")) return null;
+  const paid = await sql<{ id: string }>`
+    select id from orders
+    where listing_id = ${args.listingId} and buyer_id = ${args.userId}
+      and handoff_type = ${"person"} and status <> ${"cancelled"}
+    limit 1
+  `;
+  if (paid[0]) return note;
+  const accepted = await sql<{ id: string }>`
+    select id from offers
+    where listing_id = ${args.listingId} and buyer_id = ${args.userId}
+      and status in (${"accepted"}, ${"countered"})
+    limit 1
+  `;
+  return accepted[0] ? note : null;
 }
 
 function hashIdentity(raw: string) {
@@ -478,6 +536,7 @@ const listingSelect = `
          l.title, l.description, l.price_cents, l.buy_now_cents, l.original_cents, l.floor_cents,
          l.category, l.condition, l.haul, l.size_label, l.neighborhood, l.handoff_modes, l.photo_url,
          l.status, s.starts_on, s.ends_on,
+         s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close,
          hs.name as handoff_spot_name, hs.area as handoff_spot_area, hs.hint as handoff_spot_hint,
          hs.kind as handoff_spot_kind,
          (p.verified_at is not null) as seller_verified,
@@ -506,6 +565,7 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
     `select s.id, s.seller_id, p.handle as seller_handle, s.name, s.kind, s.neighborhood,
             s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
             coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
+            s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close,
             (select count(*)::int from listings l where l.sale_id = s.id and l.status = 'live') as item_count
      from sales s join profiles p on p.id = s.seller_id
      where s.status = 'live' order by s.starts_on, s.name`,
@@ -721,6 +781,13 @@ export const getListing = createServerFn({ method: "GET" })
         };
       }
     }
+    const meetupNote = await meetupNoteForViewer(sql, {
+      userId,
+      sellerId: row.seller_id,
+      saleId: row.sale_id,
+      listingId: id,
+      modes: row.handoff_modes,
+    });
     return {
       listing: mapListing(row, saved),
       myOffer,
@@ -730,6 +797,7 @@ export const getListing = createServerFn({ method: "GET" })
       sellerPremium: await viewerPremium(sql, row.seller_id),
       publicSpot,
       floorCents: userId === row.seller_id ? Number(row.floor_cents ?? row.price_cents) : null,
+      meetupNote,
       fees: await loadFees(sql),
       messages: thread.map(
         (m): Message => ({
@@ -755,6 +823,7 @@ export const getSale = createServerFn({ method: "GET" })
       `select s.id, s.seller_id, p.handle as seller_handle, s.name, s.kind, s.neighborhood,
               s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
               coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
+            s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close,
               (select count(*)::int from listings l where l.sale_id = s.id) as item_count
        from sales s join profiles p on p.id = s.seller_id where s.id = $1`,
       [id],
@@ -771,6 +840,7 @@ export const getSale = createServerFn({ method: "GET" })
     return {
       sale: mapSale(sale),
       listings: rows.map((r) => mapListing(r, saved.has(r.id))),
+      meetupNote: userId === sale.seller_id ? await sellerMeetupNote(sql, sale.id) : null,
     };
   });
 
@@ -792,6 +862,7 @@ export const getMe = createServerFn({ method: "GET" })
       `select s.id, s.seller_id, p.handle as seller_handle, s.name, s.kind, s.neighborhood,
               s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
               coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
+            s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close,
               (select count(*)::int from listings l where l.sale_id = s.id) as item_count
        from sales s join profiles p on p.id = s.seller_id
        where s.seller_id = $1 order by s.created_at desc`,
@@ -998,6 +1069,14 @@ const saleInput = z.object({
   hoursEnd: z.string().max(8).optional(),
   handoffModes: z.array(z.enum(["official", "public", "person", "porch"])).min(1),
   handoffSpotId: z.string().nullable().optional(),
+  onlineStartDow: z.number().int().min(0).max(6).optional(),
+  onlineEndDow: z.number().int().min(0).max(6).optional(),
+  liveOn: z.boolean().optional(),
+  liveStartDow: z.number().int().min(0).max(6).optional(),
+  liveEndDow: z.number().int().min(0).max(6).optional(),
+  liveOpen: z.string().max(8).optional(),
+  liveClose: z.string().max(8).optional(),
+  meetupNote: z.string().max(240).optional(),
 });
 
 export const createSale = createServerFn({ method: "POST" })
@@ -1009,10 +1088,13 @@ export const createSale = createServerFn({ method: "POST" })
     const days = countSaleDays(data.startsOn, data.endsOn);
     if (days < 1) throw new Error("End date has to be on or after the start.");
     if (days > MAX_SALE_DAYS) throw new Error(`A sale can run at most ${MAX_SALE_DAYS} days.`);
-    const physical = data.channel === "physical" || data.channel === "both";
+    const live = Boolean(data.liveOn);
+    const physical = !live && (data.channel === "physical" || data.channel === "both");
     const location = data.physicalLocation?.trim() ?? "";
-    if (physical && location.length < 4) throw new Error("Physical sales need a location and hours.");
-    if (physical && (!data.hoursStart || !data.hoursEnd)) throw new Error("Physical sales need hours.");
+    if (physical && location.length < 4) throw new Error("A public handoff needs a place name, not a home address.");
+    if (physical && (!data.hoursStart || !data.hoursEnd)) throw new Error("In-person hours need an open and a close.");
+    if (live && (!data.liveOpen || !data.liveClose)) throw new Error("Live hours need an open and a close.");
+    const note = data.meetupNote?.trim() ?? "";
     const fees = await loadFees(sql);
     const dayFee = feeById(fees, "sale_day");
     const dayFeeCents = dayFee?.enabled && dayFee.unit === "cents" ? dayFee.amountCents : 0;
@@ -1043,19 +1125,26 @@ export const createSale = createServerFn({ method: "POST" })
       spotId = match[0]?.id ?? null;
     }
     const modes = splitModes(data.handoffModes.join(","));
+    const channel = live ? "both" : data.channel === "physical" ? "physical" : "online";
     if (quote.chargeCents > 0) await debitWallet(sql, context.userId, quote.chargeCents);
     await sql`
       insert into sales (
         id, seller_id, name, kind, neighborhood, starts_on, ends_on, handoff_modes, handoff_spot_id, status,
-        channel, physical_location, hours_start, hours_end, sale_fee_cents, sale_free_days
+        channel, physical_location, hours_start, hours_end, sale_fee_cents, sale_free_days,
+        online_start_dow, online_end_dow, live_on, live_start_dow, live_end_dow, live_open, live_close, meetup_note
       )
       values (
         ${id}, ${context.userId}, ${data.name}, ${data.kind}, ${data.neighborhood},
         ${data.startsOn}::date, ${data.endsOn}::date, ${modes.join(",")},
         ${spotId}, ${"live"},
-        ${data.channel}, ${physical ? location : null},
-        ${physical ? data.hoursStart : null}, ${physical ? data.hoursEnd : null},
-        ${quote.chargeCents}, ${quote.freeDays}
+        ${channel}, ${physical ? location : null},
+        ${live ? data.liveOpen : physical ? data.hoursStart : null},
+        ${live ? data.liveClose : physical ? data.hoursEnd : null},
+        ${quote.chargeCents}, ${quote.freeDays},
+        ${data.onlineStartDow ?? 2}, ${data.onlineEndDow ?? 4}, ${live},
+        ${live ? (data.liveStartDow ?? 5) : null}, ${live ? (data.liveEndDow ?? 0) : null},
+        ${live ? data.liveOpen : null}, ${live ? data.liveClose : null},
+        ${note || null}
       )
     `;
     let remainingFree = quote.freeDays;
@@ -1087,6 +1176,29 @@ export const createSale = createServerFn({ method: "POST" })
       await sql`update profiles set neighborhood = ${data.neighborhood} where id = ${context.userId}`;
     }
     return { id, chargeCents: quote.chargeCents, freeDays: quote.freeDays, paidDays: quote.paidDays, days };
+  });
+
+export const markSoldOutside = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ listingId: z.string().min(2) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const rows = await sql<{ id: string; seller_id: string; status: string }>`
+      select id, seller_id, status from listings where id = ${data.listingId}
+    `;
+    const item = rows[0];
+    if (!item || item.seller_id !== context.userId) throw new Error("That’s not your listing.");
+    if (item.status === "held") {
+      throw new Error("This one is already held on Rummlee. It can’t be marked sold outside.");
+    }
+    if (item.status !== "live") throw new Error("This listing is already ended.");
+    await sql`update listings set status = ${"outside"} where id = ${item.id} and status = ${"live"}`;
+    await sql`
+      update offers
+      set status = ${"declined"}, declined_by = ${"outside"}, updated_at = now()
+      where listing_id = ${item.id} and status in (${"pending"}, ${"countered"}, ${"accepted"})
+    `;
+    return { ok: true as const };
   });
 
 const listingInput = z.object({
@@ -1857,6 +1969,16 @@ export const getOrder = createServerFn({ method: "GET" })
       checkedIn: Boolean(o.checked_in_at),
       myRatingOverall: mine[0]?.overall === "up" || mine[0]?.overall === "down" ? mine[0].overall : null,
       otherVerified: Boolean(other[0]?.verified_at),
+      meetupNote:
+        o.handoff_type === "person"
+          ? (
+              await sql<{ meetup_note: string | null }>`
+                select s.meetup_note from sales s
+                join listings l on l.sale_id = s.id
+                where l.id = ${o.listing_id}
+              `
+            )[0]?.meetup_note ?? null
+          : null,
     } satisfies Order;
   });
 

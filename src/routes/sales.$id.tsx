@@ -4,7 +4,7 @@ import { MapPin } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
 import { Button } from "@/components/ui/button";
 import { bootstrapPublic, getSale } from "@/lib/rummlee/server";
-import { saleWindow } from "@/lib/rummlee/format";
+import { liveWindowLine, onlineWindowLine, saleWindow } from "@/lib/rummlee/format";
 import { SALE_KINDS } from "@/lib/rummlee/constants";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
@@ -50,16 +50,19 @@ function SaleDetail() {
         {spot?.name ?? data.sale.neighborhood} · @{data.sale.sellerHandle}
       </p>
       <p className="mt-1 text-sm text-subtle">{saleWindow(data.sale.startsOn, data.sale.endsOn)}</p>
-      <p className="mt-1 text-sm text-muted">
-        {data.sale.channel === "physical"
-          ? "Physical sale"
-          : data.sale.channel === "both"
-            ? "Online and physical"
-            : "Online on Rummlee"}
-        {data.sale.physicalLocation
-          ? ` · ${data.sale.physicalLocation}${data.sale.hoursStart && data.sale.hoursEnd ? ` · ${data.sale.hoursStart}–${data.sale.hoursEnd}` : ""}`
-          : ""}
-      </p>
+      {onlineWindowLine(data.sale) ? (
+        <p className="mt-2 text-sm font-medium text-fg">{onlineWindowLine(data.sale)}</p>
+      ) : (
+        <p className="mt-2 text-sm text-muted">Online on Rummlee. Nothing ships.</p>
+      )}
+      {liveWindowLine(data.sale) ? (
+        <p className="mt-1 text-sm text-fg">{liveWindowLine(data.sale)} · In person · hours only. No home address.</p>
+      ) : (
+        <p className="mt-1 text-sm text-muted">Online only for this run.</p>
+      )}
+      {mine && data.meetupNote ? (
+        <p className="mt-2 text-sm text-muted">Your meetup note is hidden until someone pays for in-person handoff.</p>
+      ) : null}
       {mine ? (
         <Button asChild className="mt-4">
           <Link to="/listings/new">Add another item to this sale</Link>

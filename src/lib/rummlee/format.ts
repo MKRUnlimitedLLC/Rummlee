@@ -52,6 +52,52 @@ export function saleWindow(startsOn: string, endsOn: string) {
   return `${a.toLocaleDateString("en-US", { month: "short", day: "numeric" })}–${b.toLocaleDateString("en-US", opts)}`;
 }
 
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+export function dowName(dow: number) {
+  return DOW[((dow % 7) + 7) % 7];
+}
+
+export function dowSpan(start: number, end: number) {
+  if (start === end) return dowName(start);
+  return `${dowName(start)}–${dowName(end)}`;
+}
+
+/** 09:00 → 9am, 15:30 → 3:30pm. */
+export function clockLabel(value: string | null | undefined) {
+  if (!value) return "";
+  const [hRaw, mRaw] = value.split(":");
+  const h = Number(hRaw);
+  const m = Number(mRaw ?? 0);
+  if (!Number.isFinite(h)) return value;
+  const hour = h % 12 || 12;
+  const ap = h < 12 ? "am" : "pm";
+  if (!m) return `${hour}${ap}`;
+  return `${hour}:${String(m).padStart(2, "0")}${ap}`;
+}
+
+export type WindowFields = {
+  onlineStartDow?: number | null;
+  onlineEndDow?: number | null;
+  liveOn?: boolean;
+  liveStartDow?: number | null;
+  liveEndDow?: number | null;
+  liveOpen?: string | null;
+  liveClose?: string | null;
+};
+
+export function onlineWindowLine(row: WindowFields) {
+  if (row.onlineStartDow == null || row.onlineEndDow == null) return null;
+  return `Online ${dowSpan(row.onlineStartDow, row.onlineEndDow)} · Offers open`;
+}
+
+export function liveWindowLine(row: WindowFields) {
+  if (!row.liveOn || row.liveStartDow == null || row.liveEndDow == null) return null;
+  const hours =
+    row.liveOpen && row.liveClose ? ` · ${clockLabel(row.liveOpen)}–${clockLabel(row.liveClose)}` : "";
+  return `In person ${dowSpan(row.liveStartDow, row.liveEndDow)}${hours}`;
+}
+
 export function parseDay(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, (m ?? 1) - 1, d ?? 1);
