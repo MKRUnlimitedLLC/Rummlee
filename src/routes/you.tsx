@@ -14,7 +14,7 @@ import { NEIGHBORHOODS, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants
 import { errMessage } from "@/lib/rummlee/errors";
 import { money, saleWindow } from "@/lib/rummlee/format";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
-import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, verifyId, challengeRating, releaseIdentity, setHandle } from "@/lib/rummlee/server";
+import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, exportMyData, verifyId, challengeRating, releaseIdentity, setHandle } from "@/lib/rummlee/server";
 
 export const Route = createFileRoute("/you")({ component: YouPage });
 
@@ -108,6 +108,19 @@ function YouPage() {
     onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["me"] });
       toast.success(`ID live on @${res.handle}. Ratings stayed with the ID.`);
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const downloadMine = useMutation({
+    mutationFn: () => exportMyData(),
+    onSuccess: (res) => {
+      const blob = new Blob([res.json], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = res.filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      toast.success("Download started. Other people are handles only.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -433,6 +446,19 @@ function YouPage() {
         <p className="mt-2 text-sm text-muted">
           Closing the account hides your handle and takes live listings down. Orders, fees, and tax records stay. Test
           credits are not paid out. Thumbs stay with your ID. Email support if you need the login back.
+        </p>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="mt-4"
+          disabled={downloadMine.isPending}
+          onClick={() => downloadMine.mutate()}
+        >
+          {downloadMine.isPending ? "Preparing…" : "Download my data"}
+        </Button>
+        <p className="mt-2 text-sm text-muted">
+          A JSON file of your account, listings, offers, messages, and orders. Other neighbors are handles. No one
+          else’s email is in the file.
         </p>
         {confirmDelete ? (
           <div className="mt-4 flex flex-wrap gap-2">

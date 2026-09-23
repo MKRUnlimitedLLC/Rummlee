@@ -64,15 +64,17 @@ function Privacy() {
 
       <LegalSection title="How long we keep it">
         <p>
-          Account and listing data stay until you delete them or delete the account. If you remove an account, we erase
-          your profile, listings, messages, offers, orders, wallet history, and sign-in records tied to you.
+          Account and listing data stay until you close the account. Closing it hides your handle and your messages.
+          Orders, fees, and tax amounts stay, because a closed sale is a record. We do not store a photo of your ID
+          or a tax number. A payment company would collect those if real payouts turn on.
         </p>
       </LegalSection>
 
       <LegalSection title="Your choices">
         <p>
-          You can edit neighborhood on You, take listings down by managing a sale, and sign out at any time. To erase
-          everything, open You → Delete account. That is permanent.
+          You can edit neighborhood on You and sign out at any time. Download my data, on that same page, gives you a
+          JSON file of your account, listings, offers, messages, and orders. Other people are handles only. To close
+          the login, open You → Delete account. The sale record is not erased. Email support to reopen a closed login.
         </p>
       </LegalSection>
 

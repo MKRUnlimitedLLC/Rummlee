@@ -2080,6 +2080,189 @@ export const challengeRating = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const exportMyData = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    const uid = context.userId;
+    await ensureProfile(sql, uid);
+    const account = await sql.query<{ name: string; email: string; created_at: string }>(
+      `select name, email, "createdAt" as created_at from "user" where id = $1`,
+      [uid],
+    );
+    const profile = await sql<{
+      handle: string;
+      neighborhood: string | null;
+      zip: string | null;
+      is_premium: boolean;
+      plus_plan: string | null;
+      plus_until: string | null;
+      verified_at: string | null;
+      thumbs_up: number;
+      thumbs_down: number;
+      wallet_cents: number;
+    }>`
+      select handle, neighborhood, zip, is_premium, plus_plan, plus_until, verified_at,
+             thumbs_up, thumbs_down, wallet_cents
+      from profiles where id = ${uid}
+    `;
+    const me = profile[0];
+    const sales = await sql`
+      select id, name, kind, neighborhood, starts_on, ends_on, status, handoff_modes,
+             online_start_dow, online_end_dow, live_on, live_start_dow, live_end_dow,
+             live_open, live_close, meetup_note, created_at
+      from sales where seller_id = ${uid} order by created_at
+    `;
+    const listings = await sql`
+      select id, sale_id, title, description, price_cents, floor_cents, category, condition,
+             haul, size_label, neighborhood, handoff_modes, photo_url, status, created_at
+      from listings where seller_id = ${uid} order by created_at
+    `;
+    const offers = await sql<{
+      id: string;
+      listing_id: string;
+      title: string;
+      role: string;
+      other_handle: string;
+      amount_cents: number;
+      counter_cents: number | null;
+      status: string;
+      note: string | null;
+      created_at: string;
+    }>`
+      select o.id, o.listing_id, l.title,
+             case when o.buyer_id = ${uid} then ${"buyer"} else ${"seller"} end as role,
+             case when o.buyer_id = ${uid} then se.handle else b.handle end as other_handle,
+             o.amount_cents, o.counter_cents, o.status, o.note, o.created_at
+      from offers o
+      join listings l on l.id = o.listing_id
+      join profiles b on b.id = o.buyer_id
+      join profiles se on se.id = o.seller_id
+      where o.buyer_id = ${uid} or o.seller_id = ${uid}
+      order by o.created_at
+    `;
+    const messages = await sql<{
+      id: string;
+      listing_id: string;
+      title: string;
+      direction: string;
+      other_handle: string;
+      body: string;
+      created_at: string;
+    }>`
+      select m.id, m.listing_id, l.title,
+             case when m.from_id = ${uid} then ${"sent"} else ${"received"} end as direction,
+             case when m.from_id = ${uid} then t.handle else f.handle end as other_handle,
+             m.body, m.created_at
+      from messages m
+      join listings l on l.id = m.listing_id
+      join profiles f on f.id = m.from_id
+      join profiles t on t.id = m.to_id
+      where m.from_id = ${uid} or m.to_id = ${uid}
+      order by m.created_at
+    `;
+    const orders = await sql<{
+      id: string;
+      listing_id: string;
+      title: string;
+      role: string;
+      other_handle: string;
+      amount_cents: number;
+      fee_cents: number;
+      tax_cents: number;
+      status: string;
+      handoff_type: string;
+      pickup_code: string;
+      buyer_confirmed: boolean;
+      seller_confirmed: boolean;
+      created_at: string;
+    }>`
+      select o.id, o.listing_id, l.title,
+             case when o.buyer_id = ${uid} then ${"buyer"} else ${"seller"} end as role,
+             case when o.buyer_id = ${uid} then se.handle else b.handle end as other_handle,
+             o.amount_cents, o.fee_cents, o.tax_cents, o.status, o.handoff_type, o.pickup_code,
+             o.buyer_confirmed, o.seller_confirmed, o.created_at
+      from orders o
+      join listings l on l.id = o.listing_id
+      join profiles b on b.id = o.buyer_id
+      join profiles se on se.id = o.seller_id
+      where o.buyer_id = ${uid} or o.seller_id = ${uid}
+      order by o.created_at
+    `;
+    const wallet = await sql`
+      select id, kind, amount_cents, note, created_at
+      from wallet_tx where user_id = ${uid} order by created_at
+    `;
+    const ratingsGiven = await sql<{
+      id: string;
+      order_id: string;
+      other_handle: string;
+      overall: string;
+      comment: string | null;
+      created_at: string;
+    }>`
+      select r.id, r.order_id, p.handle as other_handle, r.overall, r.comment, r.created_at
+      from ratings r join profiles p on p.id = r.subject_id
+      where r.rater_id = ${uid} order by r.created_at
+    `;
+    const ratingsReceived = await sql<{
+      id: string;
+      order_id: string;
+      other_handle: string;
+      overall: string;
+      comment: string | null;
+      created_at: string;
+    }>`
+      select r.id, r.order_id, p.handle as other_handle, r.overall, r.comment, r.created_at
+      from ratings r join profiles p on p.id = r.rater_id
+      where r.subject_id = ${uid} order by r.created_at
+    `;
+    const saved = await sql<{ listing_id: string }>`
+      select listing_id from saved_listings where user_id = ${uid}
+    `;
+    const notices = await sql`
+      select id, kind, title, body, created_at from notices where user_id = ${uid} order by created_at
+    `;
+    const day = new Date().toISOString().slice(0, 10);
+    const json = JSON.stringify(
+      {
+        exportedAt: new Date().toISOString(),
+        product: "Rummlee",
+        about: "Your account data. Other people are handles only. This file has no one else’s email, and no home address from a public listing.",
+        account: account[0]
+          ? { email: account[0].email, name: account[0].name, createdAt: String(account[0].created_at) }
+          : null,
+        profile: me
+          ? {
+              handle: me.handle,
+              neighborhood: me.neighborhood,
+              zip: me.zip,
+              plus: Boolean(me.is_premium),
+              plusPlan: me.plus_plan,
+              plusUntil: me.plus_until ? String(me.plus_until) : null,
+              verified: Boolean(me.verified_at),
+              thumbsUp: Number(me.thumbs_up),
+              thumbsDown: Number(me.thumbs_down),
+              walletCents: Number(me.wallet_cents),
+            }
+          : null,
+        sales,
+        listings,
+        offers,
+        messages,
+        orders,
+        wallet,
+        ratingsGiven,
+        ratingsReceived,
+        savedListingIds: saved.map((row) => row.listing_id),
+        notices,
+      },
+      null,
+      2,
+    );
+    return { filename: `rummlee-data-${day}.json`, json };
+  });
+
 export const deleteMyAccount = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
