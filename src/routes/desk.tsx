@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errMessage } from "@/lib/rummlee/errors";
-import { getCounterHome, scanAtCounter, type CounterHit } from "@/lib/rummlee/desk";
+import { getCounterHome, refuseAtCounter, scanAtCounter, type CounterHit } from "@/lib/rummlee/desk";
 
 export const Route = createFileRoute("/desk")({
   component: DeskPage,
@@ -27,6 +27,7 @@ function DeskPage() {
   const [draft, setDraft] = useState("");
   const [code, setCode] = useState("");
   const [hit, setHit] = useState<CounterHit | null>(null);
+  const [last, setLast] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraOn, setCameraOn] = useState(false);
 
@@ -41,10 +42,22 @@ function DeskPage() {
 
   const scan = useMutation({
     mutationFn: (value: string) => scanAtCounter({ data: { code: value.trim(), deviceSecret: secret || undefined } }),
-    onSuccess: (res) => {
+    onSuccess: (res, value) => {
       setHit(res);
+      setLast(value);
       setCode("");
       void qc.invalidateQueries({ queryKey: ["counter", secret] });
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+
+  const refuse = useMutation({
+    mutationFn: (value: string) => refuseAtCounter({ data: { code: value, deviceSecret: secret || undefined } }),
+    onSuccess: (res) => {
+      setHit(res);
+      setLast("");
+      void qc.invalidateQueries({ queryKey: ["counter", secret] });
+      toast.success("Refused. Buyer is refunded. No names on this screen.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -57,13 +70,27 @@ function DeskPage() {
     let stop = false;
     let stream: MediaStream | null = null;
     const video = videoRef.current;
-    const Detector = (window as unknown as { BarcodeDetector?: new (opts: { formats: string[] }) => { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> } }).BarcodeDetector;
-    if (!video || !Detector || !navigator.mediaDevices) {
+    if (!video || !navigator.mediaDevices) {
       setCameraOn(false);
       toast.message("This browser can’t scan. Type the code instead.");
       return;
     }
-    const detector = new Detector({ formats: ["qr_code"] });
+    let detector: { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> };
+    const Native = (window as unknown as { BarcodeDetector?: new (opts: { formats: string[] }) => { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> } }).BarcodeDetector;
+    if (Native) {
+      detector = new Native({ formats: ["qr_code"] });
+    } else {
+      void import("barcode-detector").then(({ BarcodeDetector }) => {
+        if (stop) return;
+        detector = new BarcodeDetector({ formats: ["qr_code"] });
+      }).catch(() => {
+        if (!stop) {
+          setCameraOn(false);
+          toast.message("This browser can’t scan. Type the code instead.");
+        }
+      });
+      detector = { detect: async () => [] };
+    }
     void navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then((media) => {
       if (stop) {
         media.getTracks().forEach((track) => track.stop());
@@ -76,7 +103,7 @@ function DeskPage() {
       setCameraOn(false);
       toast.message("Camera blocked. Type the code instead.");
     });
-    const last = useRef("");
+    const last = { current: "" };
     const timer = window.setInterval(() => {
       if (!video || video.readyState < 2) return;
       void detector.detect(video).then((codes) => {
@@ -134,7 +161,7 @@ function DeskPage() {
           {hit ? (
             <div className="mt-6 rounded-[28px] bg-surface px-4 py-8 shadow-[var(--shadow-card)]">
               <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">
-                {hit.kind === "in" ? "Tag the package" : hit.kind === "out" ? "Hand off this tag" : hit.kind === "wait" ? "Not checked in" : "Already handed off"}
+                {hit.kind === "in" ? "Tag the package" : hit.kind === "out" ? "Hand off this tag" : hit.kind === "wait" ? "Not checked in" : hit.kind === "refused" ? "Refused" : "Already handed off"}
               </p>
               <p className="mt-2 font-display text-7xl font-semibold tracking-[-0.04em]">
                 {hit.packageNo ?? "—"}
@@ -162,6 +189,17 @@ function DeskPage() {
             <Button type="button" variant="secondary" className="w-full" onClick={() => setCameraOn((on) => !on)}>
               {cameraOn ? "Stop camera" : "Use camera"}
             </Button>
+            {last && hit && (hit.kind === "in" || hit.kind === "wait") ? (
+              <Button
+                type="button"
+                variant="danger"
+                className="w-full"
+                disabled={refuse.isPending}
+                onClick={() => refuse.mutate(last)}
+              >
+                Refuse this package
+              </Button>
+            ) : null}
           </form>
           {cameraOn ? <video ref={videoRef} className="mt-4 aspect-square w-full rounded-2xl bg-fg object-cover" muted playsInline /> : null}
           <button

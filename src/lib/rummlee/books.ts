@@ -55,6 +55,51 @@ export async function writeNotice(
   `;
 }
 
+export async function expireOfficialHolds(sql: Sql) {
+  const rows = await sql<{ id: string; checked_in_at: string | null }>`
+    select id, checked_in_at from orders
+    where status = ${"escrow"}
+      and handoff_type = ${"official"}
+      and (
+        (checked_in_at is null and created_at < now() - interval '2 days')
+        or (checked_in_at is not null and released_at is null and checked_in_at < now() - interval '5 days')
+      )
+    limit 40
+  `;
+  let closed = 0;
+  for (const row of rows) {
+    const reason = row.checked_in_at
+      ? "Buyer did not pick it up within 5 days. The store hold is over."
+      : "Seller did not drop it at the official store within 2 days.";
+    const order = await refundEscrow(sql, row.id, reason);
+    if (!order) continue;
+    closed += 1;
+    await writeNotice(sql, {
+      userId: order.buyer_id,
+      kind: "hold",
+      title: "Handoff refunded",
+      body: reason,
+      refId: order.id,
+    });
+    await writeNotice(sql, {
+      userId: order.seller_id,
+      kind: "hold",
+      title: row.checked_in_at ? "Pick the package back up" : "Drop-off window closed",
+      body: row.checked_in_at
+        ? "The buyer did not come. The store is no longer required to hold it. Collect it from the counter."
+        : "The item was not dropped off in time, so the buyer was refunded.",
+      refId: order.id,
+    });
+  }
+  return closed;
+}
+
+export async function runNightly(sql: Sql) {
+  const released = await releaseDuePayouts(sql);
+  const holdsClosed = await expireOfficialHolds(sql);
+  return { released, holdsClosed };
+}
+
 export async function releaseDuePayouts(sql: Sql) {
   const due = await sql<{ id: string; seller_id: string; payout_cents: number | null }>`
     select id, seller_id, payout_cents from orders
@@ -65,6 +110,7 @@ export async function releaseDuePayouts(sql: Sql) {
       and (dispute_status is null or dispute_status = ${"released"})
     limit 40
   `;
+  let released = 0;
   for (const row of due) {
     const won = await sql<{ id: string }>`
       update orders set paid_out_at = now()
@@ -72,6 +118,7 @@ export async function releaseDuePayouts(sql: Sql) {
       returning id
     `;
     if (!won[0]) continue;
+    released += 1;
     const payout = Number(row.payout_cents ?? 0);
     await sql`update profiles set wallet_cents = wallet_cents + ${payout} where id = ${row.seller_id}`;
     await sql`
@@ -103,6 +150,7 @@ export async function releaseDuePayouts(sql: Sql) {
     });
   }
   await syncReferralBooks(sql);
+  return released;
 }
 
 type HeldOrder = {

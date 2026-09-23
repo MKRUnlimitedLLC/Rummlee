@@ -175,6 +175,16 @@ export default defineConfig(({ command, isPreview }) => ({
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.
             serverDir: "./server",
+            experimental: { tasks: true },
+            scheduledTasks: {
+              "0 10 * * *": ["rummlee:nightly"],
+            },
+            tasks: {
+              "rummlee:nightly": {
+                handler: "./server/tasks/nightly.ts",
+                description: "Release due payouts and close expired official-store holds",
+              },
+            },
           }),
         ]
       : []),

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
+import { storePhoto } from "./photo-store";
 import { feeOn, fitsOfficialCounter, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
 import { MAX_SALE_DAYS, MIN_PRICE_CENTS, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
@@ -1263,7 +1264,7 @@ export const addListing = createServerFn({ method: "POST" })
         ${data.priceCents}, ${data.buyNowCents ?? data.priceCents}, ${null}, ${data.floorCents},
         ${data.category}, ${data.condition}, ${data.haul}, ${data.sizeLabel?.trim() || null}, ${data.pack},
         ${data.weightLbs ?? null}, ${sale[0].neighborhood},
-        ${modes.join(",")}, ${safePhoto(data.photoUrl)}, ${"live"}
+        ${modes.join(",")}, ${await storePhoto(safePhoto(data.photoUrl), `listings/${id}`)}, ${"live"}
       )
     `;
     return { id };
@@ -2063,7 +2064,7 @@ export const submitRating = createServerFn({ method: "POST" })
     };
     const overall = overallThumb(marks);
     const comment = data.comment?.trim() ? data.comment.trim() : null;
-    const photo = data.photoUrl ? safePhoto(data.photoUrl) : null;
+    const photo = data.photoUrl ? await storePhoto(safePhoto(data.photoUrl), `ratings/${crypto.randomUUID()}`) : null;
     await sql`
       insert into ratings (
         id, order_id, rater_id, subject_id, role,
