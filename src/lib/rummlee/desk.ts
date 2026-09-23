@@ -4,9 +4,11 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { ensureProfile, optionalUserId, settleOrder } from "./server";
+import { refundEscrow, writeNotice } from "./books";
+import { TEST_MODE } from "./constants";
 
 export type CounterHit = {
-  kind: "in" | "out" | "wait" | "done";
+  kind: "in" | "out" | "wait" | "done" | "refused";
   packageNo: number | null;
 };
 
@@ -64,8 +66,11 @@ export const scanAtCounter = createServerFn({ method: "POST" })
       handoff_type: string;
       status: string;
       released_at: string | null;
+      buyer_id: string;
+      seller_id: string;
     }>`
-      select id, seller_scan, buyer_scan, package_no, handoff_spot_id, handoff_type, status, released_at
+      select id, seller_scan, buyer_scan, package_no, handoff_spot_id, handoff_type, status, released_at,
+             buyer_id, seller_id
       from orders
       where seller_scan = ${code} or buyer_scan = ${code}
       limit 1
@@ -87,6 +92,13 @@ export const scanAtCounter = createServerFn({ method: "POST" })
         set package_no = ${packageNo}, checked_in_at = now()
         where id = ${order.id} and package_no is null
       `;
+      await writeNotice(sql, {
+        userId: order.buyer_id,
+        kind: "ready",
+        title: "Your package is at the official store",
+        body: "The counter has it. Bring your buyer code. They will not say your name, and this note does not include the package number.",
+        refId: order.id,
+      });
       return { kind: "in", packageNo };
     }
     if (order.package_no == null) return { kind: "wait", packageNo: null };
@@ -98,6 +110,59 @@ export const scanAtCounter = createServerFn({ method: "POST" })
     if (!released[0]) return { kind: "done", packageNo: Number(order.package_no) };
     await settleOrder(sql, order.id);
     return { kind: "out", packageNo: Number(released[0].package_no) };
+  });
+
+export const refuseAtCounter = createServerFn({ method: "POST" })
+  .validator((data: unknown) =>
+    z.object({ code: z.string().min(8).max(80), deviceSecret: z.string().min(8).max(80).optional() }).parse(data),
+  )
+  .handler(async ({ data }): Promise<CounterHit> => {
+    const userId = await optionalUserId();
+    const { sql, spotId } = await counterSpot(data.deviceSecret, userId);
+    const code = data.code.trim();
+    const rows = await sql<{
+      id: string;
+      seller_id: string;
+      buyer_id: string;
+      package_no: number | null;
+      handoff_spot_id: string | null;
+      handoff_type: string;
+      status: string;
+      released_at: string | null;
+    }>`
+      select id, seller_id, buyer_id, package_no, handoff_spot_id, handoff_type, status, released_at
+      from orders
+      where seller_scan = ${code} or buyer_scan = ${code}
+      limit 1
+    `;
+    const order = rows[0];
+    if (!order) throw new Error("That code isn’t a Rummlee handoff.");
+    if (order.handoff_type !== "official" || order.handoff_spot_id !== spotId) {
+      throw new Error("Wrong counter. This sale belongs at another handoff location.");
+    }
+    if (order.released_at || order.status !== "escrow") throw new Error("This package already left the counter.");
+    const packageNo = order.package_no == null ? null : Number(order.package_no);
+    const refunded = await refundEscrow(sql, order.id, "Counter refused the package");
+    if (!refunded) throw new Error("Could not refuse this package.");
+    await writeNotice(sql, {
+      userId: order.seller_id,
+      kind: "refused",
+      title: "Counter did not complete the handoff",
+      body: packageNo
+        ? `Package ${packageNo} is still at the store. Pick it up with your seller code. The buyer was refunded.`
+        : "The counter did not take the package. The buyer was refunded and the listing is live again.",
+      refId: order.id,
+    });
+    await writeNotice(sql, {
+      userId: order.buyer_id,
+      kind: "refund",
+      title: "Handoff refused",
+      body: TEST_MODE
+        ? "The counter sent the package back. Test credits are in your wallet. Not real money."
+        : "The counter sent the package back. The payment was returned.",
+      refId: order.id,
+    });
+    return { kind: "refused", packageNo };
   });
 
 export const getCounterHome = createServerFn({ method: "GET" })
