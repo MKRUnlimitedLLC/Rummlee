@@ -61,7 +61,19 @@ export async function ensureFees(sql: Sql) {
   `;
 }
 
-export async function ensureSeed(sql: Sql) {
+let seedReady: Promise<void> | null = null;
+
+export function ensureSeed(sql: Sql) {
+  if (!seedReady) {
+    seedReady = runSeed(sql).catch((error: unknown) => {
+      seedReady = null;
+      throw error;
+    });
+  }
+  return seedReady;
+}
+
+async function runSeed(sql: Sql) {
   await ensureFees(sql);
   const existing = await sql<{ value: string }>`select value from app_meta where key = ${"seeded"}`;
   if (existing[0]?.value === SEED_VERSION) return;
