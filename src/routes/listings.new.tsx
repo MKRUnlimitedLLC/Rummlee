@@ -7,7 +7,7 @@ import { PhotoInput } from "@/components/photo-input";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { useAuthGate } from "@/components/guest-gate";
-import { CATEGORIES, CONDITIONS, HAULS, MIN_PRICE_CENTS, NEIGHBORHOODS, PASTE_CAP, PLUS_SALE_DAYS_PER_MONTH, SALE_KINDS } from "@/lib/rummlee/constants";
+import { CATEGORIES, CONDITIONS, HAULS, MIN_PRICE_CENTS, NEIGHBORHOODS, PASTE_CAP, PHOTO_FILL_ENABLED, PLUS_SALE_DAYS_PER_MONTH, SALE_KINDS } from "@/lib/rummlee/constants";
 import {
   blankLine,
   guessCategory,
@@ -26,7 +26,7 @@ import {
 import { errMessage } from "@/lib/rummlee/errors";
 import { cityOf, fitsOfficialCounter, money, nextSaturdayIso, splitModes } from "@/lib/rummlee/format";
 import { countSaleDays, DEFAULT_FEES, feeById, formatFeeValue, quoteSaleDays } from "@/lib/rummlee/fees";
-import { addListing, bootstrapPublic, createSale, getMe, topUpWallet } from "@/lib/rummlee/server";
+import { addListing, bootstrapPublic, createSale, fillFromPhoto, getMe, topUpWallet } from "@/lib/rummlee/server";
 import type { HandoffMode } from "@/lib/rummlee/types";
 import { cn } from "@/lib/utils";
 
@@ -244,6 +244,33 @@ function NewListingPage() {
       setPublishNote(message);
       toast.error(message);
     },
+  });
+
+  const fillPhoto = useMutation({
+    mutationFn: (vars: { lineId: string; photoUrl: string }) => fillFromPhoto({ data: { photoUrl: vars.photoUrl } }),
+    onSuccess: (res, vars) => {
+      setDraft((current) => ({
+        ...current,
+        lines: current.lines.map((line) =>
+          line.id === vars.lineId
+            ? {
+                ...line,
+                title: line.title.trim() || res.title,
+                category: res.category,
+                condition: res.condition,
+                haul: res.haul,
+              }
+            : line,
+        ),
+      }));
+      setSaved(false);
+      toast.success(
+        res.chargedCents > 0
+          ? `Filled from the photo. ${money(res.chargedCents)} test. You still set the price and the weight.`
+          : "Filled from the photo. You still set the price and the weight.",
+      );
+    },
+    onError: (error) => toast.error(errMessage(error)),
   });
 
   function onSaveDraft() {
@@ -473,6 +500,26 @@ function NewListingPage() {
             <legend className="px-1 text-sm font-medium">Item {index + 1}</legend>
             <div className={cn(step === 1 ? "space-y-3" : "hidden")}>
             <PhotoInput value={line.photoUrl} onChange={(photoUrl) => updateLine(line.id, { photoUrl })} />
+            {PHOTO_FILL_ENABLED && line.photoUrl ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={fillPhoto.isPending}
+                onClick={() => fillPhoto.mutate({ lineId: line.id, photoUrl: line.photoUrl })}
+              >
+                {fillPhoto.isPending
+                  ? "Looking at the photo…"
+                  : plus
+                    ? "Fill from this photo · Plus"
+                    : `Fill from this photo · ${formatFeeValue(feeById(DEFAULT_FEES, "photo_fill") ?? DEFAULT_FEES[0])}`}
+              </Button>
+            ) : (
+              <p className="text-sm text-muted">
+                Fill from this photo is included with Plus. It suggests the title, category, condition, and haul. You
+                still set the price and the weight. Off during beta.
+              </p>
+            )}
             <p className="text-base font-medium">Add a photo of this item before you continue.</p>
             <div>
               <Label htmlFor={`title-${line.id}`}>What is it?</Label>

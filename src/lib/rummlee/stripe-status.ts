@@ -1,3 +1,5 @@
+import { IDENTITY_CAP, IDENTITY_ENABLED } from "./constants";
+
 /** Real charges stay off while test credits are the wallet. The package is installed for the live cutover. */
 export function stripeStatus() {
   return {
@@ -5,6 +7,9 @@ export function stripeStatus() {
     tax: process.env.STRIPE_TAX_ENABLED === "1",
     connect: Boolean(process.env.STRIPE_CONNECT_CLIENT_ID),
     charges: false,
+    identity: IDENTITY_ENABLED,
+    identityCap: IDENTITY_CAP,
+    webhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
   };
 }
 

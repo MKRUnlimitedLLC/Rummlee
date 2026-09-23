@@ -7,7 +7,9 @@ import { ensureFees, ensureSeed } from "./seed";
 import { storePhoto } from "./photo-store";
 import { feeOn, fitsOfficialCounter, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
-import { MAX_SALE_DAYS, MIN_PRICE_CENTS, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
+import { CITIES, IDENTITY_CAP, IDENTITY_ENABLED, MAX_SALE_DAYS, MIN_PRICE_CENTS, NEIGHBORHOODS, PHOTO_FILL_ENABLED, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
+import { beginIdentity, finishIdentity } from "./identity";
+import { suggestFromPhoto } from "./photo-fill";
 import { overallThumb, type Thumb } from "./trust";
 import { PAYOUT_HOLD_HOURS, releaseDuePayouts, writeLedger, writeNotice, refundEscrow } from "./books";
 import type {
@@ -161,6 +163,52 @@ async function loadFees(sql: Awaited<ReturnType<typeof getSql>>): Promise<FeeRow
   return rows.map(mapFeeRow);
 }
 
+function profileReady(p: { handle?: string | null; neighborhood?: string | null; legalFirstName?: string | null; legalLastName?: string | null; phone?: string | null }) {
+  return Boolean(p.handle && p.neighborhood && p.legalFirstName && p.legalLastName && p.phone);
+}
+
+function mapProfile(p: {
+  id: string;
+  handle: string;
+  neighborhood: string | null;
+  zip: string | null;
+  city?: string | null;
+  legal_first_name?: string | null;
+  legal_last_name?: string | null;
+  phone?: string | null;
+  isPremium: boolean;
+  plusPlan: "month" | "year" | null;
+  plusUntil: string | null;
+  isStaff: boolean;
+  walletCents: number;
+  verified: boolean;
+  thumbsUp: number;
+  thumbsDown: number;
+}): Profile {
+  const legalFirstName = p.legal_first_name?.trim() || null;
+  const legalLastName = p.legal_last_name?.trim() || null;
+  const phone = p.phone?.trim() || null;
+  return {
+    id: p.id,
+    handle: p.handle,
+    neighborhood: p.neighborhood,
+    zip: p.zip,
+    city: p.city?.trim() || null,
+    legalFirstName,
+    legalLastName,
+    phone,
+    profileComplete: profileReady({ handle: p.handle, neighborhood: p.neighborhood, legalFirstName, legalLastName, phone }),
+    isPremium: p.isPremium,
+    plusPlan: p.plusPlan,
+    plusUntil: p.plusUntil,
+    isStaff: p.isStaff,
+    walletCents: p.walletCents,
+    verified: p.verified,
+    thumbsUp: p.thumbsUp,
+    thumbsDown: p.thumbsDown,
+  };
+}
+
 function plusActive(isPremium: boolean, plusUntil: string | Date | null) {
   if (!isPremium) return false;
   if (!plusUntil) return true;
@@ -197,6 +245,10 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
     handle: string;
     neighborhood: string | null;
     zip: string | null;
+    city: string | null;
+    legal_first_name: string | null;
+    legal_last_name: string | null;
+    phone: string | null;
     is_premium: boolean;
     plus_plan: string | null;
     plus_until: string | null;
@@ -206,7 +258,7 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
     thumbs_up: number | null;
     thumbs_down: number | null;
     deleted_at: string | null;
-  }>`select id, handle, neighborhood, zip, is_premium, plus_plan, plus_until, is_staff, wallet_cents, verified_at, thumbs_up, thumbs_down, deleted_at from profiles where id = ${userId}`;
+  }>`select id, handle, neighborhood, zip, city, legal_first_name, legal_last_name, phone, is_premium, plus_plan, plus_until, is_staff, wallet_cents, verified_at, thumbs_up, thumbs_down, deleted_at from profiles where id = ${userId}`;
   if (existing[0]?.deleted_at) {
     throw new Error("This account is closed. Sale records stay on file. Email support to reopen.");
   }
@@ -228,11 +280,15 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
     const thumbs = await sql<{ thumbs_up: number; thumbs_down: number }>`
       select thumbs_up, thumbs_down from profiles where id = ${userId}
     `;
-    return {
+    return mapProfile({
       id: p.id,
       handle,
       neighborhood: p.neighborhood,
       zip: p.zip,
+      city: p.city,
+      legal_first_name: p.legal_first_name,
+      legal_last_name: p.legal_last_name,
+      phone: p.phone,
       isPremium,
       plusPlan: p.plus_plan === "year" || p.plus_plan === "month" ? p.plus_plan : null,
       plusUntil: p.plus_until,
@@ -241,7 +297,7 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
       verified: Boolean(p.verified_at),
       thumbsUp: Number(thumbs[0]?.thumbs_up ?? p.thumbs_up ?? 0),
       thumbsDown: Number(thumbs[0]?.thumbs_down ?? p.thumbs_down ?? 0),
-    };
+    });
   }
   let handle = makeHandle();
   for (let i = 0; i < 8; i += 1) {
@@ -264,11 +320,15 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
   const thumbs = await sql<{ thumbs_up: number; thumbs_down: number }>`
     select thumbs_up, thumbs_down from profiles where id = ${userId}
   `;
-  return {
+  return mapProfile({
     id: userId,
     handle,
     neighborhood: null,
     zip: null,
+    city: null,
+    legal_first_name: null,
+    legal_last_name: null,
+    phone: null,
     isPremium: false,
     plusPlan: null,
     plusUntil: null,
@@ -277,7 +337,7 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
     verified: false,
     thumbsUp: Number(thumbs[0]?.thumbs_up ?? 0),
     thumbsDown: Number(thumbs[0]?.thumbs_down ?? 0),
-  };
+  });
 }
 
 async function recountThumbs(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
@@ -932,16 +992,61 @@ export const updateProfile = createServerFn({ method: "POST" })
         .object({
           neighborhood: z.string().max(80).nullable().optional(),
           zip: z.string().max(12).nullable().optional(),
+          city: z.string().max(80).nullable().optional(),
+          legalFirstName: z.string().max(60).nullable().optional(),
+          legalLastName: z.string().max(60).nullable().optional(),
+          phone: z.string().max(24).nullable().optional(),
+          handle: z.string().min(2).max(40).optional(),
         })
         .parse(data),
   )
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     await ensureProfile(sql, context.userId);
+    const neighborhood = data.neighborhood?.trim() || null;
+    if (data.neighborhood !== undefined && neighborhood && !NEIGHBORHOODS.includes(neighborhood as (typeof NEIGHBORHOODS)[number])) {
+      throw new Error("Pick a neighborhood from the list.");
+    }
+    const city = data.city?.trim() || null;
+    if (data.city !== undefined && city && !CITIES.includes(city as (typeof CITIES)[number])) {
+      throw new Error("Pick a city from the list.");
+    }
+    if (neighborhood && city && cityOf(neighborhood) !== city) {
+      throw new Error("That neighborhood is not in the city you picked.");
+    }
+    const first = data.legalFirstName?.trim() || null;
+    const last = data.legalLastName?.trim() || null;
+    if (data.legalFirstName !== undefined && first && first.length < 1) throw new Error("Add a first name.");
+    if (data.legalLastName !== undefined && last && last.length < 1) throw new Error("Add a last name.");
+    const phone = data.phone?.trim() || null;
+    if (data.phone !== undefined && phone && phone.replace(/\D/g, "").length < 10) {
+      throw new Error("Use a phone number with at least 10 digits.");
+    }
+    const zip = data.zip?.trim() || null;
+    if (data.zip !== undefined && zip && !/^\d{5}(-\d{4})?$/.test(zip)) {
+      throw new Error("Zip should be 5 digits.");
+    }
+    let handle: string | undefined;
+    if (data.handle !== undefined) {
+      try {
+        handle = normalizeHandle(data.handle);
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : "That handle won’t work.");
+      }
+      const taken = await sql<{ id: string }>`
+        select id from profiles where handle = ${handle} and id <> ${context.userId} limit 1
+      `;
+      if (taken[0]) throw new Error("That handle is taken. Try another.");
+    }
     await sql`
       update profiles set
-        neighborhood = coalesce(${data.neighborhood ?? null}, neighborhood),
-        zip = coalesce(${data.zip ?? null}, zip)
+        neighborhood = case when ${data.neighborhood !== undefined} then ${neighborhood} else neighborhood end,
+        zip = case when ${data.zip !== undefined} then ${zip} else zip end,
+        city = case when ${data.city !== undefined} then ${city} else city end,
+        legal_first_name = case when ${data.legalFirstName !== undefined} then ${first} else legal_first_name end,
+        legal_last_name = case when ${data.legalLastName !== undefined} then ${last} else legal_last_name end,
+        phone = case when ${data.phone !== undefined} then ${phone} else phone end,
+        handle = coalesce(${handle ?? null}, handle)
       where id = ${context.userId}
     `;
     return ensureProfile(sql, context.userId);
@@ -1089,6 +1194,7 @@ export const createSale = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     const me = await ensureProfile(sql, context.userId);
+    if (!me.profileComplete) throw new Error("Finish your account first. Your legal name and phone stay private.");
     const days = countSaleDays(data.startsOn, data.endsOn);
     if (days < 1) throw new Error("End date has to be on or after the start.");
     if (days > MAX_SALE_DAYS) throw new Error(`A sale can run at most ${MAX_SALE_DAYS} days.`);
@@ -1222,12 +1328,34 @@ const listingInput = z.object({
   handoffModes: z.array(z.enum(["official", "public", "person", "porch"])).min(1),
 });
 
+export const fillFromPhoto = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ photoUrl: z.string().min(12).max(1_500_000) }).parse(data))
+  .handler(async ({ context, data }) => {
+    if (!PHOTO_FILL_ENABLED) throw new Error("Photo fill is off during beta.");
+    const sql = await getSql();
+    const me = await ensureProfile(sql, context.userId);
+    const suggestion = await suggestFromPhoto(data.photoUrl);
+    const fees = await loadFees(sql);
+    const row = feeById(fees, "photo_fill");
+    const charge = me.isPremium || !row?.enabled ? 0 : row.unit === "cents" ? row.amountCents : 0;
+    if (charge > 0) await debitWallet(sql, me.id, charge);
+    if (charge > 0) {
+      await sql`
+        insert into wallet_tx (id, user_id, kind, amount_cents, note)
+        values (${crypto.randomUUID()}, ${me.id}, ${"photo"}, ${-charge}, ${"Photo fill. Price and weight stay yours."})
+      `;
+    }
+    return { ...suggestion, chargedCents: charge };
+  });
+
 export const addListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: unknown) => listingInput.parse(data))
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    await ensureProfile(sql, context.userId);
+    const me = await ensureProfile(sql, context.userId);
+    if (!me.profileComplete) throw new Error("Finish your account first. Your legal name and phone stay private.");
     const fees = await loadFees(sql);
     const min = minAskingCents(fees);
     if (data.priceCents < min) {
@@ -1283,7 +1411,8 @@ export const sendOffer = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    await ensureProfile(sql, context.userId);
+    const offerer = await ensureProfile(sql, context.userId);
+    if (!offerer.profileComplete) throw new Error("Finish your account first. Your legal name and phone stay private.");
     const listingId = resolveListingId(data.listingId);
     const listing = await sql<{
       id: string;
@@ -1485,6 +1614,7 @@ export const buyNow = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     const me = await ensureProfile(sql, context.userId);
+    if (!me.profileComplete) throw new Error("Finish your account first. Your legal name and phone stay private.");
     const listingId = resolveListingId(data.listingId);
     const listing = await sql<{
       id: string;
@@ -1995,30 +2125,101 @@ export const getOrder = createServerFn({ method: "GET" })
 export const verifyId = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
+    if (!IDENTITY_ENABLED) throw new Error("ID checks are off during beta.");
     const sql = await getSql();
     const me = await ensureProfile(sql, context.userId);
-    if (me.verified) return { verified: true as const, chargedCents: 0 };
-    await assertIdAvailable(sql, context.userId);
-    const fees = await loadFees(sql);
-    const row = feeById(fees, "id_verify");
-    const charge = me.isPremium ? 0 : row?.enabled ? (row.unit === "cents" ? row.amountCents : 0) : 0;
-    if (charge > 0) await debitWallet(sql, me.id, charge);
-    await sql`update profiles set verified_at = now() where id = ${me.id}`;
-    if (charge > 0) {
-      await sql`
-        insert into wallet_tx (id, user_id, kind, amount_cents, note)
-        values (
-          ${crypto.randomUUID()},
-          ${me.id},
-          ${"verify"},
-          ${-charge},
-          ${TEST_MODE ? "Test ID verification (no ID photo stored)" : "ID verification (no ID photo stored)"}
-        )
-      `;
+    if (me.verified && me) return { verified: true as const, chargedCents: 0, url: null as string | null };
+    if (!me.legalFirstName || !me.legalLastName) {
+      throw new Error("Add your legal name on your account before an ID check.");
     }
-    await claimIdentity(sql, me.id);
-    return { verified: true as const, chargedCents: charge };
+    await assertIdAvailable(sql, context.userId);
+    const started = await beginIdentity(sql, me.id);
+    return { verified: false as const, chargedCents: 0, url: started.url };
   });
+
+export const finishIdentityCheck = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => completeIdentitySession(context.userId));
+
+/** Shared by the browser return and the Stripe webhook. Idempotent. Does not store the ID photo. */
+export async function completeIdentitySession(profileId: string, sessionId?: string) {
+  if (!IDENTITY_ENABLED) throw new Error("ID checks are off during beta.");
+  const sql = await getSql();
+  const me = await ensureProfile(sql, profileId);
+  if (me.verified) return { verified: true as const, chargedCents: 0 };
+  const result = await finishIdentity(sql, profileId, sessionId);
+  if (result.outcome === "pending") throw new Error("The ID check is still running. Check back in a minute.");
+  if (result.outcome === "mismatch") {
+    throw new Error("The name on the account does not match the ID. No badge.");
+  }
+  if (result.outcome !== "verified" || !result.sessionId) throw new Error("The ID check did not finish. No badge.");
+  const existing = await sql<{ status: string }>`
+    select status from identity_checks where session_id = ${result.sessionId}
+  `;
+  if (existing[0]?.status === "verified") {
+    await sql`update profiles set verified_at = coalesce(verified_at, now()), identity_provider = ${"stripe"} where id = ${me.id}`;
+    return { verified: true as const, chargedCents: 0 };
+  }
+  const used = await sql<{ n: number }>`
+    select count(*)::int as n from identity_checks where provider = ${"stripe"} and status = ${"verified"}
+  `;
+  if (Number(used[0]?.n ?? 0) >= IDENTITY_CAP) throw new Error("ID checks are paused. The cap of 50 has been reached.");
+  if (result.govFingerprint) {
+    const taken = await sql<{ profile_id: string; active: boolean }>`
+      select profile_id, active from identity_locks where fingerprint = ${result.govFingerprint}
+    `;
+    if (taken[0]?.active && taken[0].profile_id !== me.id) {
+      await sql`update identity_checks set status = ${"id_in_use"} where session_id = ${result.sessionId} and status = ${"started"}`;
+      throw new Error("This ID already has a live account. One account at a time. Email support to reset — ratings stay with the ID.");
+    }
+  }
+  const fees = await loadFees(sql);
+  const row = feeById(fees, "id_verify");
+  const charge = me.isPremium ? 0 : row?.enabled ? (row.unit === "cents" ? row.amountCents : 0) : 0;
+  const marked = await sql<{ id: string }>`
+    update identity_checks set status = ${"verified"}
+    where session_id = ${result.sessionId} and status = ${"started"}
+    returning id
+  `;
+  if (!marked[0]) return { verified: false as const, chargedCents: 0 };
+  try {
+    if (charge > 0) await debitWallet(sql, me.id, charge);
+  } catch (error) {
+    await sql`update identity_checks set status = ${"started"} where session_id = ${result.sessionId}`;
+    throw error;
+  }
+  await sql`update profiles set verified_at = now(), identity_provider = ${"stripe"} where id = ${me.id}`;
+  if (charge > 0) {
+    await sql`
+      insert into wallet_tx (id, user_id, kind, amount_cents, note)
+      values (${crypto.randomUUID()}, ${me.id}, ${"verify"}, ${-charge}, ${"ID Verified. No ID photo stored."})
+    `;
+  }
+  await claimIdentity(sql, me.id);
+  if (result.govFingerprint) {
+    const thumbs = await sql<{ thumbs_up: number; thumbs_down: number }>`
+      select thumbs_up, thumbs_down from profiles where id = ${me.id}
+    `;
+    await sql`
+      insert into identity_locks (fingerprint, kind, profile_id, active, thumbs_up, thumbs_down, released_at)
+      values (
+        ${result.govFingerprint},
+        ${"gov_id"},
+        ${me.id},
+        ${true},
+        ${Number(thumbs[0]?.thumbs_up ?? 0)},
+        ${Number(thumbs[0]?.thumbs_down ?? 0)},
+        ${null}
+      )
+      on conflict (fingerprint) do update set
+        profile_id = ${me.id},
+        active = true,
+        released_at = null,
+        updated_at = now()
+    `;
+  }
+  return { verified: true as const, chargedCents: charge };
+}
 
 export const submitRating = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
@@ -2116,6 +2317,10 @@ export const exportMyData = createServerFn({ method: "GET" })
       handle: string;
       neighborhood: string | null;
       zip: string | null;
+      city: string | null;
+      legal_first_name: string | null;
+      legal_last_name: string | null;
+      phone: string | null;
       is_premium: boolean;
       plus_plan: string | null;
       plus_until: string | null;
@@ -2124,7 +2329,7 @@ export const exportMyData = createServerFn({ method: "GET" })
       thumbs_down: number;
       wallet_cents: number;
     }>`
-      select handle, neighborhood, zip, is_premium, plus_plan, plus_until, verified_at,
+      select handle, neighborhood, zip, city, legal_first_name, legal_last_name, phone, is_premium, plus_plan, plus_until, verified_at,
              thumbs_up, thumbs_down, wallet_cents
       from profiles where id = ${uid}
     `;
@@ -2258,7 +2463,12 @@ export const exportMyData = createServerFn({ method: "GET" })
           ? {
               handle: me.handle,
               neighborhood: me.neighborhood,
+              city: me.city,
               zip: me.zip,
+              legalFirstName: me.legal_first_name,
+              legalLastName: me.legal_last_name,
+              phone: me.phone,
+              privateNote: "Legal name and phone are on this account only. They are not on listings.",
               plus: Boolean(me.is_premium),
               plusPlan: me.plus_plan,
               plusUntil: me.plus_until ? String(me.plus_until) : null,

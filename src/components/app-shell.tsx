@@ -22,7 +22,7 @@ const TABS = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const hideNav = pathname.startsWith("/login");
+  const hideNav = pathname.startsWith("/login") || pathname.startsWith("/welcome");
   const [large, setLarge] = useState(false);
   useEffect(() => {
     const on = localStorage.getItem("rummlee.largeType") === "1";
@@ -63,6 +63,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <AuthChip />
         </div>
         <SessionDrift />
+        <OnboardingGate pathname={pathname} />
         {TEST_MODE ? (
           <p className="border-t border-border/60 bg-primary-soft px-4 py-2 text-center text-base font-medium text-primary-ink">
             {TEST_PAY_NOTE}
@@ -133,6 +134,25 @@ function AuthChip() {
       Sign in
     </Link>
   );
+}
+
+function OnboardingGate({ pathname }: { pathname: string }) {
+  const gated =
+    pathname.startsWith("/listings/new") ||
+    pathname.startsWith("/sell") ||
+    pathname.startsWith("/inbox") ||
+    pathname.startsWith("/pickup");
+  const { user } = useCurrentUserState();
+  const meQ = useQuery({
+    queryKey: ["me"],
+    queryFn: () => getMe(),
+    enabled: Boolean(user) && gated,
+  });
+  useEffect(() => {
+    if (!gated || !meQ.data) return;
+    if (!meQ.data.me.profileComplete) window.location.assign("/welcome");
+  }, [gated, meQ.data]);
+  return null;
 }
 
 function SessionDrift() {

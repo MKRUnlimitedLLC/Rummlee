@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/logo";
 import { toast } from "sonner";
 import { peekAfterLogin, takeAfterLogin } from "@/lib/rummlee/draft";
 import { errMessage } from "@/lib/rummlee/errors";
+import { getMe } from "@/lib/rummlee/server";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
@@ -21,11 +22,18 @@ function Login() {
     setBusy(true);
     try {
       if (mode === "up") {
-        const res = await authClient.signUp.email({ email, password, name: email.split("@")[0] ?? "Neighbor" });
+        const res = await authClient.signUp.email({ email, password, name: "Neighbor" });
         if (res.error) throw new Error(res.error.message ?? "Could not create account");
+        window.location.assign("/welcome");
+        return;
       } else {
         const res = await authClient.signIn.email({ email, password });
         if (res.error) throw new Error(res.error.message ?? "Could not sign in");
+        const me = await getMe().catch(() => null);
+        if (!me?.me.profileComplete) {
+          window.location.assign("/welcome");
+          return;
+        }
       }
       window.location.assign(takeAfterLogin());
     } catch (err) {

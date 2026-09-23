@@ -4,6 +4,14 @@ export const MIN_PRICE_CENTS = 500;
 export const PASTE_CAP = 40;
 export const HOLD_LINE = "Money held until both confirm pickup.";
 
+/** Stripe Identity is wired and capped. Off for the beta. Do not flip this without an explicit go-ahead. */
+export const IDENTITY_ENABLED = false;
+/** Successful Stripe ID matches allowed while the cap is on. */
+export const IDENTITY_CAP = 50;
+
+/** Photo fill suggests a title and category from the picture. Off for the beta. Plus includes it. */
+export const PHOTO_FILL_ENABLED = false;
+
 /** Beta: full product until pay. Pay is simulated test credits — never a card or bank. Flip off only when real billing is live. */
 export const TEST_MODE = true;
 export const TEST_STARTER_CENTS = 20000;

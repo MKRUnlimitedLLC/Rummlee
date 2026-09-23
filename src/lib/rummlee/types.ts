@@ -11,6 +11,11 @@ export type Profile = {
   handle: string;
   neighborhood: string | null;
   zip: string | null;
+  city: string | null;
+  legalFirstName: string | null;
+  legalLastName: string | null;
+  phone: string | null;
+  profileComplete: boolean;
   isPremium: boolean;
   plusPlan: "month" | "year" | null;
   plusUntil: string | null;

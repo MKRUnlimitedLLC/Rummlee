@@ -17,10 +17,10 @@ export function VerifiedBadge({ verified, className }: { verified?: boolean; cla
         "inline-flex items-center gap-0.5 text-sm font-medium text-primary-ink",
         className,
       )}
-      title="ID verified. Rummlee does not keep a photo of their ID."
+      title="ID Verified. This is on their account. Rummlee does not keep a photo of their ID."
     >
       <BadgeCheck className="size-4" strokeWidth={1.75} />
-      Verified
+      ID Verified
     </span>
   );
 }

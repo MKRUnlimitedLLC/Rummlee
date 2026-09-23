@@ -26,6 +26,10 @@ function SalesPage() {
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">This weekend</h1>
       <p className="mt-1 text-muted">
         Neighborhood sales from Brooklyn to Scottsdale. Offer now — meet at a handoff location, never a home address.{" "}
+        <Link to="/sales/how" className="font-medium text-primary-ink">
+          How to run one in person
+        </Link>
+        {" · "}
         <Link to="/corporate" className="font-medium text-primary-ink">
           Stores: apply
         </Link>

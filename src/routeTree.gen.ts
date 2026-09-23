@@ -22,13 +22,16 @@ import { Route as RecordsRouteImport } from './routes/records'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as YouRouteImport } from './routes/you'
 import { Route as ListingsIdRouteImport } from './routes/listings.$id'
 import { Route as ListingsNewRouteImport } from './routes/listings.new'
 import { Route as PickupIdRouteImport } from './routes/pickup.$id'
 import { Route as SalesIndexRouteImport } from './routes/sales.index'
 import { Route as SalesIdRouteImport } from './routes/sales.$id'
+import { Route as SalesHowRouteImport } from './routes/sales.how'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -95,6 +98,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const YouRoute = YouRouteImport.update({
   id: '/you',
   path: '/you',
@@ -125,9 +133,19 @@ const SalesIdRoute = SalesIdRouteImport.update({
   path: '/sales/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SalesHowRoute = SalesHowRouteImport.update({
+  id: '/sales/how',
+  path: '/sales/how',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe/webhook',
+  path: '/api/stripe/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -145,13 +163,16 @@ export interface FileRoutesByFullPath {
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
   '/listings/$id': typeof ListingsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/pickup/$id': typeof PickupIdRoute
   '/sales/$id': typeof SalesIdRoute
+  '/sales/how': typeof SalesHowRoute
   '/sales/': typeof SalesIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -167,13 +188,16 @@ export interface FileRoutesByTo {
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
   '/listings/$id': typeof ListingsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/pickup/$id': typeof PickupIdRoute
   '/sales/$id': typeof SalesIdRoute
+  '/sales/how': typeof SalesHowRoute
   '/sales': typeof SalesIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -190,13 +214,16 @@ export interface FileRoutesById {
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/you': typeof YouRoute
   '/listings/$id': typeof ListingsIdRoute
   '/listings/new': typeof ListingsNewRoute
   '/pickup/$id': typeof PickupIdRoute
   '/sales/$id': typeof SalesIdRoute
+  '/sales/how': typeof SalesHowRoute
   '/sales/': typeof SalesIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/stripe/webhook': typeof ApiStripeWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -214,13 +241,16 @@ export interface FileRouteTypes {
     | '/sell'
     | '/support'
     | '/terms'
+    | '/welcome'
     | '/you'
     | '/listings/$id'
     | '/listings/new'
     | '/pickup/$id'
     | '/sales/$id'
+    | '/sales/how'
     | '/sales/'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -236,13 +266,16 @@ export interface FileRouteTypes {
     | '/sell'
     | '/support'
     | '/terms'
+    | '/welcome'
     | '/you'
     | '/listings/$id'
     | '/listings/new'
     | '/pickup/$id'
     | '/sales/$id'
+    | '/sales/how'
     | '/sales'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
   id:
     | '__root__'
     | '/'
@@ -258,13 +291,16 @@ export interface FileRouteTypes {
     | '/sell'
     | '/support'
     | '/terms'
+    | '/welcome'
     | '/you'
     | '/listings/$id'
     | '/listings/new'
     | '/pickup/$id'
     | '/sales/$id'
+    | '/sales/how'
     | '/sales/'
     | '/api/auth/$'
+    | '/api/stripe/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -281,13 +317,16 @@ export interface RootRouteChildren {
   SellRoute: typeof SellRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
+  WelcomeRoute: typeof WelcomeRoute
   YouRoute: typeof YouRoute
   ListingsIdRoute: typeof ListingsIdRoute
   ListingsNewRoute: typeof ListingsNewRoute
   PickupIdRoute: typeof PickupIdRoute
   SalesIdRoute: typeof SalesIdRoute
+  SalesHowRoute: typeof SalesHowRoute
   SalesIndexRoute: typeof SalesIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -383,6 +422,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/you': {
       id: '/you'
       path: '/you'
@@ -425,11 +471,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sales/how': {
+      id: '/sales/how'
+      path: '/sales/how'
+      fullPath: '/sales/how'
+      preLoaderRoute: typeof SalesHowRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stripe/webhook': {
+      id: '/api/stripe/webhook'
+      path: '/api/stripe/webhook'
+      fullPath: '/api/stripe/webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -449,13 +509,16 @@ const rootRouteChildren: RootRouteChildren = {
   SellRoute: SellRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
+  WelcomeRoute: WelcomeRoute,
   YouRoute: YouRoute,
   ListingsIdRoute: ListingsIdRoute,
   ListingsNewRoute: ListingsNewRoute,
   PickupIdRoute: PickupIdRoute,
   SalesIdRoute: SalesIdRoute,
+  SalesHowRoute: SalesHowRoute,
   SalesIndexRoute: SalesIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -24,16 +24,18 @@ function Privacy() {
         <ul className="list-disc space-y-2 pl-5">
           <li>
             <strong>Account.</strong> Email if you sign up that way, or the name and email your Google or X account
-            shares when you continue with those. We generate an anonymous handle. Your real name is never shown to
-            other neighbors.
+            shares when you continue with those. We generate an anonymous handle. Your legal first and last name, and
+            your phone, stay on the account. They are never shown to other neighbors.
           </li>
           <li>
-            <strong>Profile.</strong> Neighborhood you pick, optional zip, Rummlee Plus status, and in-app test-credit
-            wallet. Beta pay is simulated. We do not take card numbers.
+            <strong>Profile.</strong> City and neighborhood you pick, optional zip, Rummlee Plus status, and in-app
+            test-credit wallet. Legal name and phone are private account fields. Beta pay is simulated. We do not take
+            card numbers. We never ask for a street or home address.
           </li>
           <li>
             <strong>Listings.</strong> Titles, descriptions, prices, photos you upload, sale dates, and how you want to
-            hand off (an official partner store, a public place, or optional person to person).
+            hand off (an official partner store, a public place, or optional person to person). Photo fill, when it is
+            on, sends that photo to suggest a title and category. It is off during beta. It does not set your price.
           </li>
           <li>
             <strong>Deals.</strong> Offers, messages, pickup codes, and whether both of you confirmed the handoff.

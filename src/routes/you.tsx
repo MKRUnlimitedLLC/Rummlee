@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { GuestGate, useAuthGate } from "@/components/guest-gate";
 import { UserButton } from "@/lib/auth/gates";
@@ -10,11 +10,11 @@ import { Input, Label } from "@/components/ui/input";
 import { ListingCard } from "@/components/listing-card";
 import { LegalLinks } from "@/components/legal";
 import { RateHandoff, ThumbTally, VerifiedBadge } from "@/components/trust";
-import { NEIGHBORHOODS, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
+import { NEIGHBORHOODS, CITIES, IDENTITY_ENABLED, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { errMessage } from "@/lib/rummlee/errors";
-import { money, saleWindow } from "@/lib/rummlee/format";
+import { cityOf, money, saleWindow } from "@/lib/rummlee/format";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
-import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, exportMyData, verifyId, challengeRating, releaseIdentity, setHandle } from "@/lib/rummlee/server";
+import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, exportMyData, verifyId, finishIdentityCheck, challengeRating, releaseIdentity, setHandle } from "@/lib/rummlee/server";
 
 export const Route = createFileRoute("/you")({ component: YouPage });
 
@@ -52,11 +52,14 @@ function YouPage() {
     onError: (e) => toast.error(errMessage(e)),
   });
 
-  const saveProf = useMutation({
-    mutationFn: (neighborhood: string) => updateProfile({ data: { neighborhood } }),
+  const savePrivate = useMutation({
+    mutationFn: () =>
+      updateProfile({
+        data: { city, neighborhood: hood, zip, legalFirstName: first, legalLastName: last, phone },
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["me"] });
-      toast.success("Neighborhood saved.");
+      toast.success("Saved. Neighbors still only see your handle.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -66,6 +69,22 @@ function YouPage() {
   const [challengeNote, setChallengeNote] = useState("");
   const [releaseHandle, setReleaseHandle] = useState("");
   const [nextHandle, setNextHandle] = useState("");
+  const [city, setCity] = useState("");
+  const [hood, setHood] = useState("");
+  const [zip, setZip] = useState("");
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
+  const [phone, setPhone] = useState("");
+  const me = q.data?.me;
+  useEffect(() => {
+    if (!me) return;
+    setCity(me.city ?? (me.neighborhood ? cityOf(me.neighborhood) : ""));
+    setHood(me.neighborhood ?? "");
+    setZip(me.zip ?? "");
+    setFirst(me.legalFirstName ?? "");
+    setLast(me.legalLastName ?? "");
+    setPhone(me.phone ?? "");
+  }, [me]);
 
   const handleSave = useMutation({
     mutationFn: () => setHandle({ data: { handle: nextHandle } }),
@@ -82,15 +101,36 @@ function YouPage() {
   const verify = useMutation({
     mutationFn: () => verifyId(),
     onSuccess: (res) => {
+      if (res.url) {
+        window.location.assign(res.url);
+        return;
+      }
       void qc.invalidateQueries({ queryKey: ["me"] });
+      toast.success("ID Verified is already on this account.");
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const finishVerify = useMutation({
+    mutationFn: () => finishIdentityCheck(),
+    onSuccess: (res) => {
+      void qc.invalidateQueries({ queryKey: ["me"] });
+      window.history.replaceState(null, "", "/you");
       toast.success(
         res.chargedCents > 0
-          ? `Verified. ${TEST_MODE ? "Test credits" : "Wallet"} charged ${formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])}. No ID photo stored.`
-          : "Verified. Free with Rummlee Plus. No ID photo stored.",
+          ? "ID Verified. The name matched. No ID photo stored."
+          : "ID Verified. Free with Plus. The name matched. No ID photo stored.",
       );
     },
     onError: (e) => toast.error(errMessage(e)),
   });
+  const finishOnce = useRef(false);
+  useEffect(() => {
+    if (!IDENTITY_ENABLED || !user || finishOnce.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("identity") !== "return") return;
+    finishOnce.current = true;
+    finishVerify.mutate();
+  }, [user, finishVerify]);
 
   const challenge = useMutation({
     mutationFn: () => challengeRating({ data: { ratingId: challengeId!, note: challengeNote } }),
@@ -156,7 +196,6 @@ function YouPage() {
     );
   }
   if (showLoading || !user) return <div className="py-16 text-center text-muted">Loading…</div>;
-  const me = q.data?.me;
 
   return (
     <main className="py-6">
@@ -249,29 +288,26 @@ function YouPage() {
       </section>
 
       <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
-        <p className="font-medium">Verified badge</p>
+        <p className="font-medium">ID Verified</p>
         <p className="mt-1 text-sm text-muted">
-          ID check, one time. Free with Plus, or {formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])}.
-          This beta badge does not check a government ID. When real payouts turn on, the payment company checks identity.
-          Rummlee does not keep a photo of your ID, and we do not take a tax number here. Neighbors see the badge and
-          your handle, not your name. One live account per ID. A new account does not clear thumbs.
+          A badge on this account. Stripe Identity checks that the legal name matches the ID. Rummlee does not keep
+          the photo. Free with Plus, or a one-time fee if you are not on Plus. Off during beta. Capped at 50 successful
+          checks until we turn it up. One live account per ID. A new account does not clear thumbs.
         </p>
         {me?.verified ? (
           <p className="mt-3 text-sm text-fg">
-            <VerifiedBadge verified /> You’re verified.
+            <VerifiedBadge verified /> On this account.
           </p>
-        ) : (
+        ) : IDENTITY_ENABLED ? (
           <Button className="mt-3" size="sm" onClick={() => verify.mutate()} disabled={verify.isPending}>
             {verify.isPending
-              ? "Checking…"
+              ? "Opening the ID check…"
               : me?.isPremium
-                ? TEST_MODE
-                  ? "Verify ID · free with Plus (test)"
-                  : "Verify ID · free with Plus"
-                : TEST_MODE
-                  ? `Verify ID · ${formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])} test`
-                  : `Verify ID · ${formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])}`}
+                ? "Verify ID · free with Plus"
+                : `Verify ID · ${formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])}`}
           </Button>
+        ) : (
+          <p className="mt-3 text-sm text-fg">ID checks are off during beta. No badge until we turn this on.</p>
         )}
       </section>
 
@@ -344,18 +380,64 @@ function YouPage() {
       ) : null}
 
       <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
-        <Label htmlFor="hood">Your neighborhood</Label>
-        <select
-          id="hood"
-          className="h-11 w-full rounded-lg bg-bg px-3 text-[15px] shadow-[0_0_0_1px_rgba(28,25,21,0.1)]"
-          value={me?.neighborhood ?? ""}
-          onChange={(e) => saveProf.mutate(e.target.value)}
-        >
-          <option value="">Choose one</option>
-          {NEIGHBORHOODS.map((n) => (
-            <option key={n}>{n}</option>
-          ))}
-        </select>
+        <p className="font-medium">City and neighborhood</p>
+        <p className="mt-1 text-sm text-muted">Neighbors can see the neighborhood. Never a street.</p>
+        <div className="mt-3 space-y-3">
+          <div>
+            <Label htmlFor="city">City</Label>
+            <select
+              id="city"
+              className="h-11 w-full rounded-lg bg-bg px-3 text-[15px] shadow-[0_0_0_1px_rgba(28,25,21,0.1)]"
+              value={city}
+              onChange={(e) => {
+                setCity(e.target.value);
+                setHood("");
+              }}
+            >
+              <option value="">Choose a city</option>
+              {CITIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="hood">Neighborhood</Label>
+            <select
+              id="hood"
+              className="h-11 w-full rounded-lg bg-bg px-3 text-[15px] shadow-[0_0_0_1px_rgba(28,25,21,0.1)]"
+              value={hood}
+              onChange={(e) => setHood(e.target.value)}
+            >
+              <option value="">Choose one</option>
+              {(city ? NEIGHBORHOODS.filter((n) => cityOf(n) === city) : NEIGHBORHOODS).map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="zip">Zip (optional)</Label>
+            <Input id="zip" inputMode="numeric" autoComplete="postal-code" value={zip} onChange={(e) => setZip(e.target.value)} />
+          </div>
+        </div>
+        <p className="mt-4 font-medium">Private</p>
+        <p className="mt-1 text-sm text-muted">Legal name and phone stay on this account. They are not on listings.</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div>
+            <Label htmlFor="first">Legal first name</Label>
+            <Input id="first" autoComplete="given-name" value={first} onChange={(e) => setFirst(e.target.value)} />
+          </div>
+          <div>
+            <Label htmlFor="last">Legal last name</Label>
+            <Input id="last" autoComplete="family-name" value={last} onChange={(e) => setLast(e.target.value)} />
+          </div>
+        </div>
+        <div className="mt-3">
+          <Label htmlFor="phone">Phone</Label>
+          <Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        </div>
+        <Button className="mt-3" size="sm" onClick={() => savePrivate.mutate()} disabled={savePrivate.isPending}>
+          {savePrivate.isPending ? "Saving…" : "Save"}
+        </Button>
       </section>
 
       <section className="mt-8">
