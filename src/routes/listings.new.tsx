@@ -24,7 +24,7 @@ import {
   type ListingDraft,
 } from "@/lib/rummlee/draft";
 import { errMessage } from "@/lib/rummlee/errors";
-import { cityOf, money, nextSaturdayIso, splitModes } from "@/lib/rummlee/format";
+import { cityOf, fitsOfficialCounter, money, nextSaturdayIso, splitModes } from "@/lib/rummlee/format";
 import { countSaleDays, DEFAULT_FEES, feeById, formatFeeValue, quoteSaleDays } from "@/lib/rummlee/fees";
 import { addListing, bootstrapPublic, createSale, getMe, topUpWallet } from "@/lib/rummlee/server";
 import type { HandoffMode } from "@/lib/rummlee/types";
@@ -208,6 +208,7 @@ function NewListingPage() {
             photoUrl: line.photoUrl,
             sizeLabel: line.sizeLabel.trim() || undefined,
             pack: line.pack === "as_is" ? "as_is" : "box",
+            weightLbs: line.weightLbs?.trim() ? Math.round(Number(line.weightLbs)) : null,
             handoffModes: modes,
           },
         });
@@ -529,6 +530,27 @@ function NewListingPage() {
               <p className="mt-1 text-sm text-muted">
                 Prefer an outer box when it fits. As-is is for something a box would not help. Buyers rate this at the handoff.
               </p>
+            </div>
+            <div>
+              <Label htmlFor={`weight-${line.id}`}>Weight (lb)</Label>
+              <Input
+                id={`weight-${line.id}`}
+                inputMode="numeric"
+                value={line.weightLbs ?? ""}
+                onChange={(event) => updateLine(line.id, { weightLbs: event.target.value.replace(/[^\d]/g, "").slice(0, 4) })}
+                placeholder="50 or under can use an official store"
+              />
+              {!fitsOfficialCounter({
+                pack: line.pack,
+                weightLbs: line.weightLbs?.trim() ? Number(line.weightLbs) : null,
+                haul: line.haul,
+              }) ? (
+                <p className="mt-1 text-sm text-fg">
+                  In person only. An official store can’t take this. You arrange the pickup, or the buyer can offer to haul it.
+                </p>
+              ) : (
+                <p className="mt-1 text-sm text-muted">Over 50 lb, not in a box, or needs a truck stays off the official store counter.</p>
+              )}
             </div>
             </div>
             <div className={cn(step === 2 ? "space-y-3" : "hidden")}>

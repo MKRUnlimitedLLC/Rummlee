@@ -12,7 +12,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { TEST_MODE } from "@/lib/rummlee/constants";
 import { lastCity, loadSavedIds, rememberAfterLogin, toggleLocalSaved } from "@/lib/rummlee/draft";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
-import { categoryLabel, cityOf, haulLabel, liveWindowLine, money, onlineWindowLine, packLabel, payBaseCents, saleWindow } from "@/lib/rummlee/format";
+import { categoryLabel, cityOf, fitsOfficialCounter, haulLabel, liveWindowLine, money, onlineWindowLine, packLabel, payBaseCents, PERSON_ONLY_LINE, saleWindow } from "@/lib/rummlee/format";
 import { checkoutQuote } from "@/lib/rummlee/fees";
 import { buyNow, getListing, markSoldOutside, respondOffer, sendMessage, sendOffer, toggleSaved, topUpWallet } from "@/lib/rummlee/server";
 
@@ -90,7 +90,11 @@ function ListingPage() {
     {
       id: "person" as const,
       label: "In person handoff",
-      hint: personOk ? "Meet as handles. Still no home address." : "Seller didn’t offer this on this item.",
+      hint: personOk
+        ? fitsOfficialCounter(listing)
+          ? "Meet as handles. Still no home address."
+          : "Seller arranges pickup, or you can offer to haul it. Still no home address."
+        : "Seller didn’t offer this on this item.",
       enabled: personOk,
     },
   ];
@@ -305,6 +309,8 @@ function ListingPage() {
             <Meta label="Haul" value={haulLabel(listing.haul)} />
             {listing.sizeLabel ? <Meta label="Size" value={listing.sizeLabel} /> : null}
             {packLabel(listing.pack) ? <Meta label="Packed" value={packLabel(listing.pack) ?? ""} /> : null}
+            {listing.weightLbs ? <Meta label="Weight" value={`${listing.weightLbs} lb`} /> : null}
+            {!fitsOfficialCounter(listing) ? <p className="text-base text-fg sm:col-span-2">{PERSON_ONLY_LINE}</p> : null}
             <Meta label="Sale" value={listing.saleName} />
           </dl>
           <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary-ink">

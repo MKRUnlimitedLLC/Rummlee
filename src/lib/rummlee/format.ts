@@ -221,3 +221,16 @@ export function packLabel(pack: string | null | undefined) {
   if (pack === "as_is") return "As is";
   return null;
 }
+
+/** Official store counters are for a boxed item at 50 lb or under. */
+export const COUNTER_MAX_LBS = 50;
+
+export function fitsOfficialCounter(input: { pack?: string | null; weightLbs?: number | null; haul?: string | null }) {
+  if (input.pack === "as_is") return false;
+  if (input.haul === "truck") return false;
+  if (input.weightLbs != null && input.weightLbs > COUNTER_MAX_LBS) return false;
+  return true;
+}
+
+export const PERSON_ONLY_LINE =
+  "In person only. Over 50 lb, not in a box, or needs a truck. The seller arranges pickup, or the buyer can offer delivery.";

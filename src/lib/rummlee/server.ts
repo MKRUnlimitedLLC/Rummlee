@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
-import { feeOn, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
+import { feeOn, fitsOfficialCounter, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
 import { MAX_SALE_DAYS, MIN_PRICE_CENTS, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
 import { overallThumb, type Thumb } from "./trust";
@@ -42,6 +42,7 @@ type ListingRow = {
   haul: string;
   size_label: string | null;
   pack: string | null;
+  weight_lbs: number | null;
   neighborhood: string;
   handoff_modes: string;
   handoff_spot_name: string | null;
@@ -83,8 +84,15 @@ function mapListing(row: ListingRow, saved = false): Listing {
     haul: row.haul,
     sizeLabel: row.size_label?.trim() ? row.size_label.trim() : null,
     pack: row.pack === "box" || row.pack === "as_is" ? row.pack : null,
+    weightLbs: row.weight_lbs == null ? null : Number(row.weight_lbs),
     neighborhood: row.neighborhood,
-    handoffModes: splitModes(row.handoff_modes),
+    handoffModes: fitsOfficialCounter({
+      pack: row.pack,
+      weightLbs: row.weight_lbs == null ? null : Number(row.weight_lbs),
+      haul: row.haul,
+    })
+      ? splitModes(row.handoff_modes)
+      : ["person"],
     handoffSpotName: row.handoff_spot_name,
     handoffSpotArea: row.handoff_spot_area,
     handoffSpotHint: row.handoff_spot_hint,
@@ -529,7 +537,7 @@ async function loadPendingRates(sql: Awaited<ReturnType<typeof getSql>>, userId:
 const listingSelect = `
   select l.id, l.sale_id, s.name as sale_name, l.seller_id, p.handle as seller_handle,
          l.title, l.description, l.price_cents, l.buy_now_cents, l.original_cents, l.floor_cents,
-         l.category, l.condition, l.haul, l.size_label, l.pack, l.neighborhood, l.handoff_modes, l.photo_url,
+         l.category, l.condition, l.haul, l.size_label, l.pack, l.weight_lbs, l.neighborhood, l.handoff_modes, l.photo_url,
          l.status, s.starts_on, s.ends_on,
          s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close,
          hs.name as handoff_spot_name, hs.area as handoff_spot_area, hs.hint as handoff_spot_hint,
@@ -1208,6 +1216,7 @@ const listingInput = z.object({
   haul: z.string(),
   sizeLabel: z.string().max(40).optional(),
   pack: z.enum(["box", "as_is"]),
+  weightLbs: z.number().int().min(1).max(2000).nullable().optional(),
   photoUrl: z.string().min(4),
   handoffModes: z.array(z.enum(["official", "public", "person", "porch"])).min(1),
 });
@@ -1242,15 +1251,19 @@ export const addListing = createServerFn({ method: "POST" })
     `;
     if (!sale[0]) throw new Error("Sale not found.");
     const id = crypto.randomUUID();
+    const modes = fitsOfficialCounter({ pack: data.pack, weightLbs: data.weightLbs, haul: data.haul })
+      ? splitModes(data.handoffModes.join(","))
+      : (["person"] as const);
     await sql`
       insert into listings (
         id, sale_id, seller_id, title, description, price_cents, buy_now_cents, original_cents, floor_cents,
-        category, condition, haul, size_label, pack, neighborhood, handoff_modes, photo_url, status
+        category, condition, haul, size_label, pack, weight_lbs, neighborhood, handoff_modes, photo_url, status
       ) values (
         ${id}, ${data.saleId}, ${context.userId}, ${data.title}, ${data.description ?? ""},
         ${data.priceCents}, ${data.buyNowCents ?? data.priceCents}, ${null}, ${data.floorCents},
-        ${data.category}, ${data.condition}, ${data.haul}, ${data.sizeLabel?.trim() || null}, ${data.pack}, ${sale[0].neighborhood},
-        ${splitModes(data.handoffModes.join(",")).join(",")}, ${safePhoto(data.photoUrl)}, ${"live"}
+        ${data.category}, ${data.condition}, ${data.haul}, ${data.sizeLabel?.trim() || null}, ${data.pack},
+        ${data.weightLbs ?? null}, ${sale[0].neighborhood},
+        ${modes.join(",")}, ${safePhoto(data.photoUrl)}, ${"live"}
       )
     `;
     return { id };

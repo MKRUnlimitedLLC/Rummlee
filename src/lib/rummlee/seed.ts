@@ -2,7 +2,7 @@ import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 import { DEFAULT_FEES } from "./fees";
 
-const SEED_VERSION = "v13-r16";
+const SEED_VERSION = "v14-counter";
 
 type SeedListing = {
   id: string;
@@ -21,6 +21,8 @@ type SeedListing = {
   neighborhood: string;
   photo: string;
   modes: string;
+  pack?: "box" | "as_is";
+  weightLbs?: number;
 };
 
 export async function ensureFees(sql: Sql) {
@@ -463,7 +465,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "Silver Lake, Los Angeles",
       photo: "/listings/dresser.jpg",
-      modes: "official",
+      modes: "person",
     },
     {
       id: "kids-bike",
@@ -504,7 +506,7 @@ export async function ensureSeed(sql: Sql) {
       saleId: "sale-westfargo",
       sellerId: "seed-prairie-row",
       title: "Cream two-seat sofa",
-      description: "Soft cream sofa from a West Fargo move. One cushion is a little sat. Two-person carry. Official store on 13th.",
+      description: "Soft cream sofa from a West Fargo move. One cushion is a little sat. Too big for an official store. In person only. The seller arranges pickup, or the buyer can offer delivery.",
       priceCents: 9000,
       buyNowCents: 9000,
       originalCents: 64000,
@@ -513,7 +515,9 @@ export async function ensureSeed(sql: Sql) {
       haul: "two",
       neighborhood: "West Fargo, Fargo–Moorhead",
       photo: "/listings/couch.svg",
-      modes: "official,public,person",
+      modes: "person",
+      pack: "as_is",
+      weightLbs: 70,
     },
     {
       id: "fm-desk",
@@ -552,7 +556,7 @@ export async function ensureSeed(sql: Sql) {
       saleId: "sale-westfargo",
       sellerId: "seed-prairie-row",
       title: "Utility trailer, 5x8",
-      description: "Open utility trailer. Lights work. You’ll need a hitch and a truck. Meet at the partner lot.",
+      description: "Open utility trailer. Lights work. You’ll need a hitch and a truck. In person only. The seller arranges pickup, or the buyer can offer to haul it.",
       priceCents: 14000,
       buyNowCents: 14000,
       originalCents: 89000,
@@ -561,7 +565,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "West Fargo, Fargo–Moorhead",
       photo: "/listings/trailer.svg",
-      modes: "official,public",
+      modes: "person",
     },
     {
       id: "fm-tools",
@@ -577,7 +581,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "West Fargo, Fargo–Moorhead",
       photo: "/listings/tool-chest.svg",
-      modes: "official,public",
+      modes: "person",
     },
     {
       id: "fm-garden",
@@ -593,7 +597,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "West Fargo, Fargo–Moorhead",
       photo: "/listings/garden.svg",
-      modes: "official,public",
+      modes: "person",
     },
     {
       id: "fm-ladder",
@@ -609,7 +613,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "West Fargo, Fargo–Moorhead",
       photo: "/listings/ladder.svg",
-      modes: "official,public",
+      modes: "person",
     },
     {
       id: "coffee-maker",
@@ -705,7 +709,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "Uptown, Minneapolis",
       photo: "/listings/dresser.jpg",
-      modes: "official,public",
+      modes: "person",
     },
     {
       id: "lohi-dresser",
@@ -721,7 +725,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "LoHi, Denver",
       photo: "/listings/dresser.jpg",
-      modes: "official,public",
+      modes: "person",
     },
     {
       id: "naper-onesies",
@@ -754,7 +758,7 @@ export async function ensureSeed(sql: Sql) {
       haul: "truck",
       neighborhood: "Scottsdale, Phoenix",
       photo: "/listings/ladder.svg",
-      modes: "official,public",
+      modes: "person",
     },
     {
       id: "atl-skillet",
@@ -795,11 +799,11 @@ export async function ensureSeed(sql: Sql) {
     await sql`
       insert into listings (
         id, sale_id, seller_id, title, description, price_cents, buy_now_cents, original_cents, floor_cents,
-        category, condition, haul, size_label, neighborhood, handoff_modes, photo_url, status
+        category, condition, haul, size_label, pack, weight_lbs, neighborhood, handoff_modes, photo_url, status
       ) values (
         ${l.id}, ${l.saleId}, ${l.sellerId}, ${l.title}, ${l.description}, ${l.priceCents},
         ${l.buyNowCents}, ${l.originalCents}, ${l.floorCents ?? floor}, ${l.category}, ${l.condition}, ${l.haul},
-        ${l.sizeLabel ?? null}, ${l.neighborhood}, ${l.modes}, ${l.photo}, ${"live"}
+        ${l.sizeLabel ?? null}, ${l.pack ?? null}, ${l.weightLbs ?? null}, ${l.neighborhood}, ${l.modes}, ${l.photo}, ${"live"}
       )
       on conflict (id) do nothing
     `;

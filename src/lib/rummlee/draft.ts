@@ -60,6 +60,7 @@ export type DraftLine = {
   haul: string;
   sizeLabel: string;
   pack: "box" | "as_is";
+  weightLbs: string;
   photoUrl: string;
 };
 
@@ -152,6 +153,7 @@ export function blankLine(partial?: Partial<DraftLine>): DraftLine {
     haul: "one",
     sizeLabel: "",
     pack: "box",
+    weightLbs: "",
     photoUrl: "",
     ...partial,
   };

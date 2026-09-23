@@ -4,12 +4,13 @@ import { VerifiedBadge } from "@/components/trust";
 import type { Listing } from "@/lib/rummlee/types";
 import { HOLD_LINE } from "@/lib/rummlee/constants";
 import { checkoutQuote, DEFAULT_FEES } from "@/lib/rummlee/fees";
-import { liveWindowLine, money, onlineWindowLine, packLabel, placeName, saleWindow, spotKindLabel } from "@/lib/rummlee/format";
+import { fitsOfficialCounter, liveWindowLine, money, onlineWindowLine, packLabel, placeName, saleWindow, spotKindLabel } from "@/lib/rummlee/format";
 import { cn } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing; premium?: boolean }) {
-  const partner = listing.handoffSpotKind === "partner";
-  const youPay = checkoutQuote(DEFAULT_FEES, listing.priceCents, false, "official").youPayCents;
+  const partner = listing.handoffModes.includes("official") && listing.handoffSpotKind === "partner";
+  const counter = fitsOfficialCounter(listing);
+  const youPay = checkoutQuote(DEFAULT_FEES, listing.priceCents, false, counter ? "official" : "person").youPayCents;
   const feeHint = youPay > listing.priceCents;
   return (
     <Link
@@ -70,6 +71,7 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
           <p className="text-base text-fg">{liveWindowLine(listing)} · Neighborhood meetup after you pay</p>
         ) : null}
         {packLabel(listing.pack) ? <p className="text-base text-muted">{packLabel(listing.pack)}</p> : null}
+        {!counter ? <p className="text-base font-medium text-fg">In person only</p> : null}
         <p className="flex items-center gap-1 text-base text-muted">
           <MapPin className="size-3.5" strokeWidth={1.75} />
           {listing.handoffSpotName ?? listing.neighborhood}
