@@ -130,6 +130,17 @@ export type Order = {
   myScan?: string | null;
   myRatingOverall?: "up" | "down" | null;
   otherVerified?: boolean;
+  payableAt?: string | null;
+  paidOutAt?: string | null;
+  disputeStatus?: string | null;
+  checkedIn?: boolean;
+};
+
+export type Notice = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
 };
 
 export type PendingRate = {
@@ -162,4 +173,5 @@ export type InboxPayload = {
   orders: Order[];
   messages: Message[];
   pendingRates: PendingRate[];
+  notices: Notice[];
 };
