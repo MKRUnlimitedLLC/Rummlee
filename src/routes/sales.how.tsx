@@ -25,7 +25,7 @@ function InPersonHowTo() {
             <Link to="/fees" className="font-medium text-primary-ink">
               Fees
             </Link>
-            . Plus covers a few dates each month.
+            . Plus covers 5 dates each month. +++ sale days are free. A sale can run 14 days.
           </p>
           <p>
             The online window is when people can offer and pay asking. It starts at Tuesday through Thursday. Change the
@@ -76,6 +76,19 @@ function InPersonHowTo() {
           <p>
             You each give a thumbs up or a thumbs down. A comment and a photo are optional, and the comment stays
             private. Packaging is part of that rating.
+          </p>
+        </Step>
+        <Step n="7" title="Keep it up, or put it first">
+          <p>
+            The day before the sale closes, Rummlee asks if you want more days. Add 1, 3, or 7, up to 14 days total.
+            Plus free days still apply.
+          </p>
+          <p>
+            Feature one item, or the whole sale, so those listings show first until the sale ends. The prices are on{" "}
+            <Link to="/fees" className="font-medium text-primary-ink">
+              Fees
+            </Link>
+            . If test credits don’t cover the days or the feature, the rest comes out of your next payout.
           </p>
         </Step>
       </ol>

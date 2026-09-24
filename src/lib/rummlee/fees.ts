@@ -68,7 +68,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "buyer_premium",
     label: "Buyer fee with Rummlee Plus",
-    description: "Checkout buyer fee when the buyer has Rummlee Plus. 0% — waived. Independent of the official store fee.",
+    description: "Checkout buyer fee when the buyer has Rummlee Plus or Rummlee +++. 0%. The seller fee is not waived.",
     unit: "percent",
     percentBps: 0,
     amountCents: 0,
@@ -80,7 +80,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "premium_switch",
     label: "Rummlee Plus, monthly",
-    description: "Test-credit price for one month of Rummlee Plus. Waives your $2.99 official store fee when you buy or sell.",
+    description: "One month of Rummlee Plus. Buyer fee is $0. Seller still pays the Plus seller fee. Includes 5 sale days a month and ID Verified. Test credits during beta.",
     unit: "cents",
     percentBps: 0,
     amountCents: 999,
@@ -92,7 +92,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "plus_year",
     label: "Rummlee Plus, yearly",
-    description: "Test-credit price for one year of Rummlee Plus. Same waiver as monthly.",
+    description: "One year of Rummlee Plus. Same benefits as the monthly plan.",
     unit: "cents",
     percentBps: 0,
     amountCents: 9999,
@@ -104,10 +104,10 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "trio_month",
     label: "Rummlee +++ , monthly",
-    description: "Includes everything in Plus, plus 5 researcher requests a month. More are the Ask a researcher fee, one at a time. Also 5 free sale days a month, Rummlee Reveal 5 times a month, and no item cap on a sale. Test credits during beta. Researchers are still paid from the researcher payout row.",
+    description: "Includes Plus, a lower seller fee, unlimited sale days, 5 researcher requests a month, Rummlee Reveal 5 times a month, and no item cap. Extra researches are the ask fee. Test credits during beta.",
     unit: "cents",
     percentBps: 0,
-    amountCents: 2999,
+    amountCents: 3999,
     chargedTo: "buyer",
     chargedWhen: "upgrade",
     sort: 66,
@@ -119,7 +119,7 @@ export const DEFAULT_FEES: FeeRow[] = [
     description: "A year of Rummlee +++. Same benefits as the monthly plan.",
     unit: "cents",
     percentBps: 0,
-    amountCents: 29999,
+    amountCents: 39999,
     chargedTo: "buyer",
     chargedWhen: "upgrade",
     sort: 66,
@@ -140,7 +140,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "sale_day",
     label: "Sale day, seller",
-    description: "Charged to the seller for each date a sale runs. Plus includes 3 sale days each calendar month; extra days still pay this. Independently adjustable.",
+    description: "Charged to the seller for each date a sale runs. Plus includes 5 sale days each calendar month. +++ sale days are free. A single sale still cannot run longer than 14 days. Extra Plus days and every Standard day pay this.",
     unit: "cents",
     percentBps: 0,
     amountCents: 299,
@@ -150,9 +150,33 @@ export const DEFAULT_FEES: FeeRow[] = [
     enabled: true,
   },
   {
+    id: "feature_item",
+    label: "Feature an item",
+    description: "Puts one listing ahead of others until that sale ends. Charged to the seller. Taken from test credits, then from the next payout.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 199,
+    chargedTo: "seller",
+    chargedWhen: "listing",
+    sort: 681,
+    enabled: true,
+  },
+  {
+    id: "feature_sale",
+    label: "Feature a sale",
+    description: "Puts every item in the sale ahead of others until the sale ends. Charged to the seller. Taken from test credits, then from the next payout.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 499,
+    chargedTo: "seller",
+    chargedWhen: "listing",
+    sort: 682,
+    enabled: true,
+  },
+  {
     id: "photo_fill",
     label: "Photo fill, seller",
-    description: "Suggests a title, category, condition, and haul from the listing photo. Included with Rummlee Plus. Does not set the asking price, the lowest price, or the weight. Off during beta, so this is not charged yet.",
+    description: "Suggests a title, category, condition, and haul from the listing photo. $0.99 on every tier. Does not set the asking price, the lowest price, or the weight. Off during beta, so this is not charged yet.",
     unit: "cents",
     percentBps: 0,
     amountCents: 99,
@@ -167,7 +191,7 @@ export const DEFAULT_FEES: FeeRow[] = [
     description: "Seller pays this to send photos to a Rummlee researcher. They suggest what it is and a price range. The seller still sets the asking price and the lowest price. Covers the researcher payout. Test credits during beta.",
     unit: "cents",
     percentBps: 0,
-    amountCents: 599,
+    amountCents: 799,
     chargedTo: "seller",
     chargedWhen: "listing",
     sort: 70,
@@ -210,24 +234,60 @@ export const DEFAULT_FEES: FeeRow[] = [
     enabled: true,
   },
   {
-    id: "seller_payout",
-    label: "Seller payout fee",
-    description: "Taken from asking when the hold releases. $0 / 0% means the seller receives the full asking price.",
-    unit: "percent",
+    id: "seller_floor",
+    label: "Seller fee floor",
+    description: "The seller pays this or their tier percent, whichever is more. Same on official store, public place, and in person. Not waived by Plus or +++.",
+    unit: "cents",
     percentBps: 0,
-    amountCents: 0,
+    amountCents: 299,
     chargedTo: "seller",
     chargedWhen: "checkout",
     sort: 74,
     enabled: true,
   },
   {
+    id: "seller_payout",
+    label: "Seller fee, Standard",
+    description: "Standard seller percent. The seller pays this or the seller fee floor, whichever is more.",
+    unit: "percent",
+    percentBps: 1200,
+    amountCents: 0,
+    chargedTo: "seller",
+    chargedWhen: "checkout",
+    sort: 75,
+    enabled: true,
+  },
+  {
+    id: "seller_plus",
+    label: "Seller fee, Plus",
+    description: "Plus seller percent. The seller pays this or the seller fee floor, whichever is more. Plus does not waive it.",
+    unit: "percent",
+    percentBps: 850,
+    amountCents: 0,
+    chargedTo: "seller",
+    chargedWhen: "checkout",
+    sort: 76,
+    enabled: true,
+  },
+  {
+    id: "seller_trio",
+    label: "Seller fee, +++",
+    description: "+++ seller percent. The seller pays this or the seller fee floor, whichever is more. +++ does not waive it.",
+    unit: "percent",
+    percentBps: 600,
+    amountCents: 0,
+    chargedTo: "seller",
+    chargedWhen: "checkout",
+    sort: 77,
+    enabled: true,
+  },
+  {
     id: "official_handoff",
     label: "Official store, buyer",
-    description: "Buyer pays this at checkout for official store handoff, unless they have Rummlee Plus — then it’s waived.",
+    description: "Not charged. Official store, public place, and in person use the same buyer fee. Left at $0 so it can be turned back on without a code change.",
     unit: "cents",
     percentBps: 0,
-    amountCents: 299,
+    amountCents: 0,
     chargedTo: "buyer",
     chargedWhen: "checkout",
     sort: 80,
@@ -236,10 +296,10 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "official_handoff_seller",
     label: "Official store, seller",
-    description: "Taken from the seller’s payout for official store handoff, unless they have Rummlee Plus — then it’s waived.",
+    description: "Not charged. The seller fee does not change with the handoff location. Left at $0 so it can be turned back on without a code change.",
     unit: "cents",
     percentBps: 0,
-    amountCents: 299,
+    amountCents: 0,
     chargedTo: "seller",
     chargedWhen: "checkout",
     sort: 85,
@@ -363,7 +423,9 @@ export function formatFeeValue(row: FeeRow) {
   }
   if (row.unit === "percent") {
     const pct = row.percentBps / 100;
-    return `${pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2)}%`;
+    if (Number.isInteger(pct)) return `${pct.toFixed(0)}%`;
+    const text = pct.toFixed(2).replace(/0$/, "");
+    return `${text}%`;
   }
   if (row.unit === "cents") {
     return new Intl.NumberFormat("en-US", {
@@ -389,9 +451,18 @@ export function quoteSaleDays(opts: {
   days: number;
   plus: boolean;
   freeUsed: number;
-  freePerMonth?: number;
+  /** Null means unlimited free days (Rummlee +++). */
+  freePerMonth?: number | null;
 }) {
-  const cap = opts.freePerMonth ?? 3;
+  if (opts.plus && opts.freePerMonth == null) {
+    return {
+      days: opts.days,
+      freeDays: opts.days,
+      paidDays: 0,
+      chargeCents: 0,
+    };
+  }
+  const cap = opts.freePerMonth ?? 5;
   const freeLeft = opts.plus ? Math.max(0, cap - opts.freeUsed) : 0;
   const freeDays = Math.min(Math.max(0, opts.days), freeLeft);
   const paidDays = Math.max(0, opts.days - freeDays);
@@ -408,7 +479,20 @@ export function minAskingCents(table: FeeRow[]) {
   return row?.amountCents && row.amountCents > 0 ? row.amountCents : 500;
 }
 
-export type PlusFlags = boolean | { buyer?: boolean; seller?: boolean };
+export type MemberTier = "plus" | "trio" | null;
+
+export type PlusFlags = boolean | { buyer?: boolean; seller?: boolean; sellerTier?: MemberTier };
+
+export function sellerFeeCents(table: FeeRow[], baseCents: number, tier: MemberTier) {
+  const fees = table.length ? table : DEFAULT_FEES;
+  const floorRow = feeById(fees, "seller_floor");
+  const floor = floorRow?.enabled && floorRow.unit === "cents" ? floorRow.amountCents : 0;
+  const id = tier === "trio" ? "seller_trio" : tier === "plus" ? "seller_plus" : "seller_payout";
+  const row = feeById(fees, id);
+  if (!row?.enabled) return floor;
+  const amount = row.unit === "percent" ? percentOf(baseCents, row.percentBps) : row.amountCents;
+  return Math.max(floor, amount);
+}
 
 export type CheckoutQuote = {
   baseCents: number;
@@ -426,14 +510,22 @@ export type CheckoutQuote = {
   sellerPlus: boolean;
 };
 
-function plusSides(plus: PlusFlags) {
-  if (typeof plus === "boolean") return { buyer: plus, seller: false };
-  return { buyer: Boolean(plus.buyer), seller: Boolean(plus.seller) };
+function sellerTierOf(plus: PlusFlags): MemberTier {
+  if (typeof plus === "boolean") return null;
+  if (plus.sellerTier === "trio" || plus.sellerTier === "plus") return plus.sellerTier;
+  if (plus.seller) return "plus";
+  return null;
 }
 
 function feeAmount(row: FeeRow | null, baseCents: number) {
   if (!row?.enabled) return 0;
   return row.unit === "percent" ? percentOf(baseCents, row.percentBps) : row.amountCents;
+}
+
+function plusSides(plus: PlusFlags): { buyer: boolean; seller: boolean; tier: MemberTier } {
+  if (typeof plus === "boolean") return { buyer: plus, seller: false, tier: null };
+  const tier = sellerTierOf(plus);
+  return { buyer: Boolean(plus.buyer), seller: Boolean(plus.seller) || tier != null, tier };
 }
 
 export function checkoutQuote(
@@ -448,23 +540,21 @@ export function checkoutQuote(
   const official = handoff === "official" || handoff === "partner";
   const handId = handoff === "public" ? "public_handoff" : handoff === "person" ? "person_handoff" : official ? "official_handoff" : null;
   const buyerFeeCents = feeAmount(feeById(fees, buyerId), baseCents);
-  const sellerFeeCents = feeAmount(feeById(fees, "seller_payout"), baseCents);
-  const rawBuyerHandoff = feeAmount(handId ? feeById(fees, handId) : null, baseCents);
-  const rawSellerHandoff = official ? feeAmount(feeById(fees, "official_handoff_seller"), baseCents) : 0;
-  const handoffFeeCents = official && sides.buyer ? 0 : rawBuyerHandoff;
-  const sellerHandoffFeeCents = official && sides.seller ? 0 : rawSellerHandoff;
+  const sellerTake = sellerFeeCents(fees, baseCents, sides.tier);
+  const handoffFeeCents = feeAmount(handId ? feeById(fees, handId) : null, baseCents);
+  const sellerHandoffFeeCents = official ? feeAmount(feeById(fees, "official_handoff_seller"), baseCents) : 0;
   const salesTaxCents = feeAmount(feeById(fees, "sales_tax"), baseCents);
   const feesTotalCents = buyerFeeCents + handoffFeeCents;
   return {
     baseCents,
     buyerFeeCents,
-    sellerFeeCents,
+    sellerFeeCents: sellerTake,
     handoffFeeCents,
     sellerHandoffFeeCents,
     salesTaxCents,
     feesTotalCents,
     youPayCents: baseCents + feesTotalCents + salesTaxCents,
-    youGetCents: baseCents - sellerFeeCents - sellerHandoffFeeCents,
+    youGetCents: baseCents - sellerTake - sellerHandoffFeeCents,
     buyerFeeId: buyerId,
     handoffFeeId: handId,
     buyerPlus: sides.buyer,

@@ -29,8 +29,9 @@ export const CHARITY_SHARE_BPS = 5000;
 export const TEST_MODE = true;
 export const TEST_STARTER_CENTS = 20000;
 export const TEST_PAY_NOTE = "Beta — test credits. Not real money. No card is charged. Nothing ships.";
-export const PLUS_SALE_DAYS_PER_MONTH = 3;
-export const TRIO_SALE_DAYS_PER_MONTH = 5;
+export const PLUS_SALE_DAYS_PER_MONTH = 5;
+/** +++ has no monthly cap. A single sale is still limited by MAX_SALE_DAYS. */
+export const TRIO_SALE_DAYS_PER_MONTH = null;
 export const TRIO_RESEARCHES_PER_MONTH = 5;
 /** +++ can see a seller’s hidden low this many times each calendar month. */
 export const REVEALS_PER_MONTH = 5;
@@ -38,8 +39,11 @@ export const REVEALS_PER_MONTH = 5;
 export const SALE_ITEM_CAP = 40;
 export const MAX_SALE_DAYS = 14;
 
-export function saleDayAllowance(tier: "plus" | "trio" | null | undefined) {
-  return tier === "trio" ? TRIO_SALE_DAYS_PER_MONTH : PLUS_SALE_DAYS_PER_MONTH;
+/** Plus is a monthly cap. +++ is null — unlimited free sale days. */
+export function saleDayAllowance(tier: "plus" | "trio" | null | undefined): number | null {
+  if (tier === "trio") return null;
+  if (tier === "plus") return PLUS_SALE_DAYS_PER_MONTH;
+  return 0;
 }
 
 export const NEIGHBORHOODS = [

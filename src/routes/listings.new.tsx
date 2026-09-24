@@ -304,12 +304,13 @@ function NewListingPage() {
   const dayFeeCents = feeById(DEFAULT_FEES, "sale_day")?.amountCents ?? 299;
   const plus = Boolean(meQ.data?.me.isPremium);
   const allowance = saleDayAllowance(meQ.data?.me.plusTier);
+  const unlimitedDays = plus && allowance == null;
   const freeLeft = meQ.data?.plusSaleDaysLeft ?? 0;
   const saleQuote = quoteSaleDays({
     dayFeeCents,
     days: saleDays,
     plus,
-    freeUsed: plus ? Math.max(0, allowance - freeLeft) : 0,
+    freeUsed: unlimitedDays ? 0 : plus ? Math.max(0, (allowance ?? 0) - freeLeft) : 0,
     freePerMonth: allowance,
   });
   const wallet = meQ.data?.me.walletCents ?? 0;
@@ -517,13 +518,11 @@ function NewListingPage() {
               >
                 {fillPhoto.isPending
                   ? "Looking at the photo…"
-                  : plus
-                    ? "Fill from this photo · Plus"
-                    : `Fill from this photo · ${formatFeeValue(feeById(DEFAULT_FEES, "photo_fill") ?? DEFAULT_FEES[0])}`}
+                  : `Fill from this photo · ${formatFeeValue(feeById(DEFAULT_FEES, "photo_fill") ?? DEFAULT_FEES[0])}`}
               </Button>
             ) : (
               <p className="text-sm text-muted">
-                Fill from this photo is included with Plus. It suggests the title, category, condition, and haul. You
+                Fill from this photo is $0.99 on every tier. It suggests the title, category, condition, and haul. You
                 still set the price and the weight. Off during beta.
               </p>
             )}
@@ -795,24 +794,30 @@ function SaleDates({
   draft: ListingDraft;
   plus: boolean;
   freeLeft: number;
-  freePerMonth: number;
+  freePerMonth: number | null;
   onChange: (patch: Partial<ListingDraft>) => void;
 }) {
   const days = countSaleDays(draft.startsOn, draft.endsOn);
   const dayFee = feeById(DEFAULT_FEES, "sale_day");
   const dayFeeCents = dayFee?.amountCents ?? 299;
+  const unlimited = plus && freePerMonth == null;
   const quote = quoteSaleDays({
     dayFeeCents,
     days,
     plus,
-    freeUsed: plus ? Math.max(0, freePerMonth - freeLeft) : 0,
+    freeUsed: unlimited ? 0 : plus ? Math.max(0, (freePerMonth ?? 0) - freeLeft) : 0,
     freePerMonth,
   });
   return (
     <div className="space-y-3 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
       <p className="font-medium">Sale dates</p>
       <p className="text-sm text-muted">
-        {formatFeeValue(dayFee ?? DEFAULT_FEES[0])} per date. Plus includes 3 days each month. +++ includes {freePerMonth === 5 ? "5" : "3"}.
+        {formatFeeValue(dayFee ?? DEFAULT_FEES[0])} per date.
+        {unlimited
+          ? " +++ sale days are free."
+          : plus
+            ? ` Plus includes ${freePerMonth} days each month. ${freeLeft} left.`
+            : " Plus includes 5 days a month. +++ sale days are free."}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <div>

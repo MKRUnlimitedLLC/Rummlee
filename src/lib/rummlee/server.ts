@@ -12,7 +12,7 @@ import { beginIdentity, finishIdentity } from "./identity";
 import { suggestFromPhoto } from "./photo-fill";
 import { childIds, holdBundleChildren, releaseBundleChildren, soldBundleChildren, useBundleOffers, voidBuyerBundlesContaining } from "./bundles";
 import { overallThumb, type Thumb } from "./trust";
-import { PAYOUT_HOLD_HOURS, releaseDuePayouts, writeLedger, writeNotice, refundEscrow } from "./books";
+import { PAYOUT_HOLD_HOURS, chargeSeller, releaseDuePayouts, writeLedger, writeNotice, refundEscrow } from "./books";
 import { claimHouseShelf, houseForSpot, releaseHouseClaim } from "./house";
 import { awardCleanRun, grantRep } from "./rep";
 import type {
@@ -73,6 +73,8 @@ type ListingRow = {
   live_close?: string | null;
   always_on?: boolean | null;
   charity_split?: boolean | null;
+  featured?: boolean | null;
+  sale_featured?: boolean | null;
 };
 
 function mapListing(row: ListingRow, saved = false): Listing {
@@ -124,6 +126,7 @@ function mapListing(row: ListingRow, saved = false): Listing {
     liveClose: row.live_close ?? null,
     alwaysOn: Boolean(row.always_on),
     charitySplit: Boolean(row.charity_split),
+    featured: Boolean(row.featured) || Boolean(row.sale_featured),
   };
 }
 
@@ -228,12 +231,17 @@ function plusActive(isPremium: boolean, plusUntil: string | Date | null) {
   return new Date(plusUntil).getTime() > Date.now();
 }
 
-async function viewerPremium(sql: Awaited<ReturnType<typeof getSql>>, userId: string | null) {
-  if (!userId) return false;
-  const rows = await sql<{ is_premium: boolean; plus_until: string | null }>`
-    select is_premium, plus_until from profiles where id = ${userId}
+async function viewerTier(sql: Awaited<ReturnType<typeof getSql>>, userId: string | null) {
+  if (!userId) return null;
+  const rows = await sql<{ is_premium: boolean; plus_until: string | null; plus_tier: string | null }>`
+    select is_premium, plus_until, plus_tier from profiles where id = ${userId}
   `;
-  return plusActive(Boolean(rows[0]?.is_premium), rows[0]?.plus_until ?? null);
+  if (!plusActive(Boolean(rows[0]?.is_premium), rows[0]?.plus_until ?? null)) return null;
+  return rows[0]?.plus_tier === "trio" ? "trio" : "plus";
+}
+
+async function viewerPremium(sql: Awaited<ReturnType<typeof getSql>>, userId: string | null) {
+  return (await viewerTier(sql, userId)) != null;
 }
 
 async function grantTestCredits(
@@ -410,6 +418,7 @@ type SaleMapRow = {
   live_open?: string | null;
   live_close?: string | null;
   always_on?: boolean | null;
+  featured?: boolean | null;
 };
 
 function mapSale(s: SaleMapRow): Sale {
@@ -438,6 +447,7 @@ function mapSale(s: SaleMapRow): Sale {
     liveOpen: s.live_open ?? null,
     liveClose: s.live_close ?? null,
     alwaysOn: Boolean(s.always_on),
+    featured: Boolean(s.featured),
   };
 }
 
@@ -621,6 +631,8 @@ const listingSelect = `
          l.title, l.description, l.price_cents, l.buy_now_cents, l.original_cents, l.floor_cents,
          l.category, l.condition, l.haul, l.size_label, l.pack, l.weight_lbs, l.neighborhood, l.handoff_modes, l.photo_url,
          l.status, l.charity_split, s.starts_on, s.ends_on,
+         (l.featured_until is not null and l.featured_until > now()) as featured,
+         (s.featured_until is not null and s.featured_until > now()) as sale_featured,
          s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close, s.always_on,
          hs.name as handoff_spot_name, hs.area as handoff_spot_area, hs.hint as handoff_spot_hint,
          hs.kind as handoff_spot_kind,
@@ -640,7 +652,7 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
   const userId = await optionalUserId();
   const buyerPremium = await viewerPremium(sql, userId);
   const rows = await sql.query<ListingRow>(
-    listingSelect + " where l.status = 'live' order by l.created_at desc",
+    listingSelect + " where l.status = 'live' and (s.always_on = true or s.ends_on >= current_date) order by ((l.featured_until is not null and l.featured_until > now()) or (s.featured_until is not null and s.featured_until > now())) desc, l.created_at desc",
   );
   let saved = new Set<string>();
   if (userId) {
@@ -652,9 +664,11 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
             s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
             coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
             s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close, s.always_on,
+            (s.featured_until is not null and s.featured_until > now()) as featured,
             (select count(*)::int from listings l where l.sale_id = s.id and l.status = 'live') as item_count
      from sales s join profiles p on p.id = s.seller_id
-     where s.status = 'live' order by s.starts_on, s.name`,
+     where s.status = 'live' and (s.always_on = true or s.ends_on >= current_date)
+     order by (s.featured_until is not null and s.featured_until > now()) desc, s.starts_on, s.name`,
   );
   const spots = await sql<HandoffSpot>`
     select id, name, area, hint, kind from handoff_spots
@@ -882,6 +896,7 @@ export const getListing = createServerFn({ method: "GET" })
       order by l.title
     `;
     const kindRow = await sql<{ bundle_kind: string | null }>`select bundle_kind from listings where id = ${id}`;
+    const sellerTier = await viewerTier(sql, row.seller_id);
     return {
       listing: mapListing(row, saved),
       bundleItems: bundleRows.map((item) => ({ id: item.id, title: item.title, priceCents: Number(item.price_cents) })),
@@ -890,7 +905,8 @@ export const getListing = createServerFn({ method: "GET" })
       myOrder,
       sellerOffers,
       buyerPremium,
-      sellerPremium: await viewerPremium(sql, row.seller_id),
+      sellerPremium: sellerTier != null,
+      sellerTier,
       publicSpot,
       floorCents: userId === row.seller_id ? Number(row.floor_cents ?? row.price_cents) : null,
       meetupNote,
@@ -920,6 +936,7 @@ export const getSale = createServerFn({ method: "GET" })
               s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
               coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
             s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close, s.always_on,
+              (s.featured_until is not null and s.featured_until > now()) as featured,
               (select count(*)::int from listings l where l.sale_id = s.id) as item_count
        from sales s join profiles p on p.id = s.seller_id where s.id = $1`,
       [id],
@@ -1002,7 +1019,7 @@ export const getMe = createServerFn({ method: "GET" })
         }),
       ),
       sales: mySales.map(mapSale),
-      plusSaleDaysLeft: me.isPremium ? Math.max(0, saleDayAllowance(me.plusTier) - usedFree) : 0,
+      plusSaleDaysLeft: me.isPremium && saleDayAllowance(me.plusTier) != null ? Math.max(0, (saleDayAllowance(me.plusTier) ?? 0) - usedFree) : 0,
       saved: savedRows.map((r) => mapListing(r, true)),
       pendingRates,
       isDesk: Boolean(desk[0]?.desk_spot_id),
@@ -1250,12 +1267,13 @@ export const createSale = createServerFn({ method: "POST" })
     const dayFee = feeById(fees, "sale_day");
     const dayFeeCents = dayFee?.enabled && dayFee.unit === "cents" ? dayFee.amountCents : 0;
     const usedFree = await freeSaleDaysUsed(sql, context.userId);
+    const allowance = saleDayAllowance(me.plusTier);
     const quote = quoteSaleDays({
       dayFeeCents,
       days,
       plus: me.isPremium,
-      freeUsed: usedFree,
-      freePerMonth: saleDayAllowance(me.plusTier),
+      freeUsed: allowance == null ? 0 : usedFree,
+      freePerMonth: allowance,
     });
     if (quote.chargeCents > 0 && me.walletCents < quote.chargeCents) {
       throw new Error(
@@ -1329,6 +1347,145 @@ export const createSale = createServerFn({ method: "POST" })
     return { id, chargeCents: quote.chargeCents, freeDays: quote.freeDays, paidDays: quote.paidDays, days };
   });
 
+function isoToday() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addIso(iso: string, days: number) {
+  const day = new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+  day.setUTCDate(day.getUTCDate() + days);
+  return day.toISOString().slice(0, 10);
+}
+
+function flatFeeCents(fees: FeeRow[], id: string) {
+  const row = feeById(fees, id);
+  if (!row?.enabled || row.unit !== "cents") return 0;
+  return row.amountCents;
+}
+
+function payNote(fromWallet: number, fromPayout: number) {
+  const wallet = fromWallet > 0 ? `$${(fromWallet / 100).toFixed(2)} from ${TEST_MODE ? "test credits" : "the wallet"}` : "";
+  const payout = fromPayout > 0 ? `$${(fromPayout / 100).toFixed(2)} from the next payout` : "";
+  return [wallet, payout].filter(Boolean).join(" and ") || "no charge";
+}
+
+export const extendSale = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) =>
+    z
+      .object({
+        saleId: z.string().min(2),
+        extraDays: z.number().int().min(1).max(7),
+        feature: z.boolean().optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensureSeed(sql);
+    const me = await ensureProfile(sql, context.userId);
+    const rows = await sql<{
+      id: string;
+      starts_on: string;
+      ends_on: string;
+      always_on: boolean | null;
+      kind: string;
+      featured_until: string | null;
+    }>`
+      select id, starts_on::text, ends_on::text, always_on, kind, featured_until
+      from sales where id = ${data.saleId} and seller_id = ${context.userId}
+    `;
+    const sale = rows[0];
+    if (!sale) throw new Error("Sale not found.");
+    if (sale.always_on || sale.kind === "house") throw new Error("This sale stays up. It doesn’t need an extension.");
+    const start = String(sale.starts_on).slice(0, 10);
+    const end = String(sale.ends_on).slice(0, 10);
+    const tomorrow = addIso(isoToday(), 1);
+    if (end > tomorrow) throw new Error("This sale isn’t closing yet.");
+    const base = end < isoToday() ? isoToday() : end;
+    const nextEnd = addIso(base, data.extraDays);
+    if (countSaleDays(start, nextEnd) > MAX_SALE_DAYS) {
+      const room = MAX_SALE_DAYS - countSaleDays(start, end < isoToday() ? isoToday() : end);
+      throw new Error(room > 0 ? `Only ${room} more day${room === 1 ? "" : "s"} fit. A sale runs at most ${MAX_SALE_DAYS} days.` : `This sale is already ${MAX_SALE_DAYS} days. Start another one.`);
+    }
+    const fees = await loadFees(sql);
+    const dayFee = feeById(fees, "sale_day");
+    const dayFeeCents = dayFee?.enabled && dayFee.unit === "cents" ? dayFee.amountCents : 0;
+    const allowance = saleDayAllowance(me.plusTier);
+    const quote = quoteSaleDays({
+      dayFeeCents,
+      days: data.extraDays,
+      plus: me.isPremium,
+      freeUsed: allowance == null ? 0 : await freeSaleDaysUsed(sql, context.userId),
+      freePerMonth: allowance,
+    });
+    const featureCents = data.feature ? flatFeeCents(fees, "feature_sale") : 0;
+    const charge = quote.chargeCents + featureCents;
+    const paid = await chargeSeller(
+      sql,
+      context.userId,
+      charge,
+      `${data.extraDays} more sale day${data.extraDays === 1 ? "" : "s"}${data.feature ? ", and feature the sale" : ""}.${TEST_MODE ? " Test credits, not real money." : ""}`,
+      sale.id,
+    );
+    await sql`update sales set ends_on = ${nextEnd}::date, sale_free_days = coalesce(sale_free_days, 0) + ${quote.freeDays} where id = ${sale.id}`;
+    for (let i = 1; i <= data.extraDays; i += 1) {
+      const iso = addIso(base, i);
+      await sql`
+        insert into sale_days (sale_id, day, charged_cents)
+        values (${sale.id}, ${iso}::date, ${i <= quote.freeDays ? 0 : dayFeeCents})
+        on conflict (sale_id, day) do nothing
+      `;
+    }
+    if (data.feature || sale.featured_until) {
+      await sql`update sales set featured_until = ${nextEnd}::date + interval '1 day' where id = ${sale.id}`;
+    }
+    return { endsOn: nextEnd, chargeCents: charge, ...paid, paidNote: payNote(paid.fromWallet, paid.fromPayout) };
+  });
+
+export const featureSale = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ saleId: z.string().min(2) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensureSeed(sql);
+    await ensureProfile(sql, context.userId);
+    const rows = await sql<{ id: string; ends_on: string; always_on: boolean | null; featured_until: string | null }>`
+      select id, ends_on::text, always_on, featured_until from sales
+      where id = ${data.saleId} and seller_id = ${context.userId}
+    `;
+    const sale = rows[0];
+    if (!sale) throw new Error("Sale not found.");
+    if (sale.featured_until && new Date(sale.featured_until).getTime() > Date.now()) throw new Error("This sale is already featured.");
+    const cents = flatFeeCents(await loadFees(sql), "feature_sale");
+    const paid = await chargeSeller(sql, context.userId, cents, TEST_MODE ? "Feature this sale. Test credits, not real money." : "Feature this sale.", sale.id);
+    const until = sale.always_on ? addIso(isoToday(), 30) : String(sale.ends_on).slice(0, 10);
+    await sql`update sales set featured_until = ${until}::date + interval '1 day' where id = ${sale.id}`;
+    return { chargeCents: cents, ...paid, paidNote: payNote(paid.fromWallet, paid.fromPayout) };
+  });
+
+export const featureListing = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ listingId: z.string().min(2) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensureSeed(sql);
+    await ensureProfile(sql, context.userId);
+    const rows = await sql<{ id: string; ends_on: string; always_on: boolean | null; featured_until: string | null }>`
+      select l.id, s.ends_on::text, s.always_on, l.featured_until
+      from listings l join sales s on s.id = l.sale_id
+      where l.id = ${data.listingId} and l.seller_id = ${context.userId} and l.status = ${"live"}
+    `;
+    const item = rows[0];
+    if (!item) throw new Error("Listing not found.");
+    if (item.featured_until && new Date(item.featured_until).getTime() > Date.now()) throw new Error("This item is already featured.");
+    const cents = flatFeeCents(await loadFees(sql), "feature_item");
+    const paid = await chargeSeller(sql, context.userId, cents, TEST_MODE ? "Feature this item. Test credits, not real money." : "Feature this item.", item.id);
+    const until = item.always_on ? addIso(isoToday(), 30) : String(item.ends_on).slice(0, 10);
+    await sql`update listings set featured_until = ${until}::date + interval '1 day' where id = ${item.id}`;
+    return { chargeCents: cents, ...paid, paidNote: payNote(paid.fromWallet, paid.fromPayout) };
+  });
+
 export const markSoldOutside = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((data: unknown) => z.object({ listingId: z.string().min(2) }).parse(data))
@@ -1380,7 +1537,7 @@ export const fillFromPhoto = createServerFn({ method: "POST" })
     const suggestion = await suggestFromPhoto(data.photoUrl);
     const fees = await loadFees(sql);
     const row = feeById(fees, "photo_fill");
-    const charge = me.isPremium || !row?.enabled ? 0 : row.unit === "cents" ? row.amountCents : 0;
+    const charge = !row?.enabled ? 0 : row.unit === "cents" ? row.amountCents : 0;
     if (charge > 0) await debitWallet(sql, me.id, charge);
     if (charge > 0) {
       await sql`
@@ -1739,11 +1896,11 @@ export const buyNow = createServerFn({ method: "POST" })
     const payAsking = Boolean(data.payAsking) || !offerState || offerState.status === "pending" || offerState.status === "declined";
     const base = payAsking ? asking : payBaseCents(asking, offerState);
     const fees = await loadFees(sql);
-    const sellerPlus = await viewerPremium(sql, item.seller_id);
+    const sellerTier = await viewerTier(sql, item.seller_id);
     const quote = checkoutQuote(
       fees,
       base,
-      { buyer: me.isPremium, seller: sellerPlus },
+      { buyer: me.isPremium, sellerTier },
       data.meet === "person" ? "person" : data.meet === "public" ? "public" : "official",
     );
     const buyerFee = quote.buyerFeeCents + quote.handoffFeeCents;
@@ -1956,14 +2113,14 @@ export async function settleOrder(sql: Awaited<ReturnType<typeof getSql>>, order
   const order = rows[0];
   if (!order || order.status !== "escrow") return;
   const fees = await loadFees(sql);
-  const sellerPlus = await viewerPremium(sql, order.seller_id);
+  const sellerTier = await viewerTier(sql, order.seller_id);
   const meet =
     order.handoff_type === "person" || order.handoff_type === "porch"
       ? "person"
       : order.handoff_type === "public"
         ? "public"
         : "official";
-  const quote = checkoutQuote(fees, Number(order.amount_cents), { buyer: false, seller: sellerPlus }, meet);
+  const quote = checkoutQuote(fees, Number(order.amount_cents), { sellerTier }, meet);
   const storedSellerFee = Number(order.seller_fee_cents ?? 0);
   const payout = storedSellerFee > 0 ? Number(order.amount_cents) - storedSellerFee : quote.youGetCents;
   const payableAt = new Date(Date.now() + PAYOUT_HOLD_HOURS * 60 * 60 * 1000).toISOString();

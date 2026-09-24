@@ -51,9 +51,9 @@ function YouPage() {
       toast.success(
         res.isPremium
           ? res.plusPlan === "year"
-            ? `${name} on for a year. Official store fee waived on your side.`
-            : `${name} on for a month. Official store fee waived on your side.`
-          : "Subscription off. Official store is $2.99 a side again.",
+            ? `${name} on for a year. Buyer fee is $0. The seller fee stays.`
+            : `${name} on for a month. Buyer fee is $0. The seller fee stays.`
+          : "Subscription off. Buyer fee is 5% again. The seller fee stays.",
       );
     },
     onError: (e) => toast.error(errMessage(e)),
@@ -196,7 +196,7 @@ function YouPage() {
             <Link to="/fees" className="font-medium text-primary-ink">
               Fees
             </Link>{" "}
-            and Rummlee Plus — $2.99 official store each side, waived with Plus
+            and memberships — buyer fee is 5%, or $0 with Plus and +++
           </li>
         </ul>
       </GuestGate>
@@ -278,14 +278,15 @@ function YouPage() {
           ))}
         </div>
         <div className="mt-4 rounded-xl bg-bg px-3 py-3">
-          <p className="font-medium">Rummlee Plus</p>
+          <p className="font-medium">Membership</p>
           <p className="mt-1 text-sm text-muted">
-            Official store is {formatFeeValue(feeById(DEFAULT_FEES, "official_handoff") ?? DEFAULT_FEES[0])} each side per
-            pickup. Plus waives <em>your</em> side when you buy or sell there. Buyer fee is 0% with Plus, 5% without.
-            Plus is its own charge. It is never added to an item. On an iPhone, Plus will be billed by Apple. The item
-            stays a separate payment. Plus includes 3 sale days a month. +++ is $29.99 a month or $299.99 a year and
-            includes Plus, 5 sale days, 5 researcher requests, Rummlee Reveal 5 times a month, and no item cap. More researches are $5.99 each. Unused researches and Reveals don’t roll over.
-            Extra sale days are $2.99.
+            Standard seller fee is $2.99 or 12%, whichever is more. Plus is $2.99 or 8.5%. +++ is $2.99 or 6%. The buyer
+            fee is 5%, or $0 with Plus and +++. The seller fee is not waived, and it does not change for an official
+            store, a public place, or in person. Plus includes 5 sale days a month. +++ sale days are free, with 5
+            researcher requests, Reveal 5 times a month, and no item cap. Extra researches are $7.99. Unused researches
+            and Reveals don’t roll over. Extra Plus sale days are $2.99. A single sale still runs at most 14 days.
+            Before a sale closes you can add days. Feature one item for $1.99, or the whole sale for $4.99, until it
+            ends. If test credits don’t cover a sale day or a feature, the rest comes out of your next payout.
           </p>
           {me?.isPremium ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -298,7 +299,7 @@ function YouPage() {
               </Button>
               {me.plusTier !== "trio" ? (
                 <Button size="sm" onClick={() => premium.mutate({ plan: "trio_month" })} disabled={premium.isPending}>
-                  Move to +++ · $29.99
+                  Move to +++ · $39.99
                 </Button>
               ) : null}
             </div>
@@ -311,10 +312,10 @@ function YouPage() {
                 {TEST_MODE ? "Plus, 1 year · $99.99 test" : "Plus, $99.99 / year"}
               </Button>
               <Button size="sm" onClick={() => premium.mutate({ plan: "trio_month" })} disabled={premium.isPending}>
-                {TEST_MODE ? "+++ , 1 month · $29.99 test" : "+++ , $29.99 / month"}
+                {TEST_MODE ? "+++ , 1 month · $39.99 test" : "+++ , $39.99 / month"}
               </Button>
               <Button size="sm" variant="secondary" onClick={() => premium.mutate({ plan: "trio_year" })} disabled={premium.isPending}>
-                {TEST_MODE ? "+++ , 1 year · $299.99 test" : "+++ , $299.99 / year"}
+                {TEST_MODE ? "+++ , 1 year · $399.99 test" : "+++ , $399.99 / year"}
               </Button>
             </div>
           )}
@@ -484,6 +485,9 @@ function YouPage() {
                   <p className="font-medium">{s.name}</p>
                   <p className="text-sm text-muted">
                     {saleWindow(s.startsOn, s.endsOn)} · {s.itemCount} items
+                    {!s.alwaysOn && s.endsOn.slice(0, 10) <= new Date(Date.now() + 86400000).toISOString().slice(0, 10)
+                      ? " · Closing — extend it"
+                      : ""}
                   </p>
                 </Link>
               </li>

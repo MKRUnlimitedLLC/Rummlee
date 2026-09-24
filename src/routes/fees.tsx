@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
-import { formatFeeValue, type FeeRow } from "@/lib/rummlee/fees";
+import { feeById, formatFeeValue, sellerFeeCents, type FeeRow } from "@/lib/rummlee/fees";
 import { claimOperator, getFeeTable, saveFee } from "@/lib/rummlee/server";
 import { cn } from "@/lib/utils";
 
@@ -41,8 +41,9 @@ function FeesPage() {
   return (
     <LegalPage
       title="Fees"
-      lede="Beta. Every Rummlee fee, in one table. Sale days are $2.99 each; Plus includes 3 sale days a month and +++ includes 5. Checkout shows a fees total you can expand. Sales tax is always listed on its own. Buyer fee is 5%, or 0% with Plus. Official store is $2.99 each side unless that person has Plus. +++ is $29.99 a month and includes Plus, 5 researcher requests, and no item cap. More researches are the ask fee, one at a time. Paid in test credits. No card is charged."
+      lede="Beta. Buyer fee is 5%, or $0 with Plus and +++. The seller pays $2.99 or a tier percent, whichever is more. That fee is the same for an official store, a public place, or in person. Plus is 5 free sale days a month. +++ sale days are free. Feature one item or a whole sale until it ends. If test credits don’t cover a sale day or a feature, the rest comes out of the next payout. Sales tax is always listed on its own. Paid in test credits. No card is charged."
     >
+      <TierCards fees={fees} />
       <div className="overflow-x-auto rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
         <table className="w-full min-w-[36rem] text-left text-sm">
           <thead>
@@ -87,6 +88,39 @@ function FeesPage() {
 
       {isStaff ? <FeeEditor rows={fees} /> : null}
     </LegalPage>
+  );
+}
+
+function TierCards({ fees }: { fees: FeeRow[] }) {
+  const month = (id: string) => formatFeeValue(feeById(fees, id) ?? { id, label: "", description: "", unit: "cents", percentBps: 0, amountCents: 0, chargedTo: "none", chargedWhen: "never", sort: 0, enabled: true });
+  const seller = (tier: "plus" | "trio" | null) => {
+    const floor = feeById(fees, "seller_floor");
+    const rate = feeById(fees, tier === "trio" ? "seller_trio" : tier === "plus" ? "seller_plus" : "seller_payout");
+    const sample = sellerFeeCents(fees, 4200, tier);
+    return `${floor ? formatFeeValue(floor) : "$2.99"} or ${rate ? formatFeeValue(rate) : "—"}, whichever is more. On a $42 item that is ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(sample / 100)}.`;
+  };
+  const tiers = [
+    { name: "Standard", price: "$0", buyer: "5%", seller: seller(null), days: "$2.99 a day", extra: "ID check $4.99. Researcher $7.99. Photo fill $0.99. Feature an item $1.99 or a sale $4.99." },
+    { name: "Plus", price: `${month("premium_switch")} / month · ${month("plus_year")} / year`, buyer: "$0", seller: seller("plus"), days: "5 free a month, then $2.99", extra: "ID check included. Researcher $7.99. Photo fill $0.99. Feature an item $1.99 or a sale $4.99. Normal item cap." },
+    { name: "+++", price: `${month("trio_month")} / month · ${month("trio_year")} / year`, buyer: "$0", seller: seller("trio"), days: "Unlimited", extra: "No item cap. 5 researches a month, then $7.99. Reveal 5 times a month. ID check included. Feature an item $1.99 or a sale $4.99." },
+  ];
+  return (
+    <div className="mb-6 grid gap-3">
+      {tiers.map((tier) => (
+        <section key={tier.name} className="rounded-[24px] bg-surface p-4 shadow-[var(--shadow-card)]">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="font-display text-xl">{tier.name}</h2>
+            <p className="text-sm font-medium text-fg">{tier.price}</p>
+          </div>
+          <dl className="mt-3 space-y-1 text-sm">
+            <div className="flex justify-between gap-4"><dt className="text-muted">Buyer fee</dt><dd>{tier.buyer}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-muted">Seller fee</dt><dd className="text-right">{tier.seller}</dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-muted">Sale days</dt><dd className="text-right">{tier.days}</dd></div>
+          </dl>
+          <p className="mt-2 text-sm text-muted">{tier.extra}</p>
+        </section>
+      ))}
+    </div>
   );
 }
 

@@ -52,6 +52,11 @@ export function saleWindow(startsOn: string, endsOn: string) {
   return `${a.toLocaleDateString("en-US", { month: "short", day: "numeric" })}–${b.toLocaleDateString("en-US", opts)}`;
 }
 
+export function saleWhen(startsOn: string, endsOn: string, alwaysOn?: boolean) {
+  if (alwaysOn) return "Always on";
+  return saleWindow(startsOn, endsOn);
+}
+
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 export function dowName(dow: number) {

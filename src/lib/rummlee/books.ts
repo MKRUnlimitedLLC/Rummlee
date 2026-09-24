@@ -111,7 +111,63 @@ export async function runNightly(sql: Sql) {
   return { released, holdsClosed };
 }
 
+export async function chargeSeller(
+  sql: Sql,
+  userId: string,
+  cents: number,
+  note: string,
+  refId: string,
+) {
+  if (cents <= 0) return { fromWallet: 0, fromPayout: 0 };
+  await sql`
+    create table if not exists payout_holds (
+      id text primary key,
+      user_id text not null,
+      amount_cents integer not null,
+      reason text not null,
+      ref_id text,
+      created_at timestamptz not null default now(),
+      applied_at timestamptz
+    )
+  `;
+  const wallet = await sql<{ wallet_cents: number }>`select wallet_cents from profiles where id = ${userId}`;
+  const have = Math.max(0, Number(wallet[0]?.wallet_cents ?? 0));
+  const fromWallet = Math.min(have, cents);
+  const fromPayout = cents - fromWallet;
+  if (fromWallet > 0) {
+    await sql`update profiles set wallet_cents = wallet_cents - ${fromWallet} where id = ${userId}`;
+    await sql`
+      insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
+      values (${crypto.randomUUID()}, ${userId}, ${"upsell"}, ${-fromWallet}, ${refId}, ${note})
+    `;
+  }
+  if (fromPayout > 0) {
+    await sql`
+      insert into payout_holds (id, user_id, amount_cents, reason, ref_id)
+      values (${crypto.randomUUID()}, ${userId}, ${fromPayout}, ${note}, ${refId})
+    `;
+    await writeLedger(sql, {
+      userId,
+      account: "payout_hold",
+      amountCents: fromPayout,
+      note,
+    });
+  }
+  return { fromWallet, fromPayout };
+}
+
 export async function releaseDuePayouts(sql: Sql) {
+  await sql`
+    create table if not exists payout_holds (
+      id text primary key,
+      user_id text not null,
+      amount_cents integer not null,
+      reason text not null,
+      ref_id text,
+      created_at timestamptz not null default now(),
+      applied_at timestamptz
+    )
+  `;
   const due = await sql<{ id: string; seller_id: string; payout_cents: number | null }>`
     select id, seller_id, payout_cents from orders
     where status = ${"picked_up"}
@@ -134,15 +190,34 @@ export async function releaseDuePayouts(sql: Sql) {
     const { charityShare, orderIsCharity, recordCharity } = await import("./house");
     const charityItem = await orderIsCharity(sql, row.id);
     const split = charityItem ? charityShare(payout) : null;
-    const credit = split ? split.keep : payout;
+    let credit = split ? split.keep : payout;
+    const holds = await sql<{ id: string; amount_cents: number }>`
+      select id, amount_cents from payout_holds
+      where user_id = ${row.seller_id} and applied_at is null
+      order by created_at
+    `;
+    let heldBack = 0;
+    for (const hold of holds) {
+      if (credit <= 0) break;
+      const take = Math.min(credit, Number(hold.amount_cents));
+      credit -= take;
+      heldBack += take;
+      const left = Number(hold.amount_cents) - take;
+      if (left <= 0) {
+        await sql`update payout_holds set applied_at = now(), amount_cents = 0 where id = ${hold.id}`;
+      } else {
+        await sql`update payout_holds set amount_cents = ${left} where id = ${hold.id}`;
+      }
+    }
     await sql`update profiles set wallet_cents = wallet_cents + ${credit} where id = ${row.seller_id}`;
+    const holdNote = heldBack > 0 ? ` $${(heldBack / 100).toFixed(2)} was kept for a sale extension or a feature.` : "";
     const payoutNote = split
       ? TEST_MODE
-        ? "Resale half released. The other half is set aside for charity. Test credits, not real money."
-        : "Resale half released. The other half is set aside for charity."
+        ? `Resale half released. The other half is set aside for charity. Test credits, not real money.${holdNote}`
+        : `Resale half released. The other half is set aside for charity.${holdNote}`
       : TEST_MODE
-        ? "Test payout after the 48-hour window (not real money)"
-        : "Payout after the 48-hour window";
+        ? `Test payout after the 48-hour window (not real money).${holdNote}`
+        : `Payout after the 48-hour window.${holdNote}`;
     await sql`
       insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
       values (

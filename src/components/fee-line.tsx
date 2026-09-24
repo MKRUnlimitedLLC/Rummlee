@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { HOLD_LINE, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
-import { checkoutQuote, type FeeRow } from "@/lib/rummlee/fees";
+import { checkoutQuote, type FeeRow, type MemberTier } from "@/lib/rummlee/fees";
 import { money } from "@/lib/rummlee/format";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,7 @@ export function CheckoutPay({
   baseCents,
   premium,
   sellerPlus = false,
+  sellerTier = null,
   fees,
   handoff,
   priceLabel = "Asking",
@@ -32,17 +33,16 @@ export function CheckoutPay({
   baseCents: number;
   premium: boolean;
   sellerPlus?: boolean;
+  sellerTier?: MemberTier;
   fees: FeeRow[];
   handoff: "official" | "public" | "person" | "partner";
   priceLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const quote = checkoutQuote(fees, baseCents, { buyer: premium, seller: sellerPlus }, handoff);
+  const quote = checkoutQuote(fees, baseCents, { buyer: premium, sellerTier: sellerTier ?? (sellerPlus ? "plus" : null) }, handoff);
   const buyer = fees.find((row) => row.id === quote.buyerFeeId);
   const hand = quote.handoffFeeId ? fees.find((row) => row.id === quote.handoffFeeId) : null;
   const taxRow = fees.find((row) => row.id === "sales_tax");
-  const official = handoff === "official" || handoff === "partner";
-  const storeSellerRow = fees.find((row) => row.id === "official_handoff_seller");
   return (
     <div className="space-y-2 rounded-2xl bg-bg px-4 py-3">
       <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">Checkout</p>
@@ -57,8 +57,7 @@ export function CheckoutPay({
       {quote.feesTotalCents > 0 ? (
         <p className="text-sm text-muted">
           {[
-            quote.buyerFeeCents > 0 ? `${buyer?.unit === "percent" ? `${(buyer.percentBps / 100).toFixed(buyer.percentBps % 100 === 0 ? 0 : 1)}%` : money(quote.buyerFeeCents)} buyer` : null,
-            official && quote.handoffFeeCents > 0 ? `${money(quote.handoffFeeCents)} official store` : null,
+            quote.buyerFeeCents > 0 ? `${buyer?.unit === "percent" ? `${(buyer.percentBps / 100).toFixed(buyer.percentBps % 100 === 0 ? 0 : 1)}%` : money(quote.buyerFeeCents)} buyer` : premium ? "Buyer fee $0 with Plus" : null,
           ]
             .filter(Boolean)
             .join(" + ") || "See details"}
@@ -78,43 +77,29 @@ export function CheckoutPay({
             <span className="text-muted">{buyer?.label ?? "Buyer fee"}</span>
             <span className="tabular-nums">{money(quote.buyerFeeCents)}</span>
           </p>
-          {official ? (
+          {quote.sellerFeeCents > 0 ? (
             <p className="flex justify-between text-sm">
-              <span className="text-muted">Official store fee, your side</span>
-              <span className="tabular-nums">
-                {quote.handoffFeeCents > 0 ? money(quote.handoffFeeCents) : premium ? "Waived with Plus" : money(0)}
-              </span>
+              <span className="text-muted">Seller fee, from their payout</span>
+              <span className="tabular-nums text-muted">{money(quote.sellerFeeCents)}</span>
             </p>
-          ) : quote.handoffFeeCents > 0 ? (
+          ) : null}
+          {quote.handoffFeeCents > 0 ? (
             <p className="flex justify-between text-sm">
               <span className="text-muted">{hand?.label ?? "Handoff"}</span>
               <span className="tabular-nums">{money(quote.handoffFeeCents)}</span>
             </p>
           ) : null}
-          {official && storeSellerRow?.enabled ? (
-            <p className="flex justify-between text-sm">
-              <span className="text-muted">Official store fee, seller’s side</span>
-              <span className="tabular-nums text-muted">
-                {quote.sellerHandoffFeeCents > 0
-                  ? `${money(quote.sellerHandoffFeeCents)} from their payout`
-                  : "Waived with Plus"}
-              </span>
-            </p>
-          ) : null}
-          {official ? (
-            <p className="text-sm text-muted">
-              Each side pays $2.99 for official store unless they have Rummlee Plus.
-              {premium ? " Yours is waived. " : " "}
-              <Link to="/you" className="font-medium text-primary-ink">
-                {premium ? "Manage Plus" : "Get Plus"}
-              </Link>
-            </p>
-          ) : null}
+          <p className="text-sm text-muted">
+            The seller fee is the same for an official store, a public place, or in person. Plus and +++ remove the buyer fee. They do not remove the seller fee.{" "}
+            <Link to="/fees" className="font-medium text-primary-ink">
+              See tiers
+            </Link>
+          </p>
         </div>
       ) : null}
-      {!premium && official ? (
+      {!premium ? (
         <p className="text-sm text-muted">
-          With Plus: your store fee and buyer fee drop to $0. About four official-store pickups cover $9.99 a month.{" "}
+          Plus and +++ make the buyer fee $0. The seller still pays $2.99 or their tier percent, whichever is more.{" "}
           <Link to="/you" className="font-medium text-primary-ink">
             See Plus
           </Link>

@@ -8,13 +8,16 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { AskingPrice, CheckoutPay } from "@/components/fee-line";
 import { BuyerDealStatus, DealSteps, SellerOfferCard } from "@/components/deal";
 import { ThumbTally, VerifiedBadge } from "@/components/trust";
+import { ListingNotes } from "@/components/listing-notes";
+import { ListingFacts } from "@/components/listing-facts";
+import { RummleeReveal } from "@/components/reveal";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { TEST_MODE } from "@/lib/rummlee/constants";
 import { lastCity, loadSavedIds, rememberAfterLogin, toggleLocalSaved } from "@/lib/rummlee/draft";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
-import { categoryLabel, cityOf, fitsOfficialCounter, haulLabel, liveWindowLine, money, onlineWindowLine, packLabel, payBaseCents, PERSON_ONLY_LINE, saleWindow } from "@/lib/rummlee/format";
-import { checkoutQuote } from "@/lib/rummlee/fees";
-import { buyNow, getListing, markSoldOutside, respondOffer, sendMessage, sendOffer, toggleSaved, topUpWallet } from "@/lib/rummlee/server";
+import { categoryLabel, cityOf, fitsOfficialCounter, haulLabel, liveWindowLine, money, onlineWindowLine, packLabel, payBaseCents, PERSON_ONLY_LINE, saleWhen } from "@/lib/rummlee/format";
+import { buyNow, featureListing, getListing, markSoldOutside, respondOffer, sendMessage, sendOffer, toggleSaved, topUpWallet } from "@/lib/rummlee/server";
+import { DEFAULT_FEES, checkoutQuote, feeById, formatFeeValue } from "@/lib/rummlee/fees";
 import { dissolveBundle } from "@/lib/rummlee/bundles";
 
 export const Route = createFileRoute("/listings/$id")({
@@ -61,6 +64,8 @@ function ListingPage() {
   const base = payBaseCents(asking, data.myOffer);
   const premium = Boolean(data.buyerPremium);
   const sellerPlus = Boolean(data.sellerPremium);
+  const sellerTier = data.sellerTier === "trio" || data.sellerTier === "plus" ? data.sellerTier : null;
+  const sides = { buyer: premium, sellerTier };
   const officialOk = listing.handoffModes.includes("official");
   const personOk = listing.handoffModes.includes("person");
   const publicOk = listing.handoffModes.includes("public") && Boolean(data.publicSpot);
@@ -105,14 +110,14 @@ function ListingPage() {
   const due = checkoutQuote(
     fees,
     base,
-    { buyer: premium, seller: sellerPlus },
+    { buyer: premium, sellerTier },
     selected === "person" ? "person" : selected === "public" ? "public" : "official",
   );
   const payingAgreed = data.myOffer?.status === "accepted" || data.myOffer?.status === "countered";
   const payBase = payingAgreed ? base : asking;
   const handoffKey = selected === "person" ? "person" : selected === "public" ? "public" : "official";
-  const officialPay = checkoutQuote(fees, payBase, { buyer: premium, seller: sellerPlus }, "official").youPayCents;
-  const otherPay = checkoutQuote(fees, payBase, { buyer: premium, seller: sellerPlus }, "public").youPayCents;
+  const officialPay = checkoutQuote(fees, payBase, { buyer: premium, sellerTier }, "official").youPayCents;
+  const otherPay = checkoutQuote(fees, payBase, { buyer: premium, sellerTier }, "public").youPayCents;
 
   const saveMut = useMutation({
     mutationFn: () => toggleSaved({ data: listing.id }),
@@ -249,6 +254,16 @@ function ListingPage() {
     onError: (e) => toast.error(errMessage(e)),
   });
 
+  const featureMut = useMutation({
+    mutationFn: () => featureListing({ data: { listingId: listing.id } }),
+    onSuccess: (res) => {
+      toast.success(res.chargeCents > 0 ? `Featured. Paid with ${res.paidNote}.` : "Featured.");
+      void qc.invalidateQueries({ queryKey: ["listing", id] });
+      void qc.invalidateQueries({ queryKey: ["bootstrap"] });
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+
   const outsideMut = useMutation({
     mutationFn: () => markSoldOutside({ data: { listingId: listing.id } }),
     onSuccess: async () => {
@@ -265,7 +280,7 @@ function ListingPage() {
         <div className="relative aspect-[4/5] bg-bg-warm sm:aspect-[4/3]">
           <img src={listing.photoUrl} alt={listing.title} className="size-full object-cover" />
           <span className="absolute left-3 top-3 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium backdrop-blur-sm">
-            {saleWindow(listing.saleStartsOn, listing.saleEndsOn)}
+            {saleWhen(listing.saleStartsOn, listing.saleEndsOn, listing.alwaysOn)}
           </span>
           <button
             type="button"
@@ -293,6 +308,11 @@ function ListingPage() {
               {listing.handoffSpotName ?? listing.neighborhood} · {listing.neighborhood} · @{listing.sellerHandle}
               <VerifiedBadge verified={listing.sellerVerified} />
               <ThumbTally up={listing.sellerThumbsUp} down={listing.sellerThumbsDown} />
+              {listing.sellerId.startsWith("seed-") ? null : (
+                <Link to="/rep" className="font-medium text-primary-ink">
+                  Rep {listing.sellerRep ?? 100}
+                </Link>
+              )}
             </p>
             {lastCity() && lastCity() !== "all" && cityOf(listing.neighborhood) !== lastCity() ? (
               <p className="rounded-xl bg-primary-soft px-3 py-2 text-sm text-fg">
@@ -303,7 +323,14 @@ function ListingPage() {
           {listing.sellerId.startsWith("seed-") ? (
             <p className="text-base font-medium text-primary-ink">Sample listing. Not a real item. Pay is still test credits.</p>
           ) : null}
+          {listing.charitySplit ? (
+            <p className="rounded-xl bg-primary-soft px-3 py-2 text-base text-fg">
+              Left at an official store. Rummlee is reselling it. Pay asking. Half of what Rummlee receives goes to charity.
+            </p>
+          ) : null}
           <p className="text-pretty text-base leading-relaxed text-fg">{listing.description}</p>
+          <ListingNotes listingId={listing.id} mine={mine} signedIn={Boolean(user)} />
+          <ListingFacts listingId={listing.id} mine={mine} signedIn={Boolean(user)} />
           {onlineWindowLine(listing) ? <p className="text-base text-muted">{onlineWindowLine(listing)}</p> : null}
           {liveWindowLine(listing) ? (
             <p className="text-base text-fg">{liveWindowLine(listing)} · In person · hours only. No home address.</p>
@@ -335,6 +362,7 @@ function ListingPage() {
               ))}
             </ul>
           ) : null}
+          {listing.charitySplit ? null : (
           <Link
             to="/bundle"
             search={{ seller: listing.sellerId, from: listing.id }}
@@ -342,6 +370,7 @@ function ListingPage() {
           >
             {mine ? "Bundle items from this sale" : "Bundle other items from this seller"}
           </Link>
+          )}
           <Link to="/sales/$id" params={{ id: listing.saleId }} className="block text-base font-medium text-primary-ink">
             See the rest of this sale
           </Link>
@@ -371,7 +400,7 @@ function ListingPage() {
           </section>
         ) : (
           <p className="mt-5 rounded-2xl bg-surface px-4 py-6 text-center text-muted shadow-[var(--shadow-card)]">
-            {listing.status === "held" ? "Someone’s already holding this. Your money would stay held until pickup." : listing.status === "outside" ? "Ended. Sold outside Rummlee. No hold was taken." : listing.status === "bundled" ? "This item is in a bundle." : "This one already sold."}
+            {listing.status === "held" ? "Someone’s already holding this. Your money would stay held until pickup." : listing.status === "outside" ? "Ended. Sold outside Rummlee. No hold was taken." : listing.status === "abandoned" ? "Left with Rummlee. The first seller’s handle is not on a resale." : listing.status === "bundled" ? "This item is in a bundle." : "This one already sold."}
           </p>
         )
       ) : mine ? (
@@ -402,6 +431,16 @@ function ListingPage() {
           ) : (
             <p className="text-base text-muted">No offers yet. They also show in Inbox.</p>
           )}
+          <p className="text-sm text-muted">Taken from test credits, then from the next payout. It shows first until the sale ends.</p>
+          {listing.featured ? (
+            <p className="text-sm font-medium text-primary-ink">Featured until this sale ends.</p>
+          ) : listing.status === "live" ? (
+            <Button variant="secondary" disabled={featureMut.isPending} onClick={() => featureMut.mutate()}>
+              {featureMut.isPending
+                ? "Featuring…"
+                : `Feature this item · ${formatFeeValue(feeById(DEFAULT_FEES, "feature_item") ?? DEFAULT_FEES[0])}`}
+            </Button>
+          ) : null}
           <Button asChild variant="secondary" className="w-full">
             <Link to="/listings/new">Add another item to this sale</Link>
           </Button>
@@ -489,6 +528,7 @@ function ListingPage() {
           ) : null}
 
           <p className="text-sm font-medium">2. Price</p>
+          {listing.charitySplit ? null : <RummleeReveal listingId={listing.id} signedIn={Boolean(user)} />}
           {data.myOffer?.status === "declined" ? (
             <p className="text-sm text-muted">
               {data.myOffer.declinedBy === "floor"
@@ -510,6 +550,7 @@ function ListingPage() {
             baseCents={payBase}
             premium={premium}
             sellerPlus={sellerPlus}
+            sellerTier={sellerTier}
             fees={fees}
             handoff={handoffKey}
             priceLabel={payingAgreed ? "Agreed" : "Asking"}
@@ -539,8 +580,8 @@ function ListingPage() {
                 onClick={() => (user ? buyMut.mutate(true) : goLogin("Sign in to pay asking."))}
               >
                 {TEST_MODE
-                  ? `Pay asking with test credits · ${money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
-                  : `Pay asking · ${money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
+                  ? `Pay asking with test credits · ${money(checkoutQuote(fees, asking, { buyer: premium, sellerTier }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
+                  : `Pay asking · ${money(checkoutQuote(fees, asking, { buyer: premium, sellerTier }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
               </Button>
               <Button className="w-full" variant="ghost" disabled={passMut.isPending || !user} onClick={() => (user ? passMut.mutate() : goLogin("Sign in to decline."))}>
                 Decline
@@ -574,16 +615,16 @@ function ListingPage() {
                   ? "Paying with test credits…"
                   : "Paying…"
                 : TEST_MODE
-                  ? `Pay asking with test credits · ${money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
-                  : `Pay asking · ${money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
+                  ? `Pay asking with test credits · ${money(checkoutQuote(fees, asking, { buyer: premium, sellerTier }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`
+                  : `Pay asking · ${money(checkoutQuote(fees, asking, { buyer: premium, sellerTier }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}`}
             </Button>
           ) : (
             <Button className="w-full" disabled={isPending} onClick={() => goLogin("Sign in to pay. Browse stays free.")}>
-              Sign in to pay asking · {money(checkoutQuote(fees, asking, { buyer: premium, seller: sellerPlus }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}
+              Sign in to pay asking · {money(checkoutQuote(fees, asking, { buyer: premium, sellerTier }, selected === "person" ? "person" : selected === "public" ? "public" : "official").youPayCents)}
             </Button>
           )}
 
-          {!data.myOffer ? (
+          {!data.myOffer && !listing.charitySplit ? (
             offerOpen ? (
               <form
                 className="space-y-3 border-t border-border pt-4"
@@ -639,6 +680,9 @@ function ListingPage() {
             )
           ) : null}
 
+          {listing.charitySplit ? (
+            <p className="border-t border-border pt-4 text-sm text-muted">Pay asking. Questions aren’t open on shelf items.</p>
+          ) : (
           <form
             className="space-y-2 border-t border-border pt-4"
             onSubmit={(e) => {
@@ -658,6 +702,7 @@ function ListingPage() {
               </Button>
             </div>
           </form>
+          )}
           {data.messages.length > 0 ? (
             <ul className="space-y-2">
               {data.messages.map((m) => (

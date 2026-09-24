@@ -63,6 +63,7 @@ export type Sale = {
   liveOpen: string | null;
   liveClose: string | null;
   alwaysOn?: boolean;
+  featured?: boolean;
 };
 
 export type Listing = {
@@ -106,6 +107,7 @@ export type Listing = {
   liveClose?: string | null;
   alwaysOn?: boolean;
   charitySplit?: boolean;
+  featured?: boolean;
 };
 
 export type Offer = {

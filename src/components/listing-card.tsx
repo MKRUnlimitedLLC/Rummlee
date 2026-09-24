@@ -4,7 +4,7 @@ import { VerifiedBadge } from "@/components/trust";
 import type { Listing } from "@/lib/rummlee/types";
 import { HOLD_LINE } from "@/lib/rummlee/constants";
 import { checkoutQuote, DEFAULT_FEES } from "@/lib/rummlee/fees";
-import { fitsOfficialCounter, liveWindowLine, money, onlineWindowLine, packLabel, placeName, saleWindow, spotKindLabel } from "@/lib/rummlee/format";
+import { fitsOfficialCounter, liveWindowLine, money, onlineWindowLine, packLabel, placeName, saleWhen, spotKindLabel } from "@/lib/rummlee/format";
 import { cn } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing; premium?: boolean }) {
@@ -25,11 +25,16 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
           className="size-full object-cover transition-transform duration-500 ease-[var(--ease-out-smooth)] group-hover:scale-[1.03]"
         />
         <span className="absolute left-2.5 top-2.5 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium text-fg backdrop-blur-sm">
-          {saleWindow(listing.saleStartsOn, listing.saleEndsOn)}
+          {saleWhen(listing.saleStartsOn, listing.saleEndsOn, listing.alwaysOn)}
         </span>
         {listing.sellerId.startsWith("seed-") ? (
           <span className="absolute right-2.5 top-2.5 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium text-fg">
             Sample
+          </span>
+        ) : null}
+        {listing.featured ? (
+          <span className="absolute bottom-2.5 left-2.5 rounded-md bg-primary-ink px-2 py-1 text-sm font-medium text-primary-fg">
+            Featured
           </span>
         ) : null}
         {listing.status === "sold" || listing.status === "held" ? (
@@ -69,6 +74,9 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         {onlineWindowLine(listing) ? <p className="text-base text-muted">{onlineWindowLine(listing)}</p> : null}
         {liveWindowLine(listing) ? (
           <p className="text-base text-fg">{liveWindowLine(listing)} · Neighborhood meetup after you pay</p>
+        ) : null}
+        {listing.charitySplit ? (
+          <p className="text-base text-muted">Left at the store. Half of what Rummlee receives goes to charity.</p>
         ) : null}
         {packLabel(listing.pack) ? <p className="text-base text-muted">{packLabel(listing.pack)}</p> : null}
         {!counter ? <p className="text-base font-medium text-fg">In person only</p> : null}

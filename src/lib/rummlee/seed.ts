@@ -38,7 +38,7 @@ export async function ensureFees(sql: Sql) {
       on conflict (id) do nothing
     `;
   }
-  const pack = "plus-v6";
+  const pack = "plus-v7";
   const marked = await sql<{ value: string }>`select value from app_meta where key = ${"fees_pack"}`;
   if (marked[0]?.value === pack) return;
   for (const fee of DEFAULT_FEES) {
@@ -62,6 +62,22 @@ export async function ensureFees(sql: Sql) {
   `;
 }
 
+export async function ensureUpsells(sql: Sql) {
+  await sql`alter table listings add column if not exists featured_until timestamptz`;
+  await sql`alter table sales add column if not exists featured_until timestamptz`;
+  await sql`
+    create table if not exists payout_holds (
+      id text primary key,
+      user_id text not null,
+      amount_cents integer not null,
+      reason text not null,
+      ref_id text,
+      created_at timestamptz not null default now(),
+      applied_at timestamptz
+    )
+  `;
+}
+
 let seedReady: Promise<void> | null = null;
 
 export function ensureSeed(sql: Sql) {
@@ -77,6 +93,7 @@ export function ensureSeed(sql: Sql) {
 async function runSeed(sql: Sql) {
   await ensureFees(sql);
   await ensureHouse(sql);
+  await ensureUpsells(sql);
   const existing = await sql<{ value: string }>`select value from app_meta where key = ${"seeded"}`;
   if (existing[0]?.value === SEED_VERSION) return;
 
