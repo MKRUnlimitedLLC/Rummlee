@@ -5,7 +5,7 @@ export const Route = createFileRoute("/privacy")({ component: Privacy });
 
 function Privacy() {
   return (
-    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated September 21, 2026.">
+    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated September 23, 2026.">
       <LegalSection title="The short version">
         <p>
           Neighbors see a handle, a neighborhood you pick, and the listing. They do not see your legal name, email, or
@@ -34,8 +34,15 @@ function Privacy() {
           </li>
           <li>
             <strong>Listings.</strong> Titles, descriptions, prices, photos you upload, sale dates, and how you want to
-            hand off (an official partner store, a public place, or optional person to person). Photo fill, when it is
+            hand off (an official partner store, a public place, or optional person to person). The lowest price stays
+            off the public listing. A Rummlee +++ member can use a limited Reveal to see it. Photo fill, when it is
             on, sends that photo to suggest a title and category. It is off during beta. It does not set your price.
+          </li>
+          <li>
+            <strong>Research.</strong> If you ask a researcher, we keep the photos, the product type, and your note.
+            Approved researchers in that area see those. They do not see your legal name, email, phone, or address.
+            If you apply to be a researcher, we keep the city and the areas you selected. We do not store a Social
+            Security number.
           </li>
           <li>
             <strong>Deals.</strong> Offers, messages, pickup codes, and whether both of you confirmed the handoff.
@@ -60,7 +67,12 @@ function Privacy() {
         <p>
           Other people see your handle, the neighborhood you chose, your listings, and messages you send them. They do
           not see your email, legal name, or wallet. Listings show an official partner store or a public place, not a home address.
-          Pickup codes are only for the two people on that order.
+          An in-person meetup note is shown only after you pay or an offer is accepted. Pickup codes are only for the
+          two people on that order. The store counter sees a package number, not a name. If you leave a rejected package, the resale does not
+          show your handle. A listing note is public once other neighbors
+          mark it helpful. Don’t put a name, phone, or address in a note. A missing detail shows, with the neighbor’s
+          handle, only after the seller approves it. Your lowest price is visible to you, and to a +++ member who spends
+          a Reveal on that item.
         </p>
       </LegalSection>
 
@@ -68,15 +80,18 @@ function Privacy() {
         <p>
           Account and listing data stay until you close the account. Closing it hides your handle and your messages.
           Orders, fees, and tax amounts stay, because a closed sale is a record. We do not store a photo of your ID
-          or a tax number. A payment company would collect those if real payouts turn on.
+          or a tax number. The ID-verified badge is off during beta. If it turns on, a verification company compares
+          the name. We would keep the result, not the document. A payment company would collect a tax form if real
+          payouts turn on.
         </p>
       </LegalSection>
 
       <LegalSection title="Your choices">
         <p>
           You can edit neighborhood on You and sign out at any time. Download my data, on that same page, gives you a
-          JSON file of your account, listings, offers, messages, and orders. Other people are handles only. To close
-          the login, open You → Delete account. The sale record is not erased. Email support to reopen a closed login.
+          JSON file of your account, listings, offers, messages, and orders, including your own lowest prices. Other
+          people are handles only. To close the login, open You → Delete account. The sale record is not erased. Email
+          support to reopen a closed login.
         </p>
       </LegalSection>
 

@@ -227,12 +227,12 @@ function GuestHero() {
       <div className="space-y-4 p-5">
         <p className="text-pretty text-muted">
           Furniture, kitchen, closet, and kids — from neighbors in the city and the suburbs. Offer this week. Meet at a
-          handoff location, never a home address. Nothing ships.
+          handoff location. The street shows after you pay. Until then, a rough distance. Rummlee never ships.
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
           <Perk icon={CalendarDays} title="Offers before Saturday" body="Browse while the closet is still being edited. Lock it in before the weekend." />
           <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors see @linen_lark. Email, legal name, and home stay off the listing." />
-          <Perk icon={Store} title="Handoff locations" body="Official store, public place, or in person — the seller chooses which to offer. Never a home address." />
+          <Perk icon={Store} title="Handoff locations" body="Official partner store, public handoff location, or private handoff. The address shows after you pay. Until then, a rough distance." />
         </div>
         <p className="inline-flex rounded-full bg-primary-soft px-3 py-1.5 text-sm font-medium text-primary-ink">
           {HOLD_LINE}
@@ -284,7 +284,7 @@ function SignedHero() {
         This weekend nearby
       </p>
       <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">The good stuff is already listed</h1>
-      <p className="mt-1 text-sm text-muted">Offer now. Meet at a handoff location — never a home address. Nothing ships.</p>
+      <p className="mt-1 text-sm text-muted">Offer now. Always a handoff. The address shows after you pay. Rummlee never ships.</p>
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
         {HOLD_LINE}
       </p>

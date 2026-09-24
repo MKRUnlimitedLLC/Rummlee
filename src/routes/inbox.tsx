@@ -10,6 +10,7 @@ import { errMessage } from "@/lib/rummlee/errors";
 import { money } from "@/lib/rummlee/format";
 import { getInbox, respondOffer } from "@/lib/rummlee/server";
 import { RateHandoff } from "@/components/trust";
+import { DispositionChoice } from "@/components/disposition";
 
 export const Route = createFileRoute("/inbox")({ component: InboxPage });
 
@@ -103,6 +104,13 @@ function InboxPage() {
                   <Link to="/pickup/$id" params={{ id: o.id }} className="text-base font-medium text-primary-ink">
                     {o.status === "escrow" ? "Go pick up — code ready" : "View"}
                   </Link>
+                  {o.canLeave ? <DispositionChoice orderId={o.id} /> : null}
+                  {o.disposition === "abandoned" ? (
+                    <p className="mt-1 text-sm text-muted">You left this. Rummlee can resell it. Your handle is not on the new listing.</p>
+                  ) : null}
+                  {o.disposition === "pickup" ? (
+                    <p className="mt-1 text-sm text-muted">Hold for pickup. It’s still yours. Use your seller code at the official store.</p>
+                  ) : null}
                 </div>
               </li>
             ))}
@@ -115,7 +123,7 @@ function InboxPage() {
           <h2 className="font-display text-xl">Rate a handoff</h2>
           <p className="text-sm text-muted">Thumbs up or down. Comment is private. They can challenge a thumbs down.</p>
           {data.pendingRates.map((p) => (
-            <RateHandoff key={p.orderId} orderId={p.orderId} role={p.role} otherHandle={p.otherHandle} />
+            <RateHandoff key={p.orderId} orderId={p.orderId} role={p.role} otherHandle={p.otherHandle} handoffType={p.handoffType} />
           ))}
         </section>
       ) : null}

@@ -15,8 +15,8 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { TEST_MODE } from "@/lib/rummlee/constants";
 import { lastCity, loadSavedIds, rememberAfterLogin, toggleLocalSaved } from "@/lib/rummlee/draft";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
-import { categoryLabel, cityOf, fitsOfficialCounter, haulLabel, liveWindowLine, money, onlineWindowLine, packLabel, payBaseCents, PERSON_ONLY_LINE, saleWhen } from "@/lib/rummlee/format";
-import { buyNow, featureListing, getListing, markSoldOutside, respondOffer, sendMessage, sendOffer, toggleSaved, topUpWallet } from "@/lib/rummlee/server";
+import { categoryLabel, cityOf, fitsOfficialCounter, haulLabel, liveWindowLine, money, onlineWindowLine, packLabel, payBaseCents, PERSON_ONLY_LINE, saleHasEnded, saleWhen } from "@/lib/rummlee/format";
+import { buyNow, featureListing, getListing, markSoldOutside, respondOffer, sendMessage, sendOffer, setOvertime, toggleSaved, topUpWallet, stashListing, removeListing } from "@/lib/rummlee/server";
 import { DEFAULT_FEES, checkoutQuote, feeById, formatFeeValue } from "@/lib/rummlee/fees";
 import { dissolveBundle } from "@/lib/rummlee/bundles";
 
@@ -60,7 +60,9 @@ function ListingPage() {
 
   const listing = data.listing;
   const saved = user ? listing.saved : localSaved;
-  const asking = listing.priceCents;
+  const ended = saleHasEnded(listing.saleEndsOn, listing.alwaysOn);
+  const overtime = Boolean(ended && listing.status === "live" && listing.overtimeCents);
+  const asking = overtime ? listing.overtimeCents! : listing.priceCents;
   const base = payBaseCents(asking, data.myOffer);
   const premium = Boolean(data.buyerPremium);
   const sellerPlus = Boolean(data.sellerPremium);
@@ -83,23 +85,21 @@ function ListingPage() {
   const meetChoices = [
     {
       id: "partner" as const,
-      label: "Official store handoff",
-      hint: listing.handoffSpotName ?? "Locker or pickup desk, store hours.",
+      label: "Official partner store",
+      hint: listing.distanceLabel ?? "Rough distance until you pay.",
       enabled: officialOk,
     },
     {
       id: "public" as const,
-      label: "Public place handoff",
-      hint: publicSpot ? publicSpot.name : "Seller didn’t offer this on this item.",
+      label: "Public handoff location",
+      hint: publicSpot ? (listing.distanceLabel ?? publicSpot.name) : "Seller didn’t offer this on this item.",
       enabled: publicOk,
     },
     {
       id: "person" as const,
-      label: "In person handoff",
+      label: "Private handoff",
       hint: personOk
-        ? fitsOfficialCounter(listing)
-          ? "Meet as handles. Still no home address."
-          : "Seller arranges pickup, or you can offer to haul it. Still no home address."
+        ? listing.distanceLabel ?? "Rough distance until you pay."
         : "Seller didn’t offer this on this item.",
       enabled: personOk,
     },
@@ -273,6 +273,23 @@ function ListingPage() {
     },
     onError: (e) => toast.error(errMessage(e)),
   });
+  const stashMut = useMutation({
+    mutationFn: () => stashListing({ data: { listingId: listing.id } }),
+    onSuccess: async () => {
+      await qc.refetchQueries({ queryKey: ["listing", id] });
+      void qc.invalidateQueries({ queryKey: ["me"] });
+      toast.success("Stashed. It stays in your inventory until you put it on a sale.");
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const removeMut = useMutation({
+    mutationFn: () => removeListing({ data: { listingId: listing.id } }),
+    onSuccess: async () => {
+      toast.success("Removed from your inventory.");
+      void navigate({ to: "/you" });
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
 
   return (
     <article className="py-5">
@@ -302,7 +319,12 @@ function ListingPage() {
         <div className="space-y-4 p-5">
           <div className="flex flex-col gap-2">
             <h1 className="font-display text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">{listing.title}</h1>
-            <AskingPrice cents={listing.priceCents} originalCents={listing.originalCents} />
+            {listing.priceHidden ? (
+              <p className="text-base text-muted">Early look for +++. The price shows when this sale starts. Favorite it and come back.</p>
+            ) : listing.upcoming ? (
+              <p className="text-sm text-muted">Not public yet. +++ can see this without the price.</p>
+            ) : null}
+            {listing.priceHidden ? null : <AskingPrice cents={listing.priceCents} originalCents={listing.originalCents} />}
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-base text-muted">
               <MapPin className="size-3.5" />
               {listing.handoffSpotName ?? listing.neighborhood} · {listing.neighborhood} · @{listing.sellerHandle}
@@ -337,7 +359,7 @@ function ListingPage() {
           ) : null}
           {data.meetupNote ? (
             <p className="rounded-xl bg-primary-soft px-3 py-2 text-base text-fg">
-              In-person meetup note: {data.meetupNote}
+              Private handoff address: {data.meetupNote}
             </p>
           ) : null}
           <dl className="grid grid-cols-2 gap-2 text-base">
@@ -381,7 +403,7 @@ function ListingPage() {
         </div>
       </div>
 
-      {listing.status !== "live" && listing.status !== "bundle" ? (
+      {listing.status !== "live" && listing.status !== "bundle" && listing.status !== "stashed" ? (
         myOrder ? (
           <section className="mt-5 space-y-3 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
             <h2 className="font-display text-xl font-semibold">
@@ -444,6 +466,20 @@ function ListingPage() {
           <Button asChild variant="secondary" className="w-full">
             <Link to="/listings/new">Add another item to this sale</Link>
           </Button>
+          {listing.status === "live" || listing.status === "stashed" ? (
+            <div className="flex flex-wrap gap-2">
+              {listing.status === "live" ? (
+                <Button type="button" variant="secondary" onClick={() => stashMut.mutate()}>
+                  {stashMut.isPending ? "Stashing…" : "Stash for later"}
+                </Button>
+              ) : (
+                <p className="text-sm text-muted">Stashed. It isn’t on a sale. Put it on one from You.</p>
+              )}
+              <Button type="button" variant="ghost" onClick={() => removeMut.mutate()}>
+                {removeMut.isPending ? "Removing…" : "Remove"}
+              </Button>
+            </div>
+          ) : null}
           {listing.status === "live" ? (
             <Button
               type="button"
@@ -470,7 +506,7 @@ function ListingPage() {
             }
           />
           <p className="text-sm font-medium">1. Handoff location</p>
-          <p className="text-sm text-muted">Only what the seller offers. Never a home address.</p>
+          <p className="text-sm text-muted">Always a handoff. The address shows after you pay. Until then, a rough distance. Rummlee never ships.</p>
           <div className="space-y-2">
             {meetChoices.map((choice, index) => {
               const on = selected === choice.id;
@@ -500,25 +536,27 @@ function ListingPage() {
               );
             })}
           </div>
-          {selected === "partner" && listing.handoffSpotName ? (
+          {data.paidAddress ? (
             <div className="rounded-xl bg-bg px-3.5 py-3">
-              <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">Official store handoff</p>
+              <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">Address</p>
+              <p className="mt-1 font-medium">{data.paidAddress}</p>
+              {listing.distanceLabel ? <p className="text-sm text-muted">{listing.distanceLabel}</p> : null}
+            </div>
+          ) : selected === "partner" && listing.handoffSpotName ? (
+            <div className="rounded-xl bg-bg px-3.5 py-3">
+              <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">Official partner store</p>
               <p className="mt-1 font-medium">{listing.handoffSpotName}</p>
-              <p className="text-sm text-muted">{listing.handoffSpotArea}</p>
-              {listing.handoffSpotHint ? <p className="mt-1 text-sm text-subtle">{listing.handoffSpotHint}</p> : null}
+              <p className="text-sm text-muted">{listing.distanceLabel ?? listing.handoffSpotArea}</p>
             </div>
-          ) : null}
-          {selected === "public" && publicSpot ? (
+          ) : selected === "public" && publicSpot ? (
             <div className="rounded-xl bg-bg px-3.5 py-3">
-              <p className="text-sm font-medium uppercase tracking-wider text-subtle">Public place handoff</p>
+              <p className="text-sm font-medium uppercase tracking-wider text-subtle">Public handoff location</p>
               <p className="mt-1 font-medium">{publicSpot.name}</p>
-              <p className="text-sm text-muted">{publicSpot.area}</p>
-              <p className="mt-1 text-sm text-subtle">{publicSpot.hint}</p>
+              <p className="text-sm text-muted">{listing.distanceLabel ?? publicSpot.area}</p>
             </div>
-          ) : null}
-          {selected === "person" ? (
+          ) : selected === "person" ? (
             <p className="rounded-xl bg-bg px-3.5 py-3 text-sm text-muted">
-              In person handoff. You still meet as handles. No home address is posted.
+              Private handoff. {listing.distanceLabel ?? "The address shows after you pay."} Rummlee never ships.
             </p>
           ) : null}
           {officialOk && officialPay !== otherPay ? (
@@ -528,22 +566,37 @@ function ListingPage() {
           ) : null}
 
           <p className="text-sm font-medium">2. Price</p>
-          {listing.charitySplit ? null : <RummleeReveal listingId={listing.id} signedIn={Boolean(user)} />}
-          {data.myOffer?.status === "declined" ? (
+          {ended && !overtime && !mine ? (
+            <p className="text-sm text-muted">This sale has ended. +++ can make one more offer only if the seller sets a get-rid-of-it price.</p>
+          ) : null}
+          {overtime ? (
+            <p className="text-sm text-muted">Overtime for +++. One more offer under the get-rid-of-it price, or pay that price. The seller’s old lowest stays hidden.</p>
+          ) : null}
+          {mine && ended && listing.status === "live" && !listing.charitySplit ? <OvertimePrice listingId={listing.id} current={listing.overtimeCents ?? null} asking={listing.priceCents} /> : null}
+          {listing.charitySplit || (ended && !overtime) || listing.priceHidden ? null : <RummleeReveal listingId={listing.id} signedIn={Boolean(user)} />}
+          {listing.priceHidden || (ended && !overtime) ? null : data.myOffer?.status === "declined" ? (
             <p className="text-sm text-muted">
-              {data.myOffer.declinedBy === "floor"
-                ? "Too low. Your one offer ended — the seller’s lowest stays hidden. Pay asking to hold it."
-                : "Your one offer ended. Pay asking to hold it — you can’t send another."}
+              {overtime
+                ? "Your overtime offer ended. Pay the get-rid-of-it price to hold it."
+                : data.myOffer.declinedBy === "floor"
+                  ? "Too low. Your one offer ended — the seller’s lowest stays hidden. Pay asking to hold it."
+                  : "Your one offer ended. Pay asking to hold it — you can’t send another."}
             </p>
           ) : data.myOffer ? (
             <BuyerDealStatus offer={data.myOffer} />
           ) : (
-            <p className="text-sm text-muted">Pay asking, or send one offer under it. Neighbors never see the seller’s lowest. One decline from either of you ends the offer.</p>
+            <p className="text-sm text-muted">
+              {overtime
+                ? "Pay the get-rid-of-it price, or send one offer under it. One decline ends the overtime offer."
+                : "Pay asking, or send one offer under it. Neighbors never see the seller’s lowest. One decline from either of you ends the offer."}
+            </p>
           )}
 
+          {(ended && !overtime) || listing.priceHidden ? null : (
+          <>
           <p className="text-sm font-medium">3. Pay to hold it</p>
           <p className="text-base text-fg">
-            Asking {money(payBase)}. You pay {money(due.youPayCents)}
+            {overtime ? "Get rid of it" : "Asking"} {money(payBase)}. You pay {money(due.youPayCents)}
             {TEST_MODE ? " in test credits" : ""}.
           </p>
           <CheckoutPay
@@ -553,7 +606,7 @@ function ListingPage() {
             sellerTier={sellerTier}
             fees={fees}
             handoff={handoffKey}
-            priceLabel={payingAgreed ? "Agreed" : "Asking"}
+            priceLabel={payingAgreed ? "Agreed" : overtime ? "Get rid of it" : "Asking"}
           />
           {needCredits ? (
             <div className="space-y-2 rounded-xl bg-primary-soft px-3 py-3">
@@ -624,7 +677,7 @@ function ListingPage() {
             </Button>
           )}
 
-          {!data.myOffer && !listing.charitySplit ? (
+          {!data.myOffer && !listing.charitySplit && !(ended && !overtime) && !listing.priceHidden ? (
             offerOpen ? (
               <form
                 className="space-y-3 border-t border-border pt-4"
@@ -639,18 +692,18 @@ function ListingPage() {
                     toast.error("Enter a dollar amount.");
                     return;
                   }
-                  if (n >= listing.priceCents) {
-                    toast.error("That’s asking or more. Pay asking to hold it.");
+                  if (n >= asking) {
+                    toast.error(overtime ? "That’s the get-rid-of-it price or more. Pay that to hold it." : "That’s asking or more. Pay asking to hold it.");
                     return;
                   }
                   offerMut.mutate();
                 }}
               >
-                <Label htmlFor="offer">Your one offer</Label>
+                <Label htmlFor="offer">{overtime ? "Your overtime offer" : "Your one offer"}</Label>
                 <Input
                   id="offer"
                   inputMode="decimal"
-                  placeholder={`Asking ${money(listing.priceCents)}`}
+                  placeholder={`${overtime ? "Get rid of it" : "Asking"} ${money(asking)}`}
                   value={offer}
                   onChange={(e) => setOffer(e.target.value)}
                   required
@@ -679,6 +732,8 @@ function ListingPage() {
               </button>
             )
           ) : null}
+          </>
+          )}
 
           {listing.charitySplit ? (
             <p className="border-t border-border pt-4 text-sm text-muted">Pay asking. Questions aren’t open on shelf items.</p>
@@ -725,5 +780,43 @@ function Meta({ label, value }: { label: string; value: string }) {
       <dt className="text-sm uppercase tracking-wide text-subtle">{label}</dt>
       <dd className="font-medium">{value}</dd>
     </div>
+  );
+}
+
+function OvertimePrice({ listingId, current, asking }: { listingId: string; current: number | null; asking: number }) {
+  const qc = useQueryClient();
+  const [dollars, setDollars] = useState(current == null ? "" : String(current / 100));
+  const save = useMutation({
+    mutationFn: (cents: number | null) => setOvertime({ data: { listingId, cents } }),
+    onSuccess: (res) => {
+      toast.success(res.overtimeCents ? "Overtime is on for +++." : "Overtime is off.");
+      void qc.invalidateQueries({ queryKey: ["listing", listingId] });
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  return (
+    <form
+      className="space-y-2 rounded-xl bg-bg px-3 py-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const cents = Math.round(Number(dollars) * 100);
+        if (!Number.isFinite(cents)) return;
+        save.mutate(cents);
+      }}
+    >
+      <p className="text-sm font-medium">Get rid of it price</p>
+      <p className="text-sm text-muted">+++ members only. They can pay this, or make one offer under it. Asking was {money(asking)}.</p>
+      <Input inputMode="decimal" value={dollars} onChange={(e) => setDollars(e.target.value)} placeholder="25" />
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={save.isPending}>
+          {save.isPending ? "Saving…" : current ? "Update overtime" : "Open overtime"}
+        </Button>
+        {current ? (
+          <Button type="button" size="sm" variant="secondary" disabled={save.isPending} onClick={() => save.mutate(null)}>
+            Turn off
+          </Button>
+        ) : null}
+      </div>
+    </form>
   );
 }

@@ -28,7 +28,7 @@ export const CHARITY_SHARE_BPS = 5000;
 /** Beta: full product until pay. Pay is simulated test credits — never a card or bank. Flip off only when real billing is live. */
 export const TEST_MODE = true;
 export const TEST_STARTER_CENTS = 20000;
-export const TEST_PAY_NOTE = "Beta — test credits. Not real money. No card is charged. Nothing ships.";
+export const TEST_PAY_NOTE = "Beta — test credits. Not real money. No card is charged. Rummlee never ships.";
 export const PLUS_SALE_DAYS_PER_MONTH = 5;
 /** +++ has no monthly cap. A single sale is still limited by MAX_SALE_DAYS. */
 export const TRIO_SALE_DAYS_PER_MONTH = null;
@@ -112,18 +112,18 @@ export const SALE_KINDS = [
 export const HANDOFF_MODES = [
   {
     id: "official",
-    label: "Official store handoff",
-    hint: "A Rummlee official store. Locker or pickup desk, store hours. Default for most listings.",
+    label: "Official partner store",
+    hint: "A Rummlee partner store. The street shows after someone pays. Before that, a rough distance.",
   },
   {
     id: "public",
-    label: "Public place handoff",
-    hint: "Park, library, civic lot, or parking lot. Still no home address. You choose whether to offer it.",
+    label: "Public handoff location",
+    hint: "Park, library, or civic lot. The street shows after someone pays. Before that, a rough distance.",
   },
   {
     id: "person",
-    label: "In person handoff",
-    hint: "Meet in person as handles. Still no home address on the listing. You choose whether to offer it.",
+    label: "Private handoff",
+    hint: "You meet as handles. The address shows after someone pays. Before that, a rough distance. Rummlee never ships.",
   },
 ] as const;
 

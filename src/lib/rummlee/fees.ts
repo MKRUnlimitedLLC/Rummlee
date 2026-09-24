@@ -369,7 +369,7 @@ export const DEFAULT_FEES: FeeRow[] = [
     id: "location_device",
     label: "Location counter",
     description:
-      "Rummlee software on a store’s counter. Hardware is $0 until a device ships — set the price here when you charge for one. Not a buyer or seller fee.",
+      "Rummlee software on a store’s counter. Hardware is $0 until a location buys a device. Not a buyer or seller fee.",
     unit: "cents",
     percentBps: 0,
     amountCents: 0,

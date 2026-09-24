@@ -9,9 +9,11 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { errMessage } from "@/lib/rummlee/errors";
 import { handoffLabel, money } from "@/lib/rummlee/format";
 import { confirmPickup, getOrder } from "@/lib/rummlee/server";
+import { onMyWay, pingApproaching } from "@/lib/rummlee/desk";
 import { cancelHold, reportProblem } from "@/lib/rummlee/books";
 import { RateHandoff, VerifiedBadge } from "@/components/trust";
 import { PartyCode } from "@/components/party-code";
+import { DispositionChoice } from "@/components/disposition";
 
 export const Route = createFileRoute("/pickup/$id")({ component: PickupPage });
 
@@ -77,16 +79,17 @@ function PickupPage() {
 
   const iAmBuyer = user.id === order.buyerId;
   const done = order.status === "picked_up";
+  const cancelled = order.status === "cancelled";
 
   return (
     <main className="mx-auto max-w-md py-8 text-center">
       <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">
-        {done ? "Picked up" : "Held in escrow"}
+        {cancelled ? "Closed" : done ? "Picked up" : "Held in escrow"}
       </p>
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">{order.listingTitle}</h1>
       <p className="mt-2 text-muted">
         Held {money(order.amountCents)} until you both confirm pickup · {handoffLabel(order.handoffType)}
-        {order.handoffType === "person" && order.meetupNote ? ` · ${order.meetupNote}` : ""}
+        {order.meetupNote ? ` · ${order.meetupNote}` : ""}
       </p>
       <p className="text-sm text-subtle">
         {iAmBuyer ? `Seller @${order.sellerHandle}` : `Buyer @${order.buyerHandle}`}
@@ -112,6 +115,17 @@ function PickupPage() {
           </>
         )}
       </div>
+
+      {order.canLeave ? <DispositionChoice orderId={order.id} /> : null}
+      {cancelled && !order.canLeave ? (
+        <p className="mt-6 text-sm text-muted">
+          {order.disposition === "abandoned"
+            ? "You left this. Rummlee can resell it in Fargo. Your handle is not on the new listing. You are not paid."
+            : order.disposition === "pickup"
+              ? "Hold for pickup. It’s still yours. Show your seller code at the official store."
+              : "This handoff was cancelled. The buyer was refunded."}
+        </p>
+      ) : null}
 
       {done ? (
         <div className="mt-6 space-y-4">
@@ -154,12 +168,15 @@ function PickupPage() {
               orderId={order.id}
               role={iAmBuyer ? "buyer" : "seller"}
               otherHandle={iAmBuyer ? order.sellerHandle : order.buyerHandle}
+              handoffType={order.handoffType}
             />
           )}
         </div>
-      ) : order.handoffType === "official" ? (
+      ) : cancelled ? null : order.handoffType === "official" ? (
         <div className="mt-6 space-y-3">
           <p className="text-sm text-muted">The store counter closes this when it scans the buyer code. You don’t confirm it yourself.</p>
+          <OnTheWayButton orderId={order.id} store />
+          <CloseButton orderId={order.id} />
           {!order.checkedIn ? (
             <Button variant="secondary" className="w-full" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
               Cancel this hold
@@ -184,6 +201,7 @@ function PickupPage() {
             placeholder={order.pickupCode}
             className="text-center font-mono tracking-[0.2em]"
           />
+          <OnTheWayButton orderId={order.id} />
           <Button type="submit" className="w-full" disabled={confirm.isPending}>
             {confirm.isPending ? "Checking…" : iAmBuyer ? "I picked it up" : "I handed it over"}
           </Button>
@@ -196,6 +214,55 @@ function PickupPage() {
         </form>
       )}
     </main>
+  );
+}
+
+function OnTheWayButton({ orderId, store }: { orderId: string; store?: boolean }) {
+  const ping = useMutation({
+    mutationFn: () => onMyWay({ data: { orderId } }),
+    onSuccess: (res) =>
+      toast.success(
+        res.already
+          ? "Already sent."
+          : store
+            ? "The store and the other person know you’re on the way. No location was sent."
+            : "They know you’re on the way. No location was sent.",
+      ),
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  return (
+    <Button type="button" variant="secondary" className="w-full" disabled={ping.isPending} onClick={() => ping.mutate()}>
+      {ping.isPending ? "Sending…" : "I’m on my way"}
+    </Button>
+  );
+}
+
+function CloseButton({ orderId }: { orderId: string }) {
+  const ping = useMutation({
+    mutationFn: (coords: { lat: number; lng: number }) => pingApproaching({ data: { orderId, ...coords } }),
+    onSuccess: () => toast.success("The store knows someone is close. No name was sent."),
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      className="w-full"
+      disabled={ping.isPending}
+      onClick={() => {
+        if (!navigator.geolocation) {
+          toast.error("This phone can’t share a one-time location.");
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => ping.mutate({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => toast.error("Location stayed off. The store is told only when you’re nearby."),
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 },
+        );
+      }}
+    >
+      {ping.isPending ? "Checking…" : "I’m close to the store"}
+    </Button>
   );
 }
 

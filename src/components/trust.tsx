@@ -38,10 +38,12 @@ export function RateHandoff({
   orderId,
   role,
   otherHandle,
+  handoffType,
 }: {
   orderId: string;
   role: "buyer" | "seller";
   otherHandle: string;
+  handoffType?: string;
 }) {
   const qc = useQueryClient();
   const criteria = ratingCriteria(role);
@@ -53,6 +55,8 @@ export function RateHandoff({
   });
   const [comment, setComment] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [counterReady, setCounterReady] = useState<Thumb | null>(null);
+  const official = handoffType === "official";
   const save = useMutation({
     mutationFn: () =>
       submitRating({
@@ -64,6 +68,7 @@ export function RateHandoff({
           packaged: role === "buyer" ? (marks.packaged as Thumb) : undefined,
           comment: comment.trim() || undefined,
           photoUrl: photoUrl || undefined,
+          counterReady: official && counterReady ? counterReady : undefined,
         },
       }),
     onSuccess: (res) => {
@@ -74,7 +79,7 @@ export function RateHandoff({
     },
     onError: (e) => toast.error(errMessage(e)),
   });
-  const ready = criteria.every((c) => marks[c.key] === "up" || marks[c.key] === "down");
+  const ready = criteria.every((c) => marks[c.key] === "up" || marks[c.key] === "down") && (!official || counterReady != null);
   return (
     <form
       className="space-y-3 rounded-2xl bg-surface p-4 text-left shadow-[var(--shadow-card)]"
@@ -116,6 +121,20 @@ export function RateHandoff({
           </div>
         </div>
       ))}
+      {official ? (
+        <div>
+          <p className="text-sm font-medium">Counter was ready</p>
+          <p className="text-sm text-muted">The store, not a person. They rate the handoff too. No names on their screen.</p>
+          <div className="mt-1 flex gap-2">
+            <button type="button" className={cn("inline-flex h-11 items-center gap-1 rounded-lg px-3 text-sm font-medium", counterReady === "up" ? "bg-primary text-primary-fg" : "bg-bg text-fg")} onClick={() => setCounterReady("up")}>
+              <ThumbsUp className="size-4" /> Up
+            </button>
+            <button type="button" className={cn("inline-flex h-11 items-center gap-1 rounded-lg px-3 text-sm font-medium", counterReady === "down" ? "bg-fg text-primary-fg" : "bg-bg text-fg")} onClick={() => setCounterReady("down")}>
+              <ThumbsDown className="size-4" /> Down
+            </button>
+          </div>
+        </div>
+      ) : null}
       <label className="block text-sm">
         <span className="font-medium">Private comment (optional)</span>
         <textarea

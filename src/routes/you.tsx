@@ -10,11 +10,12 @@ import { Input, Label } from "@/components/ui/input";
 import { ListingCard } from "@/components/listing-card";
 import { LegalLinks } from "@/components/legal";
 import { RateHandoff, ThumbTally, VerifiedBadge } from "@/components/trust";
+import { PlusAlerts } from "@/components/plus-alerts";
 import { NEIGHBORHOODS, CITIES, IDENTITY_ENABLED, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { errMessage } from "@/lib/rummlee/errors";
 import { cityOf, money, saleWindow } from "@/lib/rummlee/format";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
-import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, exportMyData, verifyId, finishIdentityCheck, challengeRating, releaseIdentity, setHandle } from "@/lib/rummlee/server";
+import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, exportMyData, verifyId, finishIdentityCheck, challengeRating, releaseIdentity, setHandle, stashListing, removeListing, restockListing } from "@/lib/rummlee/server";
 import { getMyRep } from "@/lib/rummlee/rep";
 
 export const Route = createFileRoute("/you")({ component: YouPage });
@@ -287,6 +288,9 @@ function YouPage() {
             and Reveals don’t roll over. Extra Plus sale days are $2.99. A single sale still runs at most 14 days.
             Before a sale closes you can add days. Feature one item for $1.99, or the whole sale for $4.99, until it
             ends. If test credits don’t cover a sale day or a feature, the rest comes out of your next payout.
+            Plus and +++ can turn on alerts for new items and in-person sales. Nothing is sent until you pick a filter.
+            After a sale ends, the seller can set a get-rid-of-it price. +++ gets one more offer on that unsold item.
+            +++ can also see items being prepared, before the sale starts. The price stays hidden until the sale is on. Anyone with an account can favorite an item.
           </p>
           {me?.isPremium ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -322,6 +326,8 @@ function YouPage() {
         </div>
       </section>
 
+      <PlusAlerts plus={Boolean(me?.isPremium)} />
+
       <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <p className="font-medium">ID Verified</p>
         <p className="mt-1 text-sm text-muted">
@@ -350,7 +356,7 @@ function YouPage() {
         <section className="mt-6 space-y-3">
           <h2 className="font-display text-xl">Rate a handoff</h2>
           {q.data.pendingRates.map((p) => (
-            <RateHandoff key={p.orderId} orderId={p.orderId} role={p.role} otherHandle={p.otherHandle} />
+            <RateHandoff key={p.orderId} orderId={p.orderId} role={p.role} otherHandle={p.otherHandle} handoffType={p.handoffType} />
           ))}
         </section>
       ) : null}
@@ -500,6 +506,8 @@ function YouPage() {
         )}
       </section>
 
+      <SellerInventory items={q.data?.inventory ?? []} sales={q.data?.sales ?? []} />
+
       <section className="mt-8">
         <h2 className="font-display text-xl">Saved</h2>
         {q.data?.saved.length ? (
@@ -606,6 +614,109 @@ function YouPage() {
   );
 }
 
+function SellerInventory({
+  items,
+  sales,
+}: {
+  items: {
+    id: string;
+    title: string;
+    priceCents: number;
+    photoUrl: string;
+    status: "stashed" | "unsold";
+    saleName: string;
+  }[];
+  sales: { id: string; name: string; endsOn: string; alwaysOn?: boolean; status: string }[];
+}) {
+  const qc = useQueryClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const openSales = sales.filter((sale) => sale.status === "live" && (sale.alwaysOn || sale.endsOn.slice(0, 10) >= today));
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: ["me"] });
+    void qc.invalidateQueries({ queryKey: ["bootstrap"] });
+  };
+  const stash = useMutation({
+    mutationFn: (listingId: string) => stashListing({ data: { listingId } }),
+    onSuccess: () => {
+      toast.success("Stashed. It stays yours until you put it on a sale.");
+      refresh();
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const remove = useMutation({
+    mutationFn: (listingId: string) => removeListing({ data: { listingId } }),
+    onSuccess: () => {
+      toast.success("Removed from your inventory.");
+      refresh();
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const restock = useMutation({
+    mutationFn: (data: { listingId: string; saleId: string }) => restockListing({ data }),
+    onSuccess: () => {
+      toast.success("It’s on that sale.");
+      refresh();
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  return (
+    <section className="mt-8">
+      <h2 className="font-display text-xl">Your inventory</h2>
+      <p className="mt-1 text-sm text-muted">
+        Unsold items stay here after a sale. Stash one to sell it later. Remove one if you’re done with it.
+      </p>
+      {items.length === 0 ? (
+        <p className="mt-2 text-sm text-muted">Nothing waiting. Items still on a sale stay with that sale.</p>
+      ) : (
+        <ul className="mt-3 space-y-3">
+          {items.map((item) => (
+            <li key={item.id} className="flex gap-3 rounded-2xl bg-surface p-3 shadow-[var(--shadow-card)]">
+              <img src={item.photoUrl} alt="" className="size-16 rounded-lg object-cover" />
+              <div className="min-w-0 flex-1">
+                <Link to="/listings/$id" params={{ id: item.id }} className="font-medium">
+                  {item.title}
+                </Link>
+                <p className="text-sm text-muted">
+                  {money(item.priceCents)} · {item.status === "stashed" ? "Stashed" : `Unsold · ${item.saleName}`}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {item.status === "unsold" ? (
+                    <Button size="sm" variant="secondary" disabled={stash.isPending} onClick={() => stash.mutate(item.id)}>
+                      Stash
+                    </Button>
+                  ) : openSales.length ? (
+                    <select
+                      className="rounded-xl border border-border bg-bg px-2 py-1 text-sm"
+                      defaultValue=""
+                      onChange={(e) => {
+                        if (!e.target.value) return;
+                        restock.mutate({ listingId: item.id, saleId: e.target.value });
+                        e.target.value = "";
+                      }}
+                    >
+                      <option value="">Put on a sale</option>
+                      {openSales.map((sale) => (
+                        <option key={sale.id} value={sale.id}>
+                          {sale.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm text-muted">Start a sale, then put this on it.</p>
+                  )}
+                  <Button size="sm" variant="ghost" disabled={remove.isPending} onClick={() => remove.mutate(item.id)}>
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function How() {
   return (
     <section className="mt-10 rounded-2xl bg-primary-soft p-5">
@@ -623,7 +734,7 @@ function How() {
           to offer. Scan to confirm. The seller is paid after both of you do.
         </li>
         <li>
-          <strong>Never a home address.</strong> Even in person, you meet as handles.
+          <strong>Address after you pay.</strong> Until then, a rough distance. Official partner store, public handoff location, or private handoff. Rummlee never ships.
         </li>
       </ul>
     </section>

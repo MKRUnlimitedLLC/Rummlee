@@ -13,12 +13,12 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchAutoHide: true,
-      backgroundColor: "#C8101E",
+      backgroundColor: "#9C4454",
       showSpinner: false,
     },
     StatusBar: {
       style: "LIGHT",
-      backgroundColor: "#C8101E",
+      backgroundColor: "#9C4454",
     },
     Keyboard: {
       resize: "body",
@@ -28,11 +28,11 @@ const config: CapacitorConfig = {
     contentInset: "automatic",
     preferredContentMode: "mobile",
     scheme: "Rummlee",
-    backgroundColor: "#C8101E",
+    backgroundColor: "#9C4454",
   },
   android: {
     allowMixedContent: false,
-    backgroundColor: "#C8101E",
+    backgroundColor: "#9C4454",
   },
 };
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { splitModes } from "./format";
+import { HOUSE_FARGO } from "./constants";
 import { mapFeeRow, minAskingCents, DEFAULT_FEES } from "./fees";
 import type { HandoffMode } from "./types";
 
@@ -88,6 +89,9 @@ function sameSellerLive(items: ItemRow[], ids: string[]) {
   const neighborhood = items[0].neighborhood;
   if (items.some((item) => item.seller_id !== seller)) throw new Error("A bundle stays with one seller.");
   if (items.some((item) => item.neighborhood !== neighborhood)) throw new Error("Bundle items have to be in the same neighborhood.");
+  if (items.some((item) => item.seller_id === HOUSE_FARGO.profileId)) {
+    throw new Error("Rummlee shelf items are sold one at a time.");
+  }
   if (items.some((item) => item.bundle_kind)) throw new Error("One of those is already a bundle.");
   if (items.some((item) => item.status !== "live")) throw new Error("One of those items isn’t available.");
   return { seller, neighborhood };

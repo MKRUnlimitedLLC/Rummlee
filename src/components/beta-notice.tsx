@@ -44,7 +44,7 @@ export function BetaNotice() {
         </h2>
         <p id="beta-body" className="mt-3 text-pretty text-[15px] leading-relaxed text-muted">
           No real items are listed for sale. What you see is sample inventory so you can try the product. Pay uses test
-          credits — not real money. Nothing ships. Meet-ups are simulated.
+          credits — not real money. Rummlee never ships. Meet-ups are simulated.
         </p>
         <Button className="mt-6 w-full" onClick={dismiss} autoFocus>
           I understand

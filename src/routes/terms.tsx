@@ -12,7 +12,7 @@ function Terms() {
       <LegalSection title="The short version">
         <p>
           Rummlee is a local pre-sale for neighborhood, moving, and home clear-out sales. You deal under a handle.
-          Pickup is at a handoff location the seller offers — official store, public place, and/or in person. Nothing ships. Addresses are
+          Pickup is at a handoff location the seller offers — official store, public place, and/or in person. Rummlee never ships. No carriers, no postage, no delivery. Addresses are
           not posted. You are responsible for what you list and what you buy.
         </p>
       </LegalSection>

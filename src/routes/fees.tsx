@@ -101,8 +101,8 @@ function TierCards({ fees }: { fees: FeeRow[] }) {
   };
   const tiers = [
     { name: "Standard", price: "$0", buyer: "5%", seller: seller(null), days: "$2.99 a day", extra: "ID check $4.99. Researcher $7.99. Photo fill $0.99. Feature an item $1.99 or a sale $4.99." },
-    { name: "Plus", price: `${month("premium_switch")} / month · ${month("plus_year")} / year`, buyer: "$0", seller: seller("plus"), days: "5 free a month, then $2.99", extra: "ID check included. Researcher $7.99. Photo fill $0.99. Feature an item $1.99 or a sale $4.99. Normal item cap." },
-    { name: "+++", price: `${month("trio_month")} / month · ${month("trio_year")} / year`, buyer: "$0", seller: seller("trio"), days: "Unlimited", extra: "No item cap. 5 researches a month, then $7.99. Reveal 5 times a month. ID check included. Feature an item $1.99 or a sale $4.99." },
+    { name: "Plus", price: `${month("premium_switch")} / month · ${month("plus_year")} / year`, buyer: "$0", seller: seller("plus"), days: "5 free a month, then $2.99", extra: "ID check included. Alerts for new items and in-person sales. Researcher $7.99. Photo fill $0.99. Feature an item $1.99 or a sale $4.99. Normal item cap." },
+    { name: "+++", price: `${month("trio_month")} / month · ${month("trio_year")} / year`, buyer: "$0", seller: seller("trio"), days: "Unlimited", extra: "No item cap. Plus alerts included. Early look at items before a sale starts, with no price until it’s on. After a sale ends, one overtime offer if the seller sets a get-rid-of-it price. 5 researches a month, then $7.99. Reveal 5 times a month. ID check included. Feature an item $1.99 or a sale $4.99." },
   ];
   return (
     <div className="mb-6 grid gap-3">

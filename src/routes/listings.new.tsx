@@ -604,7 +604,7 @@ function NewListingPage() {
                 haul: line.haul,
               }) ? (
                 <p className="mt-1 text-sm text-fg">
-                  In person only. An official store can’t take this. You arrange the pickup, or the buyer can offer to haul it.
+                  In person only. An official store can’t take this. You meet as handles. Rummlee never ships.
                 </p>
               ) : (
                 <p className="mt-1 text-sm text-muted">Over 50 lb, not in a box, or needs a truck stays off the official store counter.</p>
@@ -869,7 +869,7 @@ function SaleDates({
           {draft.liveOn ? "Live in-person hours on" : "Add live in-person hours"}
         </button>
         <p className="mt-1 text-sm text-muted">
-          Optional. Neighbors see the days and hours, plus the neighborhood. Never a street address.
+          Optional. Neighbors see the days and hours, plus a rough distance. The address shows after they pay.
         </p>
       </div>
       {draft.liveOn ? (
@@ -889,16 +889,16 @@ function SaleDates({
             </div>
           </div>
           <div>
-            <Label htmlFor="meetup">In-person meetup note</Label>
+            <Label htmlFor="meetup">Private handoff address</Label>
             <Textarea
               id="meetup"
               value={draft.meetupNote}
               onChange={(e) => onChange({ meetupNote: e.target.value })}
-              placeholder="Neighborhood meetup after you pay. No house number."
+              placeholder="Street address. Hidden until someone pays."
               rows={2}
             />
             <p className="mt-1 text-sm text-muted">
-              Shown only after someone pays for in-person handoff. It never goes on Browse, and an official-store pickup does not reveal it.
+              Shown only after someone pays for private handoff. Until then they see a rough distance, not the street. Rummlee never ships.
             </p>
           </div>
         </div>

@@ -108,7 +108,9 @@ export async function expireOfficialHolds(sql: Sql) {
 export async function runNightly(sql: Sql) {
   const released = await releaseDuePayouts(sql);
   const holdsClosed = await expireOfficialHolds(sql);
-  return { released, holdsClosed };
+  const { flushPlusDigests } = await import("./alerts");
+  const digests = await flushPlusDigests(sql);
+  return { released, holdsClosed, digests };
 }
 
 export async function chargeSeller(

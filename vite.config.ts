@@ -179,6 +179,12 @@ export default defineConfig(({ command, isPreview }) => ({
             scheduledTasks: {
               "0 10 * * *": ["rummlee:nightly"],
             },
+            tasks: {
+              "rummlee:nightly": {
+                handler: "./server/tasks/nightly.ts",
+                description: "Release due payouts and close expired official-store holds",
+              },
+            },
           }),
         ]
       : []),

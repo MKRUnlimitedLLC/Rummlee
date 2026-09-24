@@ -57,6 +57,16 @@ export function saleWhen(startsOn: string, endsOn: string, alwaysOn?: boolean) {
   return saleWindow(startsOn, endsOn);
 }
 
+export function saleHasEnded(endsOn: string, alwaysOn?: boolean) {
+  if (alwaysOn) return false;
+  return endsOn.slice(0, 10) < new Date().toISOString().slice(0, 10);
+}
+
+export function saleIsUpcoming(startsOn: string, alwaysOn?: boolean) {
+  if (alwaysOn) return false;
+  return startsOn.slice(0, 10) > new Date().toISOString().slice(0, 10);
+}
+
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
 export function dowName(dow: number) {
@@ -238,4 +248,4 @@ export function fitsOfficialCounter(input: { pack?: string | null; weightLbs?: n
 }
 
 export const PERSON_ONLY_LINE =
-  "In person only. Over 50 lb, not in a box, or needs a truck. The seller arranges pickup, or the buyer can offer delivery.";
+  "In person only. Over 50 lb, not in a box, or needs a truck. You meet as handles. Rummlee never ships.";

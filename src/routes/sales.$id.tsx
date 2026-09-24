@@ -5,8 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ListingCard } from "@/components/listing-card";
 import { Button } from "@/components/ui/button";
-import { bootstrapPublic, extendSale, featureSale, getSale } from "@/lib/rummlee/server";
-import { liveWindowLine, onlineWindowLine, saleWhen } from "@/lib/rummlee/format";
+import { Input } from "@/components/ui/input";
+import { bootstrapPublic, extendSale, featureSale, getSale, setOvertime, stashListing, removeListing } from "@/lib/rummlee/server";
+import { liveWindowLine, money, onlineWindowLine, saleHasEnded, saleWhen } from "@/lib/rummlee/format";
 import { MAX_SALE_DAYS, SALE_KINDS } from "@/lib/rummlee/constants";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
 import { errMessage } from "@/lib/rummlee/errors";
@@ -61,15 +62,15 @@ function SaleDetail() {
       {data.sale.alwaysOn ? (
         <p className="mt-2 text-sm text-fg">
           Always on at the Fargo official store. These are items someone left. Half of what Rummlee receives is set
-          aside for charity. Nothing ships.
+          aside for charity. Rummlee never ships.
         </p>
       ) : onlineWindowLine(data.sale) ? (
         <p className="mt-2 text-sm font-medium text-fg">{onlineWindowLine(data.sale)}</p>
       ) : (
-        <p className="mt-2 text-sm text-muted">Online on Rummlee. Nothing ships.</p>
+        <p className="mt-2 text-sm text-muted">Online on Rummlee. Rummlee never ships.</p>
       )}
       {data.sale.alwaysOn ? null : liveWindowLine(data.sale) ? (
-        <p className="mt-1 text-sm text-fg">{liveWindowLine(data.sale)} · In person · hours only. No home address.</p>
+        <p className="mt-1 text-sm text-fg">{liveWindowLine(data.sale)} · Private handoff during these hours. The address shows after you pay.</p>
       ) : (
         <p className="mt-1 text-sm text-muted">Online only for this run.</p>
       )}
@@ -99,7 +100,97 @@ function SaleDetail() {
           <ListingCard key={l.id} listing={l} premium={initial.buyerPremium} />
         ))}
       </div>
+      {mine && saleHasEnded(data.sale.endsOn, data.sale.alwaysOn) ? (
+        <OvertimeList saleId={data.sale.id} listings={data.listings.filter((l) => l.status === "live" && !l.charitySplit)} />
+      ) : null}
     </main>
+  );
+}
+
+function OvertimeList({
+  saleId,
+  listings,
+}: {
+  saleId: string;
+  listings: { id: string; title: string; priceCents: number; overtimeCents?: number | null }[];
+}) {
+  if (!listings.length) return null;
+  return (
+    <section className="mt-6 space-y-3 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
+      <p className="font-medium">Overtime for +++</p>
+      <p className="text-sm text-muted">
+        Unsold items only. Set a get-rid-of-it price and +++ members get one more offer under it, or they can pay that price. It is not shown to anyone else.
+      </p>
+      {listings.map((item) => (
+        <OvertimeRow key={item.id} saleId={saleId} item={item} />
+      ))}
+    </section>
+  );
+}
+
+function OvertimeRow({
+  saleId,
+  item,
+}: {
+  saleId: string;
+  item: { id: string; title: string; priceCents: number; overtimeCents?: number | null };
+}) {
+  const qc = useQueryClient();
+  const [dollars, setDollars] = useState(item.overtimeCents == null ? "" : String(item.overtimeCents / 100));
+  const save = useMutation({
+    mutationFn: (cents: number | null) => setOvertime({ data: { listingId: item.id, cents } }),
+    onSuccess: () => {
+      toast.success("Saved.");
+      void qc.invalidateQueries({ queryKey: ["sale", saleId] });
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const stash = useMutation({
+    mutationFn: () => stashListing({ data: { listingId: item.id } }),
+    onSuccess: () => {
+      toast.success("Stashed for a later sale.");
+      void qc.invalidateQueries({ queryKey: ["sale", saleId] });
+      void qc.invalidateQueries({ queryKey: ["me"] });
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const remove = useMutation({
+    mutationFn: () => removeListing({ data: { listingId: item.id } }),
+    onSuccess: () => {
+      toast.success("Removed.");
+      void qc.invalidateQueries({ queryKey: ["sale", saleId] });
+      void qc.invalidateQueries({ queryKey: ["me"] });
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  return (
+    <form
+      className="flex flex-wrap items-end gap-2 border-t border-border pt-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate(Math.round(Number(dollars) * 100));
+      }}
+    >
+      <div className="min-w-40 flex-1">
+        <p className="text-sm font-medium">{item.title}</p>
+        <p className="text-sm text-muted">Asking was {money(item.priceCents)}</p>
+      </div>
+      <Input className="w-28" inputMode="decimal" value={dollars} onChange={(e) => setDollars(e.target.value)} placeholder="25" />
+      <Button type="submit" size="sm" disabled={save.isPending}>
+        {item.overtimeCents ? "Update" : "Open"}
+      </Button>
+      {item.overtimeCents ? (
+        <Button type="button" size="sm" variant="secondary" disabled={save.isPending} onClick={() => save.mutate(null)}>
+          Off
+        </Button>
+      ) : null}
+      <Button type="button" size="sm" variant="secondary" disabled={stash.isPending} onClick={() => stash.mutate()}>
+        Stash
+      </Button>
+      <Button type="button" size="sm" variant="ghost" disabled={remove.isPending} onClick={() => remove.mutate()}>
+        Remove
+      </Button>
+    </form>
   );
 }
 

@@ -1,6 +1,6 @@
 /** In person handoff. Legacy DB rows may still say `porch`; canonicalize on read. */
 export type HandoffMode = "official" | "public" | "person";
-export type ListingStatus = "live" | "sold" | "held" | "outside" | "bundle" | "bundled" | "withdrawn" | "abandoned";
+export type ListingStatus = "live" | "sold" | "held" | "outside" | "bundle" | "bundled" | "withdrawn" | "abandoned" | "stashed";
 export type OfferStatus = "pending" | "countered" | "accepted" | "declined";
 export type OrderStatus = "escrow" | "picked_up" | "cancelled";
 export type SaleStatus = "live" | "ended" | "draft";
@@ -108,6 +108,13 @@ export type Listing = {
   alwaysOn?: boolean;
   charitySplit?: boolean;
   featured?: boolean;
+  /** Set after the sale ends. Visible to the seller and to +++ only. */
+  overtimeCents?: number | null;
+  upcoming?: boolean;
+  /** +++ early look. Price is omitted until the sale starts. */
+  priceHidden?: boolean;
+  /** Rough distance from the viewer’s neighborhood. No street. */
+  distanceLabel?: string | null;
 };
 
 export type Offer = {
@@ -182,6 +189,7 @@ export type PendingRate = {
   listingPhoto: string;
   otherHandle: string;
   role: "buyer" | "seller";
+  handoffType?: string;
 };
 
 export type ReceivedDown = {

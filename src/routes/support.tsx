@@ -33,7 +33,7 @@ function Support() {
           <Link to="/you" className="font-medium text-primary-ink underline-offset-4 hover:underline">
             You
           </Link>
-          . Sign out is next to your name. Delete account is at the bottom of that same page — it erases your handle,
+          . Sign out is on that page. Delete account is at the bottom — it hides your handle,
           listings, messages, and wallet. That matches Apple’s account-deletion rule.
         </p>
       </LegalSection>

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MapPin, Store } from "lucide-react";
 import { bootstrapPublic } from "@/lib/rummlee/server";
-import { liveWindowLine, onlineWindowLine, saleWindow } from "@/lib/rummlee/format";
+import { liveWindowLine, onlineWindowLine, saleWhen } from "@/lib/rummlee/format";
 import { SALE_KINDS } from "@/lib/rummlee/constants";
 import type { HandoffSpot } from "@/lib/rummlee/types";
 
@@ -37,7 +37,7 @@ function SalesPage() {
 
       <ul className="mt-6 space-y-3">
         {data.sales.map((s) => {
-          const kind = SALE_KINDS.find((k) => k.id === s.kind)?.label ?? "Sale";
+          const kind = s.kind === "house" ? "Rummlee shelf" : (SALE_KINDS.find((k) => k.id === s.kind)?.label ?? "Sale");
           const spot = data.spots.find((sp) => sp.id === s.handoffSpotId);
           return (
             <li key={s.id}>
@@ -55,7 +55,7 @@ function SalesPage() {
                   </p>
                   <p className="mt-1 text-sm text-subtle">
                     {spot ? `${spot.name} · ` : ""}
-                    {saleWindow(s.startsOn, s.endsOn)}
+                    {saleWhen(s.startsOn, s.endsOn, s.alwaysOn)}
                     {onlineWindowLine(s) ? ` · ${onlineWindowLine(s)}` : " · online"}
                     {liveWindowLine(s) ? ` · ${liveWindowLine(s)}` : ""}
                     {" · "}

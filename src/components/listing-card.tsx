@@ -1,17 +1,23 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Bookmark, BookmarkCheck, MapPin } from "lucide-react";
+import { useEffect, useState } from "react";
 import { VerifiedBadge } from "@/components/trust";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import type { Listing } from "@/lib/rummlee/types";
 import { HOLD_LINE } from "@/lib/rummlee/constants";
+import { loadSavedIds, toggleLocalSaved } from "@/lib/rummlee/draft";
 import { checkoutQuote, DEFAULT_FEES } from "@/lib/rummlee/fees";
 import { fitsOfficialCounter, liveWindowLine, money, onlineWindowLine, packLabel, placeName, saleWhen, spotKindLabel } from "@/lib/rummlee/format";
+import { toggleSaved } from "@/lib/rummlee/server";
 import { cn } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing; premium?: boolean }) {
   const partner = listing.handoffModes.includes("official") && listing.handoffSpotKind === "partner";
   const counter = fitsOfficialCounter(listing);
-  const youPay = checkoutQuote(DEFAULT_FEES, listing.priceCents, false, counter ? "official" : "person").youPayCents;
-  const feeHint = youPay > listing.priceCents;
+  const shown = listing.priceHidden ? null : (listing.overtimeCents ?? listing.priceCents);
+  const youPay = shown == null ? 0 : checkoutQuote(DEFAULT_FEES, shown, false, counter ? "official" : "person").youPayCents;
+  const feeHint = shown != null && youPay > shown;
   return (
     <Link
       to="/listings/$id"
@@ -27,9 +33,19 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         <span className="absolute left-2.5 top-2.5 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium text-fg backdrop-blur-sm">
           {saleWhen(listing.saleStartsOn, listing.saleEndsOn, listing.alwaysOn)}
         </span>
+        <FavoriteButton id={listing.id} saved={Boolean(listing.saved)} />
         {listing.sellerId.startsWith("seed-") ? (
-          <span className="absolute right-2.5 top-2.5 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium text-fg">
+          <span className="absolute right-2.5 top-14 rounded-md bg-surface/92 px-2 py-1 text-sm font-medium text-fg">
             Sample
+          </span>
+        ) : null}
+        {listing.priceHidden ? (
+          <span className="absolute bottom-2.5 right-2.5 rounded-md bg-primary-ink px-2 py-1 text-sm font-medium text-primary-fg">
+            Early look
+          </span>
+        ) : listing.overtimeCents ? (
+          <span className="absolute bottom-2.5 right-2.5 rounded-md bg-primary-ink px-2 py-1 text-sm font-medium text-primary-fg">
+            Overtime
           </span>
         ) : null}
         {listing.featured ? (
@@ -60,7 +76,10 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         {listing.sizeLabel ? (
           <p className="text-base font-medium text-fg">{listing.sizeLabel}</p>
         ) : null}
-        <p className="font-display text-2xl font-semibold tracking-[-0.03em] text-primary-ink">{money(listing.priceCents)}</p>
+        <p className={cn("font-semibold tracking-[-0.03em] text-primary-ink", shown == null ? "text-base" : "font-display text-2xl")}>
+          {shown == null ? "Price when the sale starts" : money(shown)}
+        </p>
+        {listing.overtimeCents && !listing.priceHidden ? <p className="text-base text-muted">Get rid of it · was {money(listing.priceCents)}</p> : null}
         {listing.sellerId.startsWith("seed-") ? (
           <p className="text-base font-medium text-primary-ink">Sample. Not a real item.</p>
         ) : null}
@@ -82,9 +101,7 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         {!counter ? <p className="text-base font-medium text-fg">In person only</p> : null}
         <p className="flex items-center gap-1 text-base text-muted">
           <MapPin className="size-3.5" strokeWidth={1.75} />
-          {listing.handoffSpotName ?? listing.neighborhood}
-          {" · "}
-          {placeName(listing.neighborhood)}
+          {listing.distanceLabel ?? listing.handoffSpotName ?? placeName(listing.neighborhood)}
         </p>
         <p className="text-base text-subtle">
           {listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : "Handoff location"}
@@ -98,5 +115,41 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         </p>
       </div>
     </Link>
+  );
+}
+
+function FavoriteButton({ id, saved }: { id: string; saved: boolean }) {
+  const { user } = useCurrentUserState();
+  const [local, setLocal] = useState(false);
+  const qc = useQueryClient();
+  useEffect(() => {
+    setLocal(loadSavedIds().includes(id));
+  }, [id]);
+  const save = useMutation({
+    mutationFn: () => toggleSaved({ data: id }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["bootstrap"] });
+      void qc.invalidateQueries({ queryKey: ["me"] });
+      void qc.invalidateQueries({ queryKey: ["listing", id] });
+    },
+  });
+  const on = user ? saved : local;
+  return (
+    <button
+      type="button"
+      aria-label={on ? "Remove favorite" : "Favorite"}
+      className="absolute right-2.5 top-2.5 grid size-10 place-items-center rounded-full bg-surface/92 text-fg shadow-[var(--shadow-card)] backdrop-blur-sm"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!user) {
+          setLocal(toggleLocalSaved(id));
+          return;
+        }
+        save.mutate();
+      }}
+    >
+      {on ? <BookmarkCheck className="size-5" /> : <Bookmark className="size-5" />}
+    </button>
   );
 }

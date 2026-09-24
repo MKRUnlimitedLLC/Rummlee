@@ -6,6 +6,10 @@ import { getSql } from "@/lib/db";
 import { ensureProfile, optionalUserId, settleOrder } from "./server";
 import { refundEscrow, writeNotice } from "./books";
 import { TEST_MODE } from "./constants";
+import { houseForSpot } from "./house";
+import { ensureApproach } from "./approach";
+import { milesFromStore, STORE_CLOSE_MILES } from "./distance";
+import { grantRep } from "./rep";
 
 export type CounterHit = {
   kind: "in" | "out" | "wait" | "done" | "refused";
@@ -42,7 +46,10 @@ async function nextPackage(sql: Awaited<ReturnType<typeof getSql>>, spotId: stri
     select package_no from orders
     where handoff_spot_id = ${spotId} and released_at is null and package_no is not null
   `;
-  const taken = new Set(used.map((row) => Number(row.package_no)));
+  const stock = await sql<{ package_no: number }>`
+    select package_no from house_stock where spot_id = ${spotId} and status in (${"shelf"}, ${"held"})
+  `;
+  const taken = new Set([...used, ...stock].map((row) => Number(row.package_no)));
   for (let n = 1; n <= 99; n += 1) {
     if (!taken.has(n)) return n;
   }
@@ -68,9 +75,11 @@ export const scanAtCounter = createServerFn({ method: "POST" })
       released_at: string | null;
       buyer_id: string;
       seller_id: string;
+      disposition: string | null;
+      listing_id: string;
     }>`
       select id, seller_scan, buyer_scan, package_no, handoff_spot_id, handoff_type, status, released_at,
-             buyer_id, seller_id
+             buyer_id, seller_id, disposition, listing_id
       from orders
       where seller_scan = ${code} or buyer_scan = ${code}
       limit 1
@@ -82,6 +91,17 @@ export const scanAtCounter = createServerFn({ method: "POST" })
     }
     const side = order.seller_scan === code ? "seller" : "buyer";
     if (side === "seller") {
+      if (order.disposition === "abandoned") {
+        throw new Error("This package was left with Rummlee. Don’t hand it back.");
+      }
+      if (order.status === "cancelled" && !order.disposition && order.package_no != null && !order.released_at) {
+        throw new Error("The seller hasn’t chosen hold for pickup or leave it. The package stays.");
+      }
+      if (order.status === "cancelled" && order.disposition === "pickup" && order.package_no != null && !order.released_at) {
+        await sql`update orders set released_at = now() where id = ${order.id} and released_at is null`;
+        await sql`update listings set status = ${"live"} where id = ${order.listing_id} and status = ${"held"}`;
+        return { kind: "out", packageNo: Number(order.package_no) };
+      }
       if (order.released_at || order.status === "picked_up") {
         return { kind: "done", packageNo: order.package_no == null ? null : Number(order.package_no) };
       }
@@ -148,9 +168,11 @@ export const refuseAtCounter = createServerFn({ method: "POST" })
       userId: order.seller_id,
       kind: "refused",
       title: "Counter did not complete the handoff",
-      body: packageNo
-        ? `Package ${packageNo} is still at the store. Pick it up with your seller code. The buyer was refunded.`
-        : "The counter did not take the package. The buyer was refunded and the listing is live again.",
+      body: packageNo && houseForSpot(order.handoff_spot_id)
+        ? "The package is still at the Fargo official store. In your inbox, hold it for pickup or leave it. Leave it and it becomes Rummlee’s to resell. The buyer was refunded."
+        : packageNo
+          ? "The package is still at the store. Pick it up with your seller code. The buyer was refunded."
+          : "The counter did not take the package. The buyer was refunded and the listing is live again.",
       refId: order.id,
     });
     await writeNotice(sql, {
@@ -171,10 +193,27 @@ export const getCounterHome = createServerFn({ method: "GET" })
     const userId = await optionalUserId();
     try {
       const { sql, spotId, deviceId } = await counterSpot(data.deviceSecret, userId);
+      await ensureApproach(sql);
       const spot = await sql<{ name: string; area: string }>`select name, area from handoff_spots where id = ${spotId}`;
       const holding = await sql<{ n: number }>`
         select count(*)::int as n from orders
         where handoff_spot_id = ${spotId} and package_no is not null and released_at is null and status = 'escrow'
+      `;
+      const coming = await sql<{ package_no: number | null; role: string; phase: string | null }>`
+        select o.package_no, p.role, p.phase
+        from approach_pings p
+        join orders o on o.id = p.order_id
+        where p.spot_id = ${spotId}
+          and (
+            (coalesce(p.phase, 'close') = 'way' and p.created_at > now() - interval '2 hours')
+            or (coalesce(p.phase, 'close') <> 'way' and p.created_at > now() - interval '20 minutes')
+          )
+        order by p.created_at desc
+        limit 8
+      `;
+      const marks = await sql<{ up: number; n: number }>`
+        select count(*) filter (where ready = 'up')::int as up, count(*)::int as n
+        from spot_marks where spot_id = ${spotId}
       `;
       return {
         ready: true as const,
@@ -182,9 +221,16 @@ export const getCounterHome = createServerFn({ method: "GET" })
         area: spot[0]?.area ?? "",
         holding: Number(holding[0]?.n ?? 0),
         paired: Boolean(deviceId),
+        approaching: coming.map((row) => {
+          const close = row.phase !== "way";
+          const tag = row.package_no != null ? ` · tag ${row.package_no}` : "";
+          if (row.role === "buyer") return close ? `Pickup close${tag}` : `Pickup on the way${tag}`;
+          return close ? `Drop-off close${tag}` : `Drop-off on the way${tag}`;
+        }),
+        storeReady: Number(marks[0]?.n ?? 0) > 0 ? `${marks[0]?.up ?? 0}/${marks[0]?.n ?? 0} say the counter was ready` : null,
       };
     } catch {
-      return { ready: false as const, spotName: "", area: "", holding: 0, paired: false };
+      return { ready: false as const, spotName: "", area: "", holding: 0, paired: false, approaching: [] as string[], storeReady: null as string | null };
     }
   });
 
@@ -230,6 +276,132 @@ export const listPartnerSpots = createServerFn({ method: "GET" })
     return sql<{ id: string; name: string; area: string }>`
       select id, name, area from handoff_spots where kind = ${"partner"} order by name
     `;
+  });
+
+export const pingApproaching = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) =>
+    z.object({ orderId: z.string().min(2), lat: z.number(), lng: z.number() }).parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensureApproach(sql);
+    const rows = await sql<{
+      id: string;
+      buyer_id: string;
+      seller_id: string;
+      status: string;
+      handoff_type: string;
+      spot_id: string | null;
+    }>`
+      select id, buyer_id, seller_id, status, handoff_type, handoff_spot_id as spot_id
+      from orders where id = ${data.orderId}
+    `;
+    const order = rows[0];
+    if (!order) throw new Error("Pickup not found.");
+    if (order.handoff_type !== "official" || !order.spot_id) throw new Error("Only an official partner store gets this.");
+    if (order.status !== "escrow") throw new Error("This handoff isn’t on the way.");
+    const role = order.buyer_id === context.userId ? "buyer" : order.seller_id === context.userId ? "seller" : null;
+    if (!role) throw new Error("Not your handoff.");
+    const miles = milesFromStore(order.spot_id, data.lat, data.lng);
+    if (miles == null || miles > STORE_CLOSE_MILES) throw new Error("Not close enough yet. The store is told only when you’re nearby.");
+    await sql`delete from approach_pings where order_id = ${order.id} and role = ${role}`;
+    await sql`
+      insert into approach_pings (id, order_id, spot_id, role, phase)
+      values (${crypto.randomUUID()}, ${order.id}, ${order.spot_id}, ${role}, ${"close"})
+    `;
+    return { told: true as const };
+  });
+
+export const onMyWay = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ orderId: z.string().min(2) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensureApproach(sql);
+    const rows = await sql<{
+      id: string;
+      buyer_id: string;
+      seller_id: string;
+      status: string;
+      handoff_type: string;
+      spot_id: string | null;
+    }>`
+      select id, buyer_id, seller_id, status, handoff_type, handoff_spot_id as spot_id
+      from orders where id = ${data.orderId}
+    `;
+    const order = rows[0];
+    if (!order) throw new Error("Pickup not found.");
+    if (order.status !== "escrow") throw new Error("This handoff isn’t open.");
+    const role = order.buyer_id === context.userId ? "buyer" : order.seller_id === context.userId ? "seller" : null;
+    if (!role) throw new Error("Not your handoff.");
+    const otherId = role === "buyer" ? order.seller_id : order.buyer_id;
+    const recent = await sql<{ id: string }>`
+      select id from notices
+      where user_id = ${otherId} and ref_id = ${order.id} and kind = ${"on_way"}
+        and created_at > now() - interval '30 minutes'
+      limit 1
+    `;
+    if (order.handoff_type === "official" && order.spot_id) {
+      const ping = await sql<{ phase: string }>`
+        select phase from approach_pings where order_id = ${order.id} and role = ${role}
+      `;
+      if (ping[0]?.phase !== "close") {
+        await sql`delete from approach_pings where order_id = ${order.id} and role = ${role}`;
+        await sql`
+          insert into approach_pings (id, order_id, spot_id, role, phase)
+          values (${crypto.randomUUID()}, ${order.id}, ${order.spot_id}, ${role}, ${"way"})
+        `;
+      }
+    }
+    if (recent[0]) return { told: true as const, already: true as const };
+    const who = await sql<{ handle: string }>`select handle from profiles where id = ${context.userId}`;
+    const handle = who[0]?.handle ?? "Someone";
+    const toStore = order.handoff_type === "official";
+    await writeNotice(sql, {
+      userId: otherId,
+      kind: "on_way",
+      title: "On the way",
+      body: toStore
+        ? `@${handle} is on the way to the official partner store. No location was sent.`
+        : `@${handle} is on the way to the handoff. No location was sent.`,
+      refId: order.id,
+    });
+    return { told: true as const, already: false as const, store: toStore };
+  });
+
+export const rateAtCounter = createServerFn({ method: "POST" })
+  .validator((data: unknown) =>
+    z
+      .object({
+        code: z.string().min(8).max(80),
+        ready: z.enum(["up", "down"]),
+        deviceSecret: z.string().min(8).max(80).optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const userId = await optionalUserId();
+    const { sql, spotId } = await counterSpot(data.deviceSecret, userId);
+    await ensureApproach(sql);
+    const code = data.code.trim();
+    const rows = await sql<{ id: string; seller_scan: string | null; buyer_scan: string | null; seller_id: string; buyer_id: string }>`
+      select id, seller_scan, buyer_scan, seller_id, buyer_id from orders
+      where handoff_spot_id = ${spotId} and (seller_scan = ${code} or buyer_scan = ${code})
+      limit 1
+    `;
+    const order = rows[0];
+    if (!order) throw new Error("That code isn’t at this counter.");
+    const side = order.seller_scan === code ? "dropoff" : "pickup";
+    const subjectId = side === "dropoff" ? order.seller_id : order.buyer_id;
+    const existing = await sql<{ id: string }>`select id from counter_marks where order_id = ${order.id} and side = ${side}`;
+    if (existing[0]) return { ok: true as const };
+    await sql`
+      insert into counter_marks (id, order_id, spot_id, subject_id, side, ready)
+      values (${crypto.randomUUID()}, ${order.id}, ${spotId}, ${subjectId}, ${side}, ${data.ready})
+    `;
+    if (data.ready === "up") await grantRep(sql, subjectId, "on_time", 2, `${order.id}:${side}`);
+    return { ok: true as const };
   });
 
 export { DEVICE_KEY };

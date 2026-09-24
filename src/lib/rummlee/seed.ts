@@ -2,6 +2,8 @@ import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 import { DEFAULT_FEES } from "./fees";
 import { ensureHouse } from "./house";
+import { ensurePlusAlerts } from "./alerts";
+import { SPOT_ADDRESS } from "./distance";
 
 const SEED_VERSION = "v14-counter";
 
@@ -90,10 +92,25 @@ export function ensureSeed(sql: Sql) {
   return seedReady;
 }
 
+async function ensureOvertime(sql: Sql) {
+  await sql`alter table listings add column if not exists overtime_cents integer`;
+  await sql`alter table offers add column if not exists phase text not null default 'sale'`;
+}
+
+async function ensurePlaces(sql: Sql) {
+  await sql`alter table handoff_spots add column if not exists address text`;
+  for (const [id, address] of Object.entries(SPOT_ADDRESS)) {
+    await sql`update handoff_spots set address = ${address} where id = ${id} and coalesce(address, '') = ''`;
+  }
+}
+
 async function runSeed(sql: Sql) {
   await ensureFees(sql);
   await ensureHouse(sql);
   await ensureUpsells(sql);
+  await ensurePlusAlerts(sql);
+  await ensureOvertime(sql);
+  await ensurePlaces(sql);
   const existing = await sql<{ value: string }>`select value from app_meta where key = ${"seeded"}`;
   if (existing[0]?.value === SEED_VERSION) return;
 
@@ -537,7 +554,7 @@ async function runSeed(sql: Sql) {
       saleId: "sale-westfargo",
       sellerId: "seed-prairie-row",
       title: "Cream two-seat sofa",
-      description: "Soft cream sofa from a West Fargo move. One cushion is a little sat. Too big for an official store. In person only. The seller arranges pickup, or the buyer can offer delivery.",
+      description: "Soft cream sofa from a West Fargo move. One cushion is a little sat. Too big for an official store. In person only. Rummlee never ships.",
       priceCents: 9000,
       buyNowCents: 9000,
       originalCents: 64000,
@@ -587,7 +604,7 @@ async function runSeed(sql: Sql) {
       saleId: "sale-westfargo",
       sellerId: "seed-prairie-row",
       title: "Utility trailer, 5x8",
-      description: "Open utility trailer. Lights work. You’ll need a hitch and a truck. In person only. The seller arranges pickup, or the buyer can offer to haul it.",
+      description: "Open utility trailer. Lights work. You’ll need a hitch and a truck. In person only. Rummlee never ships.",
       priceCents: 14000,
       buyNowCents: 14000,
       originalCents: 89000,

@@ -47,8 +47,7 @@ function InPersonHowTo() {
           </p>
           <p>
             Put the item in an outer box when you can, and say so. A couch, anything over 50 lb, or anything not in a
-            box is in person only. A store counter will not take it. The buyer can offer to haul it, or you arrange the
-            pickup.
+            box is in person only. A store counter will not take it. You meet as handles. Rummlee never ships.
           </p>
         </Step>
         <Step n="4" title="Let people pay before they come">

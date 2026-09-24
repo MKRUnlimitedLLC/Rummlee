@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errMessage } from "@/lib/rummlee/errors";
-import { getCounterHome, refuseAtCounter, scanAtCounter, type CounterHit } from "@/lib/rummlee/desk";
+import { getCounterHome, refuseAtCounter, rateAtCounter, scanAtCounter, type CounterHit } from "@/lib/rummlee/desk";
 
 export const Route = createFileRoute("/desk")({
   component: DeskPage,
@@ -38,6 +38,7 @@ function DeskPage() {
   const home = useQuery({
     queryKey: ["counter", secret],
     queryFn: () => getCounterHome({ data: { deviceSecret: secret || undefined } }),
+    refetchInterval: 20000,
   });
 
   const scan = useMutation({
@@ -48,6 +49,12 @@ function DeskPage() {
       setCode("");
       void qc.invalidateQueries({ queryKey: ["counter", secret] });
     },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+
+  const rate = useMutation({
+    mutationFn: (ready: "up" | "down") => rateAtCounter({ data: { code: last, ready, deviceSecret: secret || undefined } }),
+    onSuccess: () => toast.success("Rated. No name on this screen."),
     onError: (e) => toast.error(errMessage(e)),
   });
 
@@ -158,6 +165,16 @@ function DeskPage() {
         </form>
       ) : (
         <>
+          {(home.data?.approaching.length ?? 0) > 0 ? (
+            <ul className="mt-4 space-y-2 text-left">
+              {home.data?.approaching.map((line) => (
+                <li key={line} className="rounded-2xl bg-primary-soft px-4 py-3 text-sm font-medium text-primary-ink">
+                  {line}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {home.data?.storeReady ? <p className="mt-3 text-sm text-muted">{home.data.storeReady}</p> : null}
           {hit ? (
             <div className="mt-6 rounded-[28px] bg-surface px-4 py-8 shadow-[var(--shadow-card)]">
               <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">
@@ -167,6 +184,16 @@ function DeskPage() {
                 {hit.packageNo ?? "—"}
               </p>
               <p className="mt-2 text-sm text-muted">Write the number on the package. Nothing else.</p>
+              {hit.kind === "in" || hit.kind === "out" ? (
+                <div className="mt-4 flex justify-center gap-2">
+                  <Button type="button" variant="secondary" disabled={rate.isPending || !last} onClick={() => rate.mutate("up")}>
+                    Ready
+                  </Button>
+                  <Button type="button" variant="ghost" disabled={rate.isPending || !last} onClick={() => rate.mutate("down")}>
+                    Not ready
+                  </Button>
+                </div>
+              ) : null}
             </div>
           ) : null}
           <form

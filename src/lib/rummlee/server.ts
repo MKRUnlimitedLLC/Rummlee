@@ -5,7 +5,7 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
 import { storePhoto } from "./photo-store";
-import { feeOn, fitsOfficialCounter, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
+import { feeOn, fitsOfficialCounter, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf, saleIsUpcoming } from "./format";
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
 import { CITIES, IDENTITY_CAP, IDENTITY_ENABLED, MAX_SALE_DAYS, MIN_PRICE_CENTS, NEIGHBORHOODS, PHOTO_FILL_ENABLED, SALE_ITEM_CAP, TEST_MODE, TEST_STARTER_CENTS, resolveListingId, saleDayAllowance } from "./constants";
 import { beginIdentity, finishIdentity } from "./identity";
@@ -15,6 +15,9 @@ import { overallThumb, type Thumb } from "./trust";
 import { PAYOUT_HOLD_HOURS, chargeSeller, releaseDuePayouts, writeLedger, writeNotice, refundEscrow } from "./books";
 import { claimHouseShelf, houseForSpot, releaseHouseClaim } from "./house";
 import { awardCleanRun, grantRep } from "./rep";
+import { ensureApproach } from "./approach";
+import { notifyNewListing, notifyNewSale } from "./alerts";
+import { roughDistance, SPOT_ADDRESS } from "./distance";
 import type {
   HandoffMode,
   HandoffSpot,
@@ -73,6 +76,7 @@ type ListingRow = {
   live_close?: string | null;
   always_on?: boolean | null;
   charity_split?: boolean | null;
+  overtime_cents?: number | null;
   featured?: boolean | null;
   sale_featured?: boolean | null;
 };
@@ -127,6 +131,33 @@ function mapListing(row: ListingRow, saved = false): Listing {
     alwaysOn: Boolean(row.always_on),
     charitySplit: Boolean(row.charity_split),
     featured: Boolean(row.featured) || Boolean(row.sale_featured),
+    overtimeCents: row.overtime_cents == null ? null : Number(row.overtime_cents),
+  };
+}
+
+async function viewerNeighborhood(sql: Awaited<ReturnType<typeof getSql>>, userId: string | null) {
+  if (!userId) return null;
+  const rows = await sql<{ neighborhood: string | null }>`select neighborhood from profiles where id = ${userId}`;
+  return rows[0]?.neighborhood ?? null;
+}
+
+function withDistance(listing: Listing, from: string | null): Listing {
+  return { ...listing, distanceLabel: roughDistance(from, listing.handoffSpotArea || listing.neighborhood) };
+}
+
+function forViewer(listing: Listing, opts: { mine: boolean; trio: boolean }): Listing {
+  let next = listing;
+  if (!(opts.mine || opts.trio) && next.overtimeCents != null) next = { ...next, overtimeCents: null };
+  if (!saleIsUpcoming(next.saleStartsOn, next.alwaysOn)) return next;
+  next = { ...next, upcoming: true };
+  if (opts.mine) return next;
+  return {
+    ...next,
+    priceHidden: true,
+    priceCents: 0,
+    buyNowCents: null,
+    originalCents: null,
+    overtimeCents: null,
   };
 }
 
@@ -603,10 +634,12 @@ async function loadPendingRates(sql: Awaited<ReturnType<typeof getSql>>, userId:
     listing_photo: string;
     other_handle: string;
     role: "buyer" | "seller";
+    handoff_type: string;
   }>`
     select o.id, l.title as listing_title, l.photo_url as listing_photo,
            case when o.buyer_id = ${userId} then se.handle else b.handle end as other_handle,
-           case when o.buyer_id = ${userId} then ${"buyer"} else ${"seller"} end as role
+           case when o.buyer_id = ${userId} then ${"buyer"} else ${"seller"} end as role,
+           o.handoff_type
     from orders o
     join listings l on l.id = o.listing_id
     join profiles b on b.id = o.buyer_id
@@ -623,6 +656,7 @@ async function loadPendingRates(sql: Awaited<ReturnType<typeof getSql>>, userId:
     listingPhoto: r.listing_photo,
     otherHandle: r.other_handle,
     role: r.role,
+    handoffType: r.handoff_type,
   }));
 }
 
@@ -630,7 +664,7 @@ const listingSelect = `
   select l.id, l.sale_id, s.name as sale_name, l.seller_id, p.handle as seller_handle,
          l.title, l.description, l.price_cents, l.buy_now_cents, l.original_cents, l.floor_cents,
          l.category, l.condition, l.haul, l.size_label, l.pack, l.weight_lbs, l.neighborhood, l.handoff_modes, l.photo_url,
-         l.status, l.charity_split, s.starts_on, s.ends_on,
+         l.status, l.charity_split, l.overtime_cents, s.starts_on, s.ends_on,
          (l.featured_until is not null and l.featured_until > now()) as featured,
          (s.featured_until is not null and s.featured_until > now()) as sale_featured,
          s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close, s.always_on,
@@ -650,15 +684,26 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
   const sql = await getSql();
   await ensureSeed(sql);
   const userId = await optionalUserId();
-  const buyerPremium = await viewerPremium(sql, userId);
+  const tier = await viewerTier(sql, userId);
+  const buyerPremium = tier != null;
+  const overtime =
+    tier === "trio"
+      ? " or (l.overtime_cents is not null and s.ends_on < current_date and coalesce(s.always_on, false) = false)"
+      : "";
+  const upcoming =
+    tier === "trio"
+      ? " or (s.starts_on > current_date and s.ends_on >= current_date and coalesce(s.always_on, false) = false)"
+      : "";
   const rows = await sql.query<ListingRow>(
-    listingSelect + " where l.status = 'live' and (s.always_on = true or s.ends_on >= current_date) order by ((l.featured_until is not null and l.featured_until > now()) or (s.featured_until is not null and s.featured_until > now())) desc, l.created_at desc",
+    listingSelect +
+      ` where l.status = 'live' and ((s.always_on = true or (s.starts_on <= current_date and s.ends_on >= current_date))${upcoming}${overtime}) order by ((l.featured_until is not null and l.featured_until > now()) or (s.featured_until is not null and s.featured_until > now())) desc, l.created_at desc`,
   );
   let saved = new Set<string>();
   if (userId) {
     const savedRows = await sql<{ listing_id: string }>`select listing_id from saved_listings where user_id = ${userId}`;
     saved = new Set(savedRows.map((r) => r.listing_id));
   }
+  const fromHood = await viewerNeighborhood(sql, userId);
   const salesRows = await sql.query<SaleMapRow>(
     `select s.id, s.seller_id, p.handle as seller_handle, s.name, s.kind, s.neighborhood,
             s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
@@ -675,7 +720,9 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
     order by case when kind = 'partner' then 0 else 1 end, name
   `;
   return {
-    listings: rows.map((r) => mapListing(r, saved.has(r.id))),
+    listings: rows.map((r) =>
+      withDistance(forViewer(mapListing(r, saved.has(r.id)), { mine: r.seller_id === userId, trio: tier === "trio" }), fromHood),
+    ),
     sales: salesRows.map(mapSale),
     spots,
     signedIn: Boolean(userId),
@@ -694,7 +741,13 @@ export const getListing = createServerFn({ method: "GET" })
     const row = rows[0];
     if (!row) return null;
     const userId = await optionalUserId();
-    const buyerPremium = await viewerPremium(sql, userId);
+    if (row.status === "stashed" && userId !== row.seller_id) return null;
+    const buyerTier = await viewerTier(sql, userId);
+    const buyerPremium = buyerTier != null;
+    const ended = !row.always_on && String(row.ends_on).slice(0, 10) < new Date().toISOString().slice(0, 10);
+    const upcoming = saleIsUpcoming(String(row.starts_on), Boolean(row.always_on));
+    if (upcoming && userId !== row.seller_id && buyerTier !== "trio") return null;
+    const overtimeOn = ended && row.overtime_cents != null;
     const publicRows = await sql<{ id: string; name: string; area: string; hint: string }>`
       select id, name, area, hint from handoff_spots
       where kind = ${"public"} and area = ${row.neighborhood}
@@ -735,7 +788,7 @@ export const getListing = createServerFn({ method: "GET" })
         join listings l on l.id = o.listing_id
         join profiles b on b.id = o.buyer_id
         join profiles se on se.id = o.seller_id
-        where o.listing_id = ${id} and o.buyer_id = ${userId}
+        where o.listing_id = ${id} and o.buyer_id = ${userId} and o.phase = ${overtimeOn ? "overtime" : "sale"}
         order by o.created_at desc limit 1
       `;
       if (o[0]) {
@@ -888,6 +941,27 @@ export const getListing = createServerFn({ method: "GET" })
       listingId: id,
       modes: row.handoff_modes,
     });
+    let paidAddress: string | null = null;
+    if (userId && userId !== row.seller_id) {
+      const paid = await sql<{ handoff_type: string; spot_id: string | null; address: string | null }>`
+        select o.handoff_type, s.handoff_spot_id as spot_id, hs.address
+        from orders o
+        join listings l on l.id = o.listing_id
+        join sales s on s.id = l.sale_id
+        left join handoff_spots hs on hs.id = s.handoff_spot_id
+        where o.listing_id = ${id} and o.buyer_id = ${userId} and o.status <> ${"cancelled"}
+        order by o.created_at desc
+        limit 1
+      `;
+      const order = paid[0];
+      if (order?.handoff_type === "person") paidAddress = meetupNote;
+      else if (order?.handoff_type === "official" || order?.handoff_type === "porch") {
+        paidAddress = order.address?.trim() || (order.spot_id ? SPOT_ADDRESS[order.spot_id] ?? null : null);
+      } else if (order?.handoff_type === "public" && publicSpot) {
+        const pub = await sql<{ address: string | null }>`select address from handoff_spots where id = ${publicSpot.id}`;
+        paidAddress = pub[0]?.address?.trim() || SPOT_ADDRESS[publicSpot.id] || null;
+      }
+    }
     const bundleRows = await sql<{ id: string; title: string; price_cents: number }>`
       select l.id, l.title, l.price_cents
       from bundle_items b
@@ -898,18 +972,23 @@ export const getListing = createServerFn({ method: "GET" })
     const kindRow = await sql<{ bundle_kind: string | null }>`select bundle_kind from listings where id = ${id}`;
     const sellerTier = await viewerTier(sql, row.seller_id);
     return {
-      listing: mapListing(row, saved),
+      listing: withDistance(
+        forViewer(mapListing(row, saved), { mine: userId === row.seller_id, trio: buyerTier === "trio" }),
+        await viewerNeighborhood(sql, userId),
+      ),
       bundleItems: bundleRows.map((item) => ({ id: item.id, title: item.title, priceCents: Number(item.price_cents) })),
       bundleKind: kindRow[0]?.bundle_kind ?? null,
       myOffer,
       myOrder,
       sellerOffers,
       buyerPremium,
+      buyerTier,
       sellerPremium: sellerTier != null,
       sellerTier,
       publicSpot,
       floorCents: userId === row.seller_id ? Number(row.floor_cents ?? row.price_cents) : null,
       meetupNote,
+      paidAddress,
       fees: await loadFees(sql),
       messages: thread.map(
         (m): Message => ({
@@ -944,10 +1023,12 @@ export const getSale = createServerFn({ method: "GET" })
     const sale = sales[0];
     if (!sale) return null;
     const rows = await sql.query<ListingRow>(
-      listingSelect + " where l.sale_id = $1 and l.status not in ('bundled', 'bundle', 'abandoned', 'withdrawn') order by l.created_at desc",
+      listingSelect + " where l.sale_id = $1 and l.status not in ('bundled', 'bundle', 'abandoned', 'withdrawn', 'stashed') order by l.created_at desc",
       [id],
     );
     const userId = await optionalUserId();
+    const tier = await viewerTier(sql, userId);
+    const fromHood = await viewerNeighborhood(sql, userId);
     let saved = new Set<string>();
     if (userId) {
       const savedRows = await sql<{ listing_id: string }>`select listing_id from saved_listings where user_id = ${userId}`;
@@ -955,8 +1036,13 @@ export const getSale = createServerFn({ method: "GET" })
     }
     return {
       sale: mapSale(sale),
-      listings: rows.map((r) => mapListing(r, saved.has(r.id))),
+      listings: rows
+        .map((r) =>
+          withDistance(forViewer(mapListing(r, saved.has(r.id)), { mine: userId === sale.seller_id, trio: tier === "trio" }), fromHood),
+        )
+        .filter((l) => !l.upcoming || userId === sale.seller_id || tier === "trio"),
       meetupNote: userId === sale.seller_id ? await sellerMeetupNote(sql, sale.id) : null,
+      buyerTier: tier,
     };
   });
 
@@ -984,6 +1070,7 @@ export const getMe = createServerFn({ method: "GET" })
        where s.seller_id = $1 order by s.created_at desc`,
       [context.userId],
     );
+    const savedTier = await viewerTier(sql, context.userId);
     const savedRows = await sql.query<ListingRow>(
       listingSelect +
         " join saved_listings sv on sv.listing_id = l.id where sv.user_id = $1 order by sv.created_at desc",
@@ -991,6 +1078,26 @@ export const getMe = createServerFn({ method: "GET" })
     );
     const pendingRates = await loadPendingRates(sql, context.userId);
     const desk = await sql<{ desk_spot_id: string | null }>`select desk_spot_id from profiles where id = ${context.userId}`;
+    const inventoryRows = await sql<{
+      id: string;
+      title: string;
+      price_cents: number;
+      photo_url: string;
+      status: string;
+      sale_name: string;
+      ends_on: string;
+    }>`
+      select l.id, l.title, l.price_cents, l.photo_url, l.status, s.name as sale_name, s.ends_on::text
+      from listings l
+      join sales s on s.id = l.sale_id
+      where l.seller_id = ${context.userId}
+        and coalesce(l.charity_split, false) = false
+        and (
+          l.status = ${"stashed"}
+          or (l.status = ${"live"} and coalesce(s.always_on, false) = false and s.ends_on < current_date)
+        )
+      order by l.status desc, l.title
+    `;
     const usedFree = await freeSaleDaysUsed(sql, context.userId);
     const receivedDowns = await sql<{
       rating_id: string;
@@ -1020,9 +1127,23 @@ export const getMe = createServerFn({ method: "GET" })
       ),
       sales: mySales.map(mapSale),
       plusSaleDaysLeft: me.isPremium && saleDayAllowance(me.plusTier) != null ? Math.max(0, (saleDayAllowance(me.plusTier) ?? 0) - usedFree) : 0,
-      saved: savedRows.map((r) => mapListing(r, true)),
+      saved: savedRows
+        .map((r) =>
+          withDistance(forViewer(mapListing(r, true), { mine: r.seller_id === context.userId, trio: savedTier === "trio" }), me.neighborhood),
+        )
+        .filter((l) => !l.upcoming || l.sellerId === context.userId || savedTier === "trio")
+        .filter((l) => l.status === "live" || l.status === "held" || l.status === "sold"),
       pendingRates,
       isDesk: Boolean(desk[0]?.desk_spot_id),
+      inventory: inventoryRows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        priceCents: Number(row.price_cents),
+        photoUrl: row.photo_url,
+        status: row.status === "stashed" ? ("stashed" as const) : ("unsold" as const),
+        saleName: row.sale_name,
+        saleEnded: String(row.ends_on).slice(0, 10) < new Date().toISOString().slice(0, 10),
+      })),
       receivedDowns: receivedDowns.map(
         (r): ReceivedDown => ({
           ratingId: r.rating_id,
@@ -1344,6 +1465,7 @@ export const createSale = createServerFn({ method: "POST" })
     if (!me.neighborhood) {
       await sql`update profiles set neighborhood = ${data.neighborhood} where id = ${context.userId}`;
     }
+    await notifyNewSale(sql, id);
     return { id, chargeCents: quote.chargeCents, freeDays: quote.freeDays, paidDays: quote.paidDays, days };
   });
 
@@ -1429,6 +1551,7 @@ export const extendSale = createServerFn({ method: "POST" })
       sale.id,
     );
     await sql`update sales set ends_on = ${nextEnd}::date, sale_free_days = coalesce(sale_free_days, 0) + ${quote.freeDays} where id = ${sale.id}`;
+    await sql`update listings set overtime_cents = null where sale_id = ${sale.id}`;
     for (let i = 1; i <= data.extraDays; i += 1) {
       const iso = addIso(base, i);
       await sql`
@@ -1612,7 +1735,137 @@ export const addListing = createServerFn({ method: "POST" })
           and listing_id is null
       `;
     }
+    await notifyNewListing(sql, id);
     return { id };
+  });
+
+export const setOvertime = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) =>
+    z
+      .object({
+        listingId: z.string(),
+        cents: z.number().int().min(100).nullable(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensureSeed(sql);
+    const rows = await sql<{
+      id: string;
+      seller_id: string;
+      status: string;
+      price_cents: number;
+      charity_split: boolean;
+      ends_on: string;
+      always_on: boolean | null;
+    }>`
+      select l.id, l.seller_id, l.status, l.price_cents, l.charity_split, s.ends_on::text, s.always_on
+      from listings l join sales s on s.id = l.sale_id
+      where l.id = ${data.listingId}
+    `;
+    const item = rows[0];
+    if (!item || item.seller_id !== context.userId) throw new Error("That isn’t your item.");
+    if (item.always_on || item.charity_split) throw new Error("Shelf items don’t go to overtime.");
+    if (item.status !== "live") throw new Error("Only an unsold item can go to overtime.");
+    if (String(item.ends_on).slice(0, 10) >= new Date().toISOString().slice(0, 10)) {
+      throw new Error("Overtime starts after the sale ends.");
+    }
+    if (data.cents == null) {
+      await sql`update listings set overtime_cents = null where id = ${item.id}`;
+      return { overtimeCents: null };
+    }
+    const fees = await loadFees(sql);
+    const min = minAskingCents(fees);
+    if (data.cents < min) throw new Error(`Get rid of it has to be at least $${(min / 100).toFixed(min % 100 === 0 ? 0 : 2)}.`);
+    if (data.cents > Number(item.price_cents)) throw new Error("Get rid of it can’t be higher than asking.");
+    await sql`update listings set overtime_cents = ${data.cents} where id = ${item.id}`;
+    return { overtimeCents: data.cents };
+  });
+
+async function closeOpenOffers(sql: Awaited<ReturnType<typeof getSql>>, listingId: string) {
+  await sql`
+    update offers
+    set status = ${"declined"}, declined_by = ${"seller"}, updated_at = now()
+    where listing_id = ${listingId} and status in (${"pending"}, ${"countered"})
+  `;
+}
+
+export const stashListing = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ listingId: z.string().min(2) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const rows = await sql<{ id: string; seller_id: string; status: string; charity_split: boolean }>`
+      select id, seller_id, status, charity_split from listings where id = ${data.listingId}
+    `;
+    const item = rows[0];
+    if (!item || item.seller_id !== context.userId) throw new Error("That’s not your item.");
+    if (item.charity_split) throw new Error("A shelf item can’t be stashed.");
+    if (item.status === "held") throw new Error("This one is held. Finish the handoff first.");
+    if (item.status !== "live") throw new Error("Only an unsold item can be stashed.");
+    const held = await sql<{ id: string }>`select id from orders where listing_id = ${item.id} and status = ${"escrow"} limit 1`;
+    if (held[0]) throw new Error("This one is held. Finish the handoff first.");
+    await closeOpenOffers(sql, item.id);
+    await sql`update listings set status = ${"stashed"}, overtime_cents = null where id = ${item.id}`;
+    return { ok: true as const };
+  });
+
+export const removeListing = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ listingId: z.string().min(2) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const rows = await sql<{ id: string; seller_id: string; status: string; charity_split: boolean }>`
+      select id, seller_id, status, charity_split from listings where id = ${data.listingId}
+    `;
+    const item = rows[0];
+    if (!item || item.seller_id !== context.userId) throw new Error("That’s not your item.");
+    if (item.charity_split) throw new Error("A shelf item can’t be removed this way.");
+    if (item.status === "held") throw new Error("This one is held. Finish the handoff first.");
+    if (item.status !== "live" && item.status !== "stashed") throw new Error("This item isn’t in your inventory.");
+    const held = await sql<{ id: string }>`select id from orders where listing_id = ${item.id} and status = ${"escrow"} limit 1`;
+    if (held[0]) throw new Error("This one is held. Finish the handoff first.");
+    await closeOpenOffers(sql, item.id);
+    await sql`update listings set status = ${"withdrawn"}, overtime_cents = null where id = ${item.id}`;
+    return { ok: true as const };
+  });
+
+export const restockListing = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((data: unknown) => z.object({ listingId: z.string().min(2), saleId: z.string().min(2) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const me = await ensureProfile(sql, context.userId);
+    const rows = await sql<{ id: string; status: string }>`
+      select id, status from listings where id = ${data.listingId} and seller_id = ${context.userId}
+    `;
+    const item = rows[0];
+    if (!item || item.status !== "stashed") throw new Error("Stash it first, then put it on a sale.");
+    const sales = await sql<{ id: string; neighborhood: string; ends_on: string; always_on: boolean | null }>`
+      select id, neighborhood, ends_on::text, always_on from sales
+      where id = ${data.saleId} and seller_id = ${context.userId} and status = ${"live"}
+    `;
+    const sale = sales[0];
+    if (!sale) throw new Error("Sale not found.");
+    if (!sale.always_on && String(sale.ends_on).slice(0, 10) < new Date().toISOString().slice(0, 10)) {
+      throw new Error("That sale has ended. Pick one that’s still on, or start a new sale.");
+    }
+    if (me.plusTier !== "trio") {
+      const have = await sql<{ n: number }>`
+        select count(*)::int as n from listings where sale_id = ${sale.id} and status not in (${"withdrawn"}, ${"stashed"})
+      `;
+      if (Number(have[0]?.n ?? 0) >= SALE_ITEM_CAP) {
+        throw new Error(`A sale holds ${SALE_ITEM_CAP} items. Rummlee +++ has no item cap.`);
+      }
+    }
+    await sql`
+      update listings
+      set status = ${"live"}, sale_id = ${sale.id}, neighborhood = ${sale.neighborhood}, overtime_cents = null
+      where id = ${item.id}
+    `;
+    return { ok: true as const };
   });
 
 export const sendOffer = createServerFn({ method: "POST" })
@@ -1639,39 +1892,68 @@ export const sendOffer = createServerFn({ method: "POST" })
       status: string;
       title: string;
       charity_split: boolean;
-    }>`select id, seller_id, price_cents, floor_cents, status, title, charity_split from listings where id = ${listingId}`;
+      overtime_cents: number | null;
+      ends_on: string;
+      starts_on: string;
+      always_on: boolean | null;
+    }>`
+      select l.id, l.seller_id, l.price_cents, l.floor_cents, l.status, l.title, l.charity_split,
+             l.overtime_cents, s.ends_on::text, s.starts_on::text, s.always_on
+      from listings l join sales s on s.id = l.sale_id
+      where l.id = ${listingId}
+    `;
     const item = listing[0];
     if (!item || item.status !== "live") throw new Error("This item isn’t available.");
     if (item.charity_split) throw new Error("This is a Rummlee resale. Pay asking.");
     if (item.seller_id === context.userId) throw new Error("You can’t offer on your own listing.");
-    const existing = await sql<{ id: string; status: string }>`
-      select id, status from offers where listing_id = ${listingId} and buyer_id = ${context.userId}
-      order by created_at desc limit 1
-    `;
-    if (existing[0]) {
-      throw new Error("You already used your one offer on this item. You can still pay asking.");
+    if (saleIsUpcoming(String(item.starts_on), Boolean(item.always_on))) {
+      throw new Error("This sale hasn’t started. The price isn’t up yet.");
     }
-    const usedUp = await sql<{ listing_id: string }>`
-      select listing_id from offer_uses where listing_id = ${listingId} and buyer_id = ${context.userId}
+    const ended = !item.always_on && String(item.ends_on).slice(0, 10) < new Date().toISOString().slice(0, 10);
+    const overtime = ended && item.overtime_cents != null;
+    if (ended && !overtime) throw new Error("This sale has ended.");
+    if (overtime && offerer.plusTier !== "trio") throw new Error("Overtime offers are for +++.");
+    const open = await sql<{ id: string }>`
+      select id from offers
+      where listing_id = ${listingId} and buyer_id = ${context.userId} and status in (${"pending"}, ${"countered"})
+      limit 1
     `;
-    if (usedUp[0]) throw new Error("You already used your one offer on this item. You can still pay asking.");
-    const ask = Number(item.price_cents);
-    const floor = Number(item.floor_cents ?? item.price_cents);
+    if (open[0]) throw new Error("Finish the offer you already have.");
+    if (overtime) {
+      const used = await sql<{ id: string }>`
+        select id from offers
+        where listing_id = ${listingId} and buyer_id = ${context.userId} and phase = ${"overtime"}
+        limit 1
+      `;
+      if (used[0]) throw new Error("You already used your overtime offer. Pay the get-rid-of-it price to hold it.");
+    } else {
+      const existing = await sql<{ id: string }>`
+        select id from offers where listing_id = ${listingId} and buyer_id = ${context.userId} and phase = ${"sale"}
+        order by created_at desc limit 1
+      `;
+      if (existing[0]) throw new Error("You already used your one offer on this item. You can still pay asking.");
+      const usedUp = await sql<{ listing_id: string }>`
+        select listing_id from offer_uses where listing_id = ${listingId} and buyer_id = ${context.userId}
+      `;
+      if (usedUp[0]) throw new Error("You already used your one offer on this item. You can still pay asking.");
+    }
+    const ask = overtime ? Number(item.overtime_cents) : Number(item.price_cents);
+    const floor = overtime ? 0 : Number(item.floor_cents ?? item.price_cents);
     if (data.amountCents >= ask) {
-      throw new Error("That’s asking or more. Pay asking to hold it.");
+      throw new Error(overtime ? "That’s the get-rid-of-it price or more. Pay that to hold it." : "That’s asking or more. Pay asking to hold it.");
     }
     const id = crypto.randomUUID();
     let status: Offer["status"] = "pending";
     let declinedBy: "floor" | null = null;
-    if (data.amountCents < floor) {
+    if (!overtime && data.amountCents < floor) {
       status = "declined";
       declinedBy = "floor";
     } else if (isSeedUser(item.seller_id)) {
       status = "accepted";
     }
     await sql`
-      insert into offers (id, listing_id, buyer_id, seller_id, amount_cents, counter_cents, status, declined_by, note)
-      values (${id}, ${listingId}, ${context.userId}, ${item.seller_id}, ${data.amountCents}, ${null}, ${status}, ${declinedBy}, ${data.note ?? null})
+      insert into offers (id, listing_id, buyer_id, seller_id, amount_cents, counter_cents, status, declined_by, note, phase)
+      values (${id}, ${listingId}, ${context.userId}, ${item.seller_id}, ${data.amountCents}, ${null}, ${status}, ${declinedBy}, ${data.note ?? null}, ${overtime ? "overtime" : "sale"})
     `;
     if (status === "accepted") {
       await sql`
@@ -1708,9 +1990,12 @@ export const respondOffer = createServerFn({ method: "POST" })
       status: string;
       floor_cents: number | null;
       price_cents: number;
+      amount_cents: number;
+      phase: string;
+      overtime_cents: number | null;
     }>`
-      select o.id, o.listing_id, o.buyer_id, o.seller_id, o.status,
-             l.floor_cents, l.price_cents
+      select o.id, o.listing_id, o.buyer_id, o.seller_id, o.status, o.amount_cents, o.phase,
+             l.floor_cents, l.price_cents, l.overtime_cents
       from offers o
       join listings l on l.id = o.listing_id
       where o.id = ${data.offerId}
@@ -1727,10 +2012,15 @@ export const respondOffer = createServerFn({ method: "POST" })
       if (!isSeller) throw new Error("Only the seller can send a counteroffer.");
       if (offer.status !== "pending") throw new Error("You already sent one counteroffer.");
       if (!data.counterCents) throw new Error("Enter a counteroffer.");
-      const floor = Number(offer.floor_cents ?? offer.price_cents);
-      const ask = Number(offer.price_cents);
+      const overtime = offer.phase === "overtime" ? Number(offer.overtime_cents ?? 0) : 0;
+      const floor = overtime > 0 ? Number(offer.amount_cents) + 1 : Number(offer.floor_cents ?? offer.price_cents);
+      const ask = overtime > 0 ? overtime : Number(offer.price_cents);
       if (data.counterCents < floor || data.counterCents > ask) {
-        throw new Error("Counteroffer has to sit between your lowest and asking.");
+        throw new Error(
+          overtime > 0
+            ? "Counteroffer has to sit between their offer and your get-rid-of-it price."
+            : "Counteroffer has to sit between your lowest and asking.",
+        );
       }
       await sql`
         update offers set status = ${"countered"}, counter_cents = ${data.counterCents}, updated_at = now()
@@ -1854,9 +2144,14 @@ export const buyNow = createServerFn({ method: "POST" })
       bundle_kind: string | null;
       bundle_for: string | null;
       charity_split: boolean;
+      overtime_cents: number | null;
+      ends_on: string;
+      starts_on: string;
+      always_on: boolean | null;
     }>`
       select l.id, l.seller_id, l.title, l.status, l.price_cents, l.handoff_modes, l.neighborhood,
-             s.handoff_spot_id, l.bundle_kind, l.bundle_for, l.charity_split
+             s.handoff_spot_id, l.bundle_kind, l.bundle_for, l.charity_split,
+             l.overtime_cents, s.ends_on::text, s.starts_on::text, s.always_on
       from listings l
       join sales s on s.id = l.sale_id
       where l.id = ${listingId}
@@ -1879,13 +2174,23 @@ export const buyNow = createServerFn({ method: "POST" })
     }
     if (item.status !== "live" && item.status !== "bundle") throw new Error("This item isn’t available.");
     if (item.seller_id === context.userId) throw new Error("That’s your listing.");
+    if (saleIsUpcoming(String(item.starts_on), Boolean(item.always_on))) {
+      throw new Error("This sale hasn’t started. The price isn’t up yet.");
+    }
+    if (saleIsUpcoming(String(item.starts_on), Boolean(item.always_on))) {
+      throw new Error("This sale hasn’t started. The price isn’t up yet.");
+    }
+    const ended = !item.always_on && String(item.ends_on).slice(0, 10) < new Date().toISOString().slice(0, 10);
+    const clearance = ended ? Number(item.overtime_cents ?? 0) : 0;
+    if (ended && clearance <= 0) throw new Error("This sale has ended.");
+    if (ended && me.plusTier !== "trio") throw new Error("Overtime is for +++.");
     const offerRows = await sql<{ status: string; amount_cents: number; counter_cents: number | null }>`
       select status, amount_cents, counter_cents from offers
-      where listing_id = ${item.id} and buyer_id = ${context.userId}
+      where listing_id = ${item.id} and buyer_id = ${context.userId} and phase = ${ended ? "overtime" : "sale"}
       order by created_at desc limit 1
     `;
     const offer = offerRows[0];
-    const asking = Number(item.price_cents);
+    const asking = clearance > 0 ? clearance : Number(item.price_cents);
     const offerState = offer
       ? {
           status: offer.status,
@@ -2425,7 +2730,12 @@ export const getOrder = createServerFn({ method: "GET" })
                 where l.id = ${o.listing_id}
               `
             )[0]?.meetup_note ?? null
-          : null,
+          : (await sql<{ address: string | null; spot_id: string | null }>`
+              select hs.address, orders.handoff_spot_id as spot_id
+              from orders
+              left join handoff_spots hs on hs.id = orders.handoff_spot_id
+              where orders.id = ${o.id}
+            `).map((row) => row.address?.trim() || (row.spot_id ? SPOT_ADDRESS[row.spot_id] ?? null : null))[0] ?? null,
     } satisfies Order;
   });
 
@@ -2540,6 +2850,7 @@ export const submitRating = createServerFn({ method: "POST" })
         packaged: z.enum(["up", "down"]).optional(),
         comment: z.string().max(500).optional(),
         photoUrl: z.string().max(1_500_000).optional(),
+        counterReady: z.enum(["up", "down"]).optional(),
       })
       .parse(data),
   )
@@ -2584,6 +2895,19 @@ export const submitRating = createServerFn({ method: "POST" })
       )
     `;
     await recountThumbs(sql, subjectId);
+    if (data.counterReady) {
+      await ensureApproach(sql);
+      const spot = await sql<{ spot: string | null; handoff_type: string }>`
+        select handoff_spot_id as spot, handoff_type from orders where id = ${order.id}
+      `;
+      if (spot[0]?.handoff_type === "official" && spot[0].spot) {
+        await sql`
+          insert into spot_marks (id, order_id, spot_id, rater_id, ready)
+          values (${crypto.randomUUID()}, ${order.id}, ${spot[0].spot}, ${context.userId}, ${data.counterReady})
+          on conflict (order_id, rater_id) do nothing
+        `;
+      }
+    }
     if (isBuyer) {
       await grantRep(
         sql,
