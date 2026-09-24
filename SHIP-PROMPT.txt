@@ -1,0 +1,19 @@
+Rummlee Ship — commit these files and push origin/main. Do not redesign. Do not change Stripe, checkout charges, referral math, or test mode. Charges stay off. Test credits stay the wallet.
+
+Repo: https://github.com/MKRUnlimitedLLC/Rummlee
+Branch: main
+
+Replace the paths in the zip at the same repo-relative paths. If a path is new, add it. Do not revert unrelated local work. Run migrations on deploy. They are numbered 0032 through 0037 and are safe to re-run.
+
+Commit message:
+Set researcher pay to the D.C. minimum, and let researchers ask for photos.
+
+What this push includes:
+- Researcher payout is $4.60. That is 15 minutes at $18.40 an hour, the highest rate on the U.S. Department of Labor chart for 2026 (Washington, D.C.). The seller pays $5.99 to ask, so the payout is not clipped. Requests already sent keep the old payout snapshot.
+- +++ is $29.99 a month or $299.99 a year and includes 5 researcher requests a month. More are $5.99 each. Unused ones do not roll over.
+- If a researched item sells, the researcher can get $2.50 when the price is in the top half of their range, and $2.50 more if it sells at the full asking price. Paid when the seller payout releases, only if the seller listed from that write-up.
+- Researchers apply and pick product types. A matching ask pings them. Research now starts 15 minutes. One item at a time. One hold adds 15 minutes. They can ask the seller a question or request more photos. The clock pauses until the seller answers.
+- Corporate job map lists market lead, ambassador, and researcher. Researcher pay is not a referral row.
+- Beta. No real card charge.
+
+Do not display lead or ambassador pay on any public page.

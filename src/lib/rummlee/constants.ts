@@ -12,12 +12,35 @@ export const IDENTITY_CAP = 50;
 /** Photo fill suggests a title and category from the picture. Off for the beta. Plus includes it. */
 export const PHOTO_FILL_ENABLED = false;
 
+/** Fargo first. That market can store a package the seller leaves. */
+export const HOUSE_FARGO = {
+  profileId: "house-fargo",
+  handle: "rummlee",
+  saleId: "sale-house-fargo",
+  neighborhood: "West Fargo, Fargo–Moorhead",
+  market: "Fargo–Moorhead",
+  spotId: "partner-westfargo",
+} as const;
+
+/** Half of what Rummlee receives as seller on a left-item resale. Not a buyer fee. */
+export const CHARITY_SHARE_BPS = 5000;
+
 /** Beta: full product until pay. Pay is simulated test credits — never a card or bank. Flip off only when real billing is live. */
 export const TEST_MODE = true;
 export const TEST_STARTER_CENTS = 20000;
 export const TEST_PAY_NOTE = "Beta — test credits. Not real money. No card is charged. Nothing ships.";
 export const PLUS_SALE_DAYS_PER_MONTH = 3;
+export const TRIO_SALE_DAYS_PER_MONTH = 5;
+export const TRIO_RESEARCHES_PER_MONTH = 5;
+/** +++ can see a seller’s hidden low this many times each calendar month. */
+export const REVEALS_PER_MONTH = 5;
+/** Items on one sale for everyone except Rummlee +++. */
+export const SALE_ITEM_CAP = 40;
 export const MAX_SALE_DAYS = 14;
+
+export function saleDayAllowance(tier: "plus" | "trio" | null | undefined) {
+  return tier === "trio" ? TRIO_SALE_DAYS_PER_MONTH : PLUS_SALE_DAYS_PER_MONTH;
+}
 
 export const NEIGHBORHOODS = [
   "Park Slope, Brooklyn",

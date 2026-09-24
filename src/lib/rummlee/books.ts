@@ -5,6 +5,7 @@ import { getSql } from "@/lib/db";
 import { TEST_MODE } from "./constants";
 import { releaseBundleChildren } from "./bundles";
 import { syncReferralBooks } from "./referrals";
+import { grantRep } from "./rep";
 
 /** Seller is not paid until this window passes with no open problem. */
 export const PAYOUT_HOLD_HOURS = 48;
@@ -57,8 +58,13 @@ export async function writeNotice(
 }
 
 export async function expireOfficialHolds(sql: Sql) {
-  const rows = await sql<{ id: string; checked_in_at: string | null }>`
-    select id, checked_in_at from orders
+  const rows = await sql<{
+    id: string;
+    checked_in_at: string | null;
+    handoff_spot_id: string | null;
+    package_no: number | null;
+  }>`
+    select id, checked_in_at, handoff_spot_id, package_no from orders
     where status = ${"escrow"}
       and handoff_type = ${"official"}
       and (
@@ -75,6 +81,8 @@ export async function expireOfficialHolds(sql: Sql) {
     const order = await refundEscrow(sql, row.id, reason);
     if (!order) continue;
     closed += 1;
+    const { houseForSpot } = await import("./house");
+    const fargo = Boolean(row.checked_in_at && houseForSpot(row.handoff_spot_id));
     await writeNotice(sql, {
       userId: order.buyer_id,
       kind: "hold",
@@ -85,9 +93,11 @@ export async function expireOfficialHolds(sql: Sql) {
     await writeNotice(sql, {
       userId: order.seller_id,
       kind: "hold",
-      title: row.checked_in_at ? "Pick the package back up" : "Drop-off window closed",
+      title: row.checked_in_at ? "The package is still at the store" : "Drop-off window closed",
       body: row.checked_in_at
-        ? "The buyer did not come. The store is no longer required to hold it. Collect it from the counter."
+        ? fargo
+          ? "The buyer did not come. In your inbox, hold it for pickup or leave it. Leave it and it becomes Rummlee’s to resell in Fargo. You are not paid."
+          : "The buyer did not come. The store is no longer required to hold it. Collect it from the counter."
         : "The item was not dropped off in time, so the buyer was refunded.",
       refId: order.id,
     });
@@ -121,34 +131,67 @@ export async function releaseDuePayouts(sql: Sql) {
     if (!won[0]) continue;
     released += 1;
     const payout = Number(row.payout_cents ?? 0);
-    await sql`update profiles set wallet_cents = wallet_cents + ${payout} where id = ${row.seller_id}`;
+    const { charityShare, orderIsCharity, recordCharity } = await import("./house");
+    const charityItem = await orderIsCharity(sql, row.id);
+    const split = charityItem ? charityShare(payout) : null;
+    const credit = split ? split.keep : payout;
+    await sql`update profiles set wallet_cents = wallet_cents + ${credit} where id = ${row.seller_id}`;
+    const payoutNote = split
+      ? TEST_MODE
+        ? "Resale half released. The other half is set aside for charity. Test credits, not real money."
+        : "Resale half released. The other half is set aside for charity."
+      : TEST_MODE
+        ? "Test payout after the 48-hour window (not real money)"
+        : "Payout after the 48-hour window";
     await sql`
       insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
       values (
         ${crypto.randomUUID()},
         ${row.seller_id},
         ${"payout"},
-        ${payout},
+        ${credit},
         ${row.id},
-        ${TEST_MODE ? "Test payout after the 48-hour window (not real money)" : "Payout after the 48-hour window"}
+        ${payoutNote}
       )
     `;
-    await writeLedger(sql, {
-      orderId: row.id,
-      userId: row.seller_id,
-      account: "payout",
-      amountCents: payout,
-      note: "Seller payable released",
-    });
+    if (split) {
+      await recordCharity(sql, row.id, split.charity);
+      await writeLedger(sql, {
+        orderId: row.id,
+        userId: null,
+        account: "charity_payable",
+        amountCents: split.charity,
+        note: "Half of left-item seller proceeds. Not revenue.",
+      });
+      await writeLedger(sql, {
+        orderId: row.id,
+        userId: row.seller_id,
+        account: "resale_proceeds",
+        amountCents: split.keep,
+        note: "Rummlee half of a left-item resale",
+      });
+    } else {
+      await writeLedger(sql, {
+        orderId: row.id,
+        userId: row.seller_id,
+        account: "payout",
+        amountCents: payout,
+        note: "Seller payable released",
+      });
+    }
     await writeNotice(sql, {
       userId: row.seller_id,
       kind: "payout",
-      title: "Payout released",
-      body: TEST_MODE
-        ? "The 48-hour window passed with no problem reported. Test credits are in your wallet. Not real money."
-        : "The 48-hour window passed with no problem reported. The payout is released.",
+      title: split ? "Resale half released" : "Payout released",
+      body: split
+        ? payoutNote
+        : TEST_MODE
+          ? "The 48-hour window passed with no problem reported. Test credits are in your wallet. Not real money."
+          : "The 48-hour window passed with no problem reported. The payout is released.",
       refId: row.id,
     });
+    const { payResearchBonuses } = await import("./research");
+    await payResearchBonuses(sql, row.id);
   }
   await syncReferralBooks(sql);
   return released;
@@ -208,12 +251,17 @@ export async function refundEscrow(sql: Sql, orderId: string, reason: string) {
     amountCents: -paid,
     note: reason,
   });
-  if (!order.checked_in_at) {
+  const { restoreHouseListing } = await import("./house");
+  const restored = await restoreHouseListing(sql, { id: order.id, listingId: order.listing_id });
+  if (!restored && !order.checked_in_at) {
     await releaseBundleChildren(sql, order.listing_id);
     await sql`
       update listings set status = case when bundle_kind = ${"buyer"} then ${"bundle"} else ${"live"} end
       where id = ${order.listing_id} and status = ${"held"}
     `;
+  }
+  if (reason === "Counter refused the package") {
+    await grantRep(sql, order.seller_id, "counter_refuse", -3, order.id);
   }
   return order;
 }

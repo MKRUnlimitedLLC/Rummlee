@@ -41,7 +41,7 @@ function FeesPage() {
   return (
     <LegalPage
       title="Fees"
-      lede="Beta. Every Rummlee fee, in one table. Sale days are $2.99 each; Plus includes 3 sale days a month. Checkout shows a fees total you can expand. Sales tax is always listed on its own. Buyer fee is 5%, or 0% with Plus. Official store is $2.99 each side unless that person has Plus. ID Verified is a badge on the account, a one-time fee, free with Plus. Photo fill is included with Plus and off during beta. Paid in test credits. No card is charged."
+      lede="Beta. Every Rummlee fee, in one table. Sale days are $2.99 each; Plus includes 3 sale days a month and +++ includes 5. Checkout shows a fees total you can expand. Sales tax is always listed on its own. Buyer fee is 5%, or 0% with Plus. Official store is $2.99 each side unless that person has Plus. +++ is $29.99 a month and includes Plus, 5 researcher requests, and no item cap. More researches are the ask fee, one at a time. Paid in test credits. No card is charged."
     >
       <div className="overflow-x-auto rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
         <table className="w-full min-w-[36rem] text-left text-sm">

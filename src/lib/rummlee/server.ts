@@ -7,12 +7,14 @@ import { ensureFees, ensureSeed } from "./seed";
 import { storePhoto } from "./photo-store";
 import { feeOn, fitsOfficialCounter, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf } from "./format";
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
-import { CITIES, IDENTITY_CAP, IDENTITY_ENABLED, MAX_SALE_DAYS, MIN_PRICE_CENTS, NEIGHBORHOODS, PHOTO_FILL_ENABLED, PLUS_SALE_DAYS_PER_MONTH, TEST_MODE, TEST_STARTER_CENTS, resolveListingId } from "./constants";
+import { CITIES, IDENTITY_CAP, IDENTITY_ENABLED, MAX_SALE_DAYS, MIN_PRICE_CENTS, NEIGHBORHOODS, PHOTO_FILL_ENABLED, SALE_ITEM_CAP, TEST_MODE, TEST_STARTER_CENTS, resolveListingId, saleDayAllowance } from "./constants";
 import { beginIdentity, finishIdentity } from "./identity";
 import { suggestFromPhoto } from "./photo-fill";
 import { childIds, holdBundleChildren, releaseBundleChildren, soldBundleChildren, useBundleOffers, voidBuyerBundlesContaining } from "./bundles";
 import { overallThumb, type Thumb } from "./trust";
 import { PAYOUT_HOLD_HOURS, releaseDuePayouts, writeLedger, writeNotice, refundEscrow } from "./books";
+import { claimHouseShelf, houseForSpot, releaseHouseClaim } from "./house";
+import { awardCleanRun, grantRep } from "./rep";
 import type {
   HandoffMode,
   HandoffSpot,
@@ -61,6 +63,7 @@ type ListingRow = {
   seller_verified?: boolean;
   seller_thumbs_up?: number;
   seller_thumbs_down?: number;
+  seller_rep?: number | null;
   online_start_dow?: number | null;
   online_end_dow?: number | null;
   live_on?: boolean | null;
@@ -68,6 +71,8 @@ type ListingRow = {
   live_end_dow?: number | null;
   live_open?: string | null;
   live_close?: string | null;
+  always_on?: boolean | null;
+  charity_split?: boolean | null;
 };
 
 function mapListing(row: ListingRow, saved = false): Listing {
@@ -109,6 +114,7 @@ function mapListing(row: ListingRow, saved = false): Listing {
     sellerVerified: Boolean(row.seller_verified),
     sellerThumbsUp: Number(row.seller_thumbs_up ?? 0),
     sellerThumbsDown: Number(row.seller_thumbs_down ?? 0),
+    sellerRep: Number(row.seller_rep ?? 100),
     onlineStartDow: row.online_start_dow == null ? null : Number(row.online_start_dow),
     onlineEndDow: row.online_end_dow == null ? null : Number(row.online_end_dow),
     liveOn: Boolean(row.live_on),
@@ -116,6 +122,8 @@ function mapListing(row: ListingRow, saved = false): Listing {
     liveEndDow: row.live_end_dow == null ? null : Number(row.live_end_dow),
     liveOpen: row.live_open ?? null,
     liveClose: row.live_close ?? null,
+    alwaysOn: Boolean(row.always_on),
+    charitySplit: Boolean(row.charity_split),
   };
 }
 
@@ -179,12 +187,14 @@ function mapProfile(p: {
   phone?: string | null;
   isPremium: boolean;
   plusPlan: "month" | "year" | null;
+  plusTier: "plus" | "trio" | null;
   plusUntil: string | null;
   isStaff: boolean;
   walletCents: number;
   verified: boolean;
   thumbsUp: number;
   thumbsDown: number;
+  rep?: number;
 }): Profile {
   const legalFirstName = p.legal_first_name?.trim() || null;
   const legalLastName = p.legal_last_name?.trim() || null;
@@ -201,12 +211,14 @@ function mapProfile(p: {
     profileComplete: profileReady({ handle: p.handle, neighborhood: p.neighborhood, legalFirstName, legalLastName, phone }),
     isPremium: p.isPremium,
     plusPlan: p.plusPlan,
+    plusTier: p.plusTier,
     plusUntil: p.plusUntil,
     isStaff: p.isStaff,
     walletCents: p.walletCents,
     verified: p.verified,
     thumbsUp: p.thumbsUp,
     thumbsDown: p.thumbsDown,
+    rep: Number(p.rep ?? 100),
   };
 }
 
@@ -252,14 +264,16 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
     phone: string | null;
     is_premium: boolean;
     plus_plan: string | null;
+    plus_tier: string | null;
     plus_until: string | null;
     is_staff: boolean;
     wallet_cents: number;
     verified_at: string | null;
     thumbs_up: number | null;
     thumbs_down: number | null;
+    rep: number | null;
     deleted_at: string | null;
-  }>`select id, handle, neighborhood, zip, city, legal_first_name, legal_last_name, phone, is_premium, plus_plan, plus_until, is_staff, wallet_cents, verified_at, thumbs_up, thumbs_down, deleted_at from profiles where id = ${userId}`;
+  }>`select id, handle, neighborhood, zip, city, legal_first_name, legal_last_name, phone, is_premium, plus_plan, plus_tier, plus_until, is_staff, wallet_cents, verified_at, thumbs_up, thumbs_down, rep, deleted_at from profiles where id = ${userId}`;
   if (existing[0]?.deleted_at) {
     throw new Error("This account is closed. Sale records stay on file. Email support to reopen.");
   }
@@ -292,12 +306,14 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
       phone: p.phone,
       isPremium,
       plusPlan: p.plus_plan === "year" || p.plus_plan === "month" ? p.plus_plan : null,
+      plusTier: isPremium ? (p.plus_tier === "trio" ? "trio" : "plus") : null,
       plusUntil: p.plus_until,
       isStaff: Boolean(p.is_staff),
       walletCents,
       verified: Boolean(p.verified_at),
       thumbsUp: Number(thumbs[0]?.thumbs_up ?? p.thumbs_up ?? 0),
       thumbsDown: Number(thumbs[0]?.thumbs_down ?? p.thumbs_down ?? 0),
+      rep: Number(p.rep ?? 100),
     });
   }
   let handle = makeHandle();
@@ -332,12 +348,14 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
     phone: null,
     isPremium: false,
     plusPlan: null,
+    plusTier: null,
     plusUntil: null,
     isStaff: false,
     walletCents: start,
     verified: false,
     thumbsUp: Number(thumbs[0]?.thumbs_up ?? 0),
     thumbsDown: Number(thumbs[0]?.thumbs_down ?? 0),
+    rep: 100,
   });
 }
 
@@ -391,6 +409,7 @@ type SaleMapRow = {
   live_end_dow?: number | null;
   live_open?: string | null;
   live_close?: string | null;
+  always_on?: boolean | null;
 };
 
 function mapSale(s: SaleMapRow): Sale {
@@ -418,6 +437,7 @@ function mapSale(s: SaleMapRow): Sale {
     liveEndDow: s.live_end_dow == null ? null : Number(s.live_end_dow),
     liveOpen: s.live_open ?? null,
     liveClose: s.live_close ?? null,
+    alwaysOn: Boolean(s.always_on),
   };
 }
 
@@ -600,13 +620,14 @@ const listingSelect = `
   select l.id, l.sale_id, s.name as sale_name, l.seller_id, p.handle as seller_handle,
          l.title, l.description, l.price_cents, l.buy_now_cents, l.original_cents, l.floor_cents,
          l.category, l.condition, l.haul, l.size_label, l.pack, l.weight_lbs, l.neighborhood, l.handoff_modes, l.photo_url,
-         l.status, s.starts_on, s.ends_on,
-         s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close,
+         l.status, l.charity_split, s.starts_on, s.ends_on,
+         s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close, s.always_on,
          hs.name as handoff_spot_name, hs.area as handoff_spot_area, hs.hint as handoff_spot_hint,
          hs.kind as handoff_spot_kind,
          (p.verified_at is not null) as seller_verified,
          coalesce(p.thumbs_up, 0) as seller_thumbs_up,
-         coalesce(p.thumbs_down, 0) as seller_thumbs_down
+         coalesce(p.thumbs_down, 0) as seller_thumbs_down,
+         coalesce(p.rep, 100) as seller_rep
   from listings l
   join sales s on s.id = l.sale_id
   join profiles p on p.id = l.seller_id
@@ -630,7 +651,7 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
     `select s.id, s.seller_id, p.handle as seller_handle, s.name, s.kind, s.neighborhood,
             s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
             coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
-            s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close,
+            s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close, s.always_on,
             (select count(*)::int from listings l where l.sale_id = s.id and l.status = 'live') as item_count
      from sales s join profiles p on p.id = s.seller_id
      where s.status = 'live' order by s.starts_on, s.name`,
@@ -898,7 +919,7 @@ export const getSale = createServerFn({ method: "GET" })
       `select s.id, s.seller_id, p.handle as seller_handle, s.name, s.kind, s.neighborhood,
               s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
               coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
-            s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close,
+            s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close, s.always_on,
               (select count(*)::int from listings l where l.sale_id = s.id) as item_count
        from sales s join profiles p on p.id = s.seller_id where s.id = $1`,
       [id],
@@ -906,7 +927,7 @@ export const getSale = createServerFn({ method: "GET" })
     const sale = sales[0];
     if (!sale) return null;
     const rows = await sql.query<ListingRow>(
-      listingSelect + " where l.sale_id = $1 and l.status not in ('bundled', 'bundle') order by l.created_at desc",
+      listingSelect + " where l.sale_id = $1 and l.status not in ('bundled', 'bundle', 'abandoned', 'withdrawn') order by l.created_at desc",
       [id],
     );
     const userId = await optionalUserId();
@@ -940,7 +961,7 @@ export const getMe = createServerFn({ method: "GET" })
       `select s.id, s.seller_id, p.handle as seller_handle, s.name, s.kind, s.neighborhood,
               s.starts_on, s.ends_on, s.handoff_modes, s.handoff_spot_id, s.status,
               coalesce(s.channel, 'online') as channel, s.physical_location, s.hours_start, s.hours_end,
-            s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close,
+            s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close, s.always_on,
               (select count(*)::int from listings l where l.sale_id = s.id) as item_count
        from sales s join profiles p on p.id = s.seller_id
        where s.seller_id = $1 order by s.created_at desc`,
@@ -981,7 +1002,7 @@ export const getMe = createServerFn({ method: "GET" })
         }),
       ),
       sales: mySales.map(mapSale),
-      plusSaleDaysLeft: me.isPremium ? Math.max(0, PLUS_SALE_DAYS_PER_MONTH - usedFree) : 0,
+      plusSaleDaysLeft: me.isPremium ? Math.max(0, saleDayAllowance(me.plusTier) - usedFree) : 0,
       saved: savedRows.map((r) => mapListing(r, true)),
       pendingRates,
       isDesk: Boolean(desk[0]?.desk_spot_id),
@@ -1091,7 +1112,7 @@ export const togglePremium = createServerFn({ method: "POST" })
   .validator((data: unknown) =>
     z
       .object({
-        plan: z.enum(["month", "year"]).optional(),
+        plan: z.enum(["month", "year", "trio_month", "trio_year"]).optional(),
         cancel: z.boolean().optional(),
       })
       .optional()
@@ -1102,43 +1123,49 @@ export const togglePremium = createServerFn({ method: "POST" })
     const me = await ensureProfile(sql, context.userId);
     if (data?.cancel || (me.isPremium && !data?.plan)) {
       await sql`
-        update profiles set is_premium = false, plus_plan = null, plus_until = null
+        update profiles set is_premium = false, plus_plan = null, plus_tier = null, plus_until = null
         where id = ${context.userId}
       `;
-      return { isPremium: false, plusPlan: null as "month" | "year" | null };
+      return { isPremium: false, plusPlan: null as "month" | "year" | null, plusTier: null as "plus" | "trio" | null };
     }
     const plan = data?.plan ?? "month";
+    const yearly = plan === "year" || plan === "trio_year";
+    const tier = plan === "trio_month" || plan === "trio_year" ? "trio" : "plus";
+    const feeId = plan === "trio_year" ? "trio_year" : plan === "trio_month" ? "trio_month" : plan === "year" ? "plus_year" : "premium_switch";
     const fees = await loadFees(sql);
-    const switchFee = fees.find((row) => row.id === (plan === "year" ? "plus_year" : "premium_switch"));
-    const cost = switchFee?.enabled ? switchFee.amountCents : plan === "year" ? 9999 : 999;
+    const switchFee = fees.find((row) => row.id === feeId);
+    const fallback = tier === "trio" ? (yearly ? 29999 : 2999) : yearly ? 9999 : 999;
+    const cost = switchFee?.enabled ? switchFee.amountCents : fallback;
     if (me.walletCents < cost) {
-      throw new Error(`Add more test credits on You to start Rummlee Plus. See Fees.`);
+      throw new Error(`Add more test credits on You to start ${tier === "trio" ? "Rummlee +++" : "Rummlee Plus"}. See Fees.`);
     }
     await debitWallet(sql, context.userId, cost);
-    const days = plan === "year" ? 365 : 30;
+    const days = yearly ? 365 : 30;
     const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    const plusPlan = yearly ? "year" : "month";
     await sql`
       update profiles
-      set is_premium = true, plus_plan = ${plan}, plus_until = ${until}::timestamptz
+      set is_premium = true, plus_plan = ${plusPlan}, plus_tier = ${tier}, plus_until = ${until}::timestamptz
       where id = ${context.userId}
     `;
+    const label = tier === "trio" ? "Rummlee +++" : "Rummlee Plus";
     await sql`
       insert into wallet_tx (id, user_id, kind, amount_cents, note)
       values (
         ${crypto.randomUUID()}, ${context.userId}, ${"premium"}, ${-cost},
-        ${plan === "year" ? "Rummlee Plus — 1 year (test, billed on its own)" : "Rummlee Plus — 1 month (test, billed on its own)"}
+        ${yearly ? `${label} — 1 year (test, billed on its own)` : `${label} — 1 month (test, billed on its own)`}
       )
     `;
-    if (plan === "year") {
+    if (yearly) {
       const earned = Math.round(cost / 12);
-      await writeLedger(sql, { userId: context.userId, account: "plus_monthly", amountCents: earned, note: "Plus year, this month" });
-      await writeLedger(sql, { userId: context.userId, account: "plus_deferred", amountCents: cost - earned, note: "Plus year, still unearned" });
+      await writeLedger(sql, { userId: context.userId, account: "plus_monthly", amountCents: earned, note: tier === "trio" ? "+++ year, this month" : "Plus year, this month" });
+      await writeLedger(sql, { userId: context.userId, account: "plus_deferred", amountCents: cost - earned, note: tier === "trio" ? "+++ year, still unearned" : "Plus year, still unearned" });
     } else {
-      await writeLedger(sql, { userId: context.userId, account: "plus_monthly", amountCents: cost, note: "Plus month" });
+      await writeLedger(sql, { userId: context.userId, account: "plus_monthly", amountCents: cost, note: tier === "trio" ? "+++ month" : "Plus month" });
     }
     const { syncReferralBooks } = await import("./referrals");
     await syncReferralBooks(sql);
-    return { isPremium: true, plusPlan: plan };
+    return { isPremium: true, plusPlan, plusTier: tier };
   });
 
 export const topUpWallet = createServerFn({ method: "POST" })
@@ -1228,7 +1255,7 @@ export const createSale = createServerFn({ method: "POST" })
       days,
       plus: me.isPremium,
       freeUsed: usedFree,
-      freePerMonth: PLUS_SALE_DAYS_PER_MONTH,
+      freePerMonth: saleDayAllowance(me.plusTier),
     });
     if (quote.chargeCents > 0 && me.walletCents < quote.chargeCents) {
       throw new Error(
@@ -1340,6 +1367,7 @@ const listingInput = z.object({
   weightLbs: z.number().int().min(1).max(2000).nullable().optional(),
   photoUrl: z.string().min(4),
   handoffModes: z.array(z.enum(["official", "public", "person", "porch"])).min(1),
+  researchId: z.string().min(2).optional(),
 });
 
 export const fillFromPhoto = createServerFn({ method: "POST" })
@@ -1393,6 +1421,14 @@ export const addListing = createServerFn({ method: "POST" })
       select id, seller_id, neighborhood from sales where id = ${data.saleId} and seller_id = ${context.userId}
     `;
     if (!sale[0]) throw new Error("Sale not found.");
+    if (me.plusTier !== "trio") {
+      const have = await sql<{ n: number }>`
+        select count(*)::int as n from listings where sale_id = ${data.saleId} and status <> ${"withdrawn"}
+      `;
+      if (Number(have[0]?.n ?? 0) >= SALE_ITEM_CAP) {
+        throw new Error(`A sale holds ${SALE_ITEM_CAP} items. Rummlee +++ has no item cap.`);
+      }
+    }
     const id = crypto.randomUUID();
     const modes = fitsOfficialCounter({ pack: data.pack, weightLbs: data.weightLbs, haul: data.haul })
       ? splitModes(data.handoffModes.join(","))
@@ -1409,6 +1445,16 @@ export const addListing = createServerFn({ method: "POST" })
         ${modes.join(",")}, ${await storePhoto(safePhoto(data.photoUrl), `listings/${id}`)}, ${"live"}
       )
     `;
+    if (data.researchId) {
+      await sql`
+        update research_requests
+        set listing_id = ${id}
+        where id = ${data.researchId}
+          and seller_id = ${context.userId}
+          and status = ${"accepted"}
+          and listing_id is null
+      `;
+    }
     return { id };
   });
 
@@ -1435,9 +1481,11 @@ export const sendOffer = createServerFn({ method: "POST" })
       floor_cents: number | null;
       status: string;
       title: string;
-    }>`select id, seller_id, price_cents, floor_cents, status, title from listings where id = ${listingId}`;
+      charity_split: boolean;
+    }>`select id, seller_id, price_cents, floor_cents, status, title, charity_split from listings where id = ${listingId}`;
     const item = listing[0];
     if (!item || item.status !== "live") throw new Error("This item isn’t available.");
+    if (item.charity_split) throw new Error("This is a Rummlee resale. Pay asking.");
     if (item.seller_id === context.userId) throw new Error("You can’t offer on your own listing.");
     const existing = await sql<{ id: string; status: string }>`
       select id, status from offers where listing_id = ${listingId} and buyer_id = ${context.userId}
@@ -1586,11 +1634,12 @@ export const sendMessage = createServerFn({ method: "POST" })
     const sql = await getSql();
     await ensureProfile(sql, context.userId);
     const listingId = resolveListingId(data.listingId);
-    const listing = await sql<{ id: string; seller_id: string }>`
-      select id, seller_id from listings where id = ${listingId}
+    const listing = await sql<{ id: string; seller_id: string; charity_split: boolean }>`
+      select id, seller_id, charity_split from listings where id = ${listingId}
     `;
     const item = listing[0];
     if (!item) throw new Error("Listing not found.");
+    if (item.charity_split) throw new Error("Rummlee shelf items don’t take questions. Pay asking if you want it.");
     const toId = item.seller_id === context.userId
       ? (
           await sql<{ buyer_id: string }>`
@@ -1647,9 +1696,10 @@ export const buyNow = createServerFn({ method: "POST" })
       handoff_spot_id: string | null;
       bundle_kind: string | null;
       bundle_for: string | null;
+      charity_split: boolean;
     }>`
       select l.id, l.seller_id, l.title, l.status, l.price_cents, l.handoff_modes, l.neighborhood,
-             s.handoff_spot_id, l.bundle_kind, l.bundle_for
+             s.handoff_spot_id, l.bundle_kind, l.bundle_for, l.charity_split
       from listings l
       join sales s on s.id = l.sale_id
       where l.id = ${listingId}
@@ -1752,9 +1802,18 @@ export const buyNow = createServerFn({ method: "POST" })
       returning id
     `;
     if (!held[0]) throw new Error("Someone else just held this.");
+    let shelf: { packageNo: number; spotId: string } | null = null;
+    if (item.charity_split) {
+      shelf = await claimHouseShelf(sql, item.id);
+      if (!shelf) {
+        await sql`update listings set status = ${item.status} where id = ${item.id} and status = ${"held"}`;
+        throw new Error("This shelf item isn’t available.");
+      }
+    }
     try {
       await holdBundleChildren(sql, item.id);
     } catch (error) {
+      if (shelf) await releaseHouseClaim(sql, item.id);
       await sql`update listings set status = ${item.status} where id = ${item.id} and status = ${"held"}`;
       throw error;
     }
@@ -1764,6 +1823,7 @@ export const buyNow = createServerFn({ method: "POST" })
       returning id
     `;
     if (!charged[0]) {
+      if (shelf) await releaseHouseClaim(sql, item.id);
       await releaseBundleChildren(sql, item.id);
       await sql`update listings set status = ${item.status} where id = ${item.id} and status = ${"held"}`;
       throw new Error(
@@ -1788,6 +1848,20 @@ export const buyNow = createServerFn({ method: "POST" })
         ${"escrow"}, ${code}, ${sellerScan}, ${buyerScan}, ${handoffType}, ${spotId}, ${false}, ${isSeedUser(item.seller_id)}
       )
     `;
+    if (shelf) {
+      await sql`
+        update orders
+        set package_no = ${shelf.packageNo}, checked_in_at = now(), handoff_type = ${"official"}, handoff_spot_id = ${shelf.spotId}
+        where id = ${orderId}
+      `;
+      await writeNotice(sql, {
+        userId: context.userId,
+        kind: "ready",
+        title: "Already at the official store",
+        body: "This was left at the Fargo store. Bring your buyer code. They will not say your name.",
+        refId: orderId,
+      });
+    }
     await writeLedger(sql, { orderId, userId: context.userId, account: "customer_hold", amountCents: base, note: item.title });
     if (quote.buyerFeeCents) {
       await writeLedger(sql, { orderId, userId: context.userId, account: "fee_buyer_percent", amountCents: quote.buyerFeeCents, note: "Buyer fee" });
@@ -1920,6 +1994,9 @@ export async function settleOrder(sql: Awaited<ReturnType<typeof getSql>>, order
     await writeNotice(sql, { userId: buyerId[0].buyer_id, kind: "handoff", title: "You have the item", body: waitCopy, refId: order.id });
   }
   await writeNotice(sql, { userId: order.seller_id, kind: "handoff", title: "Handoff done", body: waitCopy, refId: order.id });
+  await grantRep(sql, order.seller_id, "sale_done", 1, order.id);
+  if (buyerId[0]) await grantRep(sql, buyerId[0].buyer_id, "buy_done", 1, order.id);
+  await awardCleanRun(sql, order.seller_id);
 }
 
 export const getInbox = createServerFn({ method: "GET" })
@@ -1994,11 +2071,16 @@ export const getInbox = createServerFn({ method: "GET" })
       paid_out_at: string | null;
       dispute_status: string | null;
       checked_in_at: string | null;
+      disposition: string | null;
+      handoff_spot_id: string | null;
+      package_no: number | null;
+      charity_split: boolean;
     }>`
       select o.id, o.listing_id, l.title as listing_title, l.photo_url as listing_photo,
              o.buyer_id, b.handle as buyer_handle, o.seller_id, se.handle as seller_handle,
              o.amount_cents, o.fee_cents, o.status, o.pickup_code, o.buyer_confirmed, o.seller_confirmed,
-             o.handoff_type, o.created_at, o.payable_at, o.paid_out_at, o.dispute_status, o.checked_in_at
+             o.handoff_type, o.created_at, o.payable_at, o.paid_out_at, o.dispute_status, o.checked_in_at,
+             o.disposition, o.handoff_spot_id, o.package_no, l.charity_split
       from orders o
       join listings l on l.id = o.listing_id
       join profiles b on b.id = o.buyer_id
@@ -2049,6 +2131,15 @@ export const getInbox = createServerFn({ method: "GET" })
         paidOutAt: o.paid_out_at,
         disputeStatus: o.dispute_status,
         checkedIn: Boolean(o.checked_in_at),
+        disposition: o.disposition === "pickup" || o.disposition === "abandoned" ? o.disposition : null,
+        canLeave:
+          o.seller_id === context.userId &&
+          o.status === "cancelled" &&
+          Boolean(o.checked_in_at) &&
+          !o.disposition &&
+          o.package_no != null &&
+          !o.charity_split &&
+          Boolean(houseForSpot(o.handoff_spot_id)),
       })),
       messages: messages.map((m) => ({
         id: m.id,
@@ -2109,12 +2200,17 @@ export const getOrder = createServerFn({ method: "GET" })
       paid_out_at: string | null;
       dispute_status: string | null;
       checked_in_at: string | null;
+      disposition: string | null;
+      handoff_spot_id: string | null;
+      package_no: number | null;
+      charity_split: boolean;
     }>`
       select o.id, o.listing_id, l.title as listing_title, l.photo_url as listing_photo,
              o.buyer_id, b.handle as buyer_handle, o.seller_id, se.handle as seller_handle,
              o.amount_cents, o.fee_cents, o.status, o.pickup_code, o.seller_scan, o.buyer_scan,
              o.buyer_confirmed, o.seller_confirmed, o.handoff_type, o.created_at,
-             o.payable_at, o.paid_out_at, o.dispute_status, o.checked_in_at
+             o.payable_at, o.paid_out_at, o.dispute_status, o.checked_in_at,
+             o.disposition, o.handoff_spot_id, o.package_no, l.charity_split
       from orders o
       join listings l on l.id = o.listing_id
       join profiles b on b.id = o.buyer_id
@@ -2152,6 +2248,15 @@ export const getOrder = createServerFn({ method: "GET" })
       paidOutAt: o.paid_out_at,
       disputeStatus: o.dispute_status,
       checkedIn: Boolean(o.checked_in_at),
+      disposition: o.disposition === "pickup" || o.disposition === "abandoned" ? o.disposition : null,
+      canLeave:
+        o.seller_id === context.userId &&
+        o.status === "cancelled" &&
+        Boolean(o.checked_in_at) &&
+        !o.disposition &&
+        o.package_no != null &&
+        !o.charity_split &&
+        Boolean(houseForSpot(o.handoff_spot_id)),
       myRatingOverall: mine[0]?.overall === "up" || mine[0]?.overall === "down" ? mine[0].overall : null,
       otherVerified: Boolean(other[0]?.verified_at),
       meetupNote:
@@ -2322,6 +2427,15 @@ export const submitRating = createServerFn({ method: "POST" })
       )
     `;
     await recountThumbs(sql, subjectId);
+    if (isBuyer) {
+      await grantRep(
+        sql,
+        order.seller_id,
+        data.asAgreed === "up" ? "agreed_up" : "agreed_down",
+        data.asAgreed === "up" ? 2 : -2,
+        order.id,
+      );
+    }
     return { overall };
   });
 
@@ -2372,10 +2486,11 @@ export const exportMyData = createServerFn({ method: "GET" })
       verified_at: string | null;
       thumbs_up: number;
       thumbs_down: number;
+      rep: number;
       wallet_cents: number;
     }>`
       select handle, neighborhood, zip, city, legal_first_name, legal_last_name, phone, is_premium, plus_plan, plus_until, verified_at,
-             thumbs_up, thumbs_down, wallet_cents
+             thumbs_up, thumbs_down, rep, wallet_cents
       from profiles where id = ${uid}
     `;
     const me = profile[0];
@@ -2520,6 +2635,7 @@ export const exportMyData = createServerFn({ method: "GET" })
               verified: Boolean(me.verified_at),
               thumbsUp: Number(me.thumbs_up),
               thumbsDown: Number(me.thumbs_down),
+              rep: Number(me.rep ?? 100),
               walletCents: Number(me.wallet_cents),
             }
           : null,
@@ -2600,6 +2716,7 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
         zip = null,
         is_premium = false,
         plus_plan = null,
+        plus_tier = null,
         plus_until = null,
         desk_spot_id = null
       where id = ${uid}

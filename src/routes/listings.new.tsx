@@ -7,7 +7,7 @@ import { PhotoInput } from "@/components/photo-input";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { useAuthGate } from "@/components/guest-gate";
-import { CATEGORIES, CONDITIONS, HAULS, MIN_PRICE_CENTS, NEIGHBORHOODS, PASTE_CAP, PHOTO_FILL_ENABLED, PLUS_SALE_DAYS_PER_MONTH, SALE_KINDS } from "@/lib/rummlee/constants";
+import { CATEGORIES, CONDITIONS, HAULS, MIN_PRICE_CENTS, NEIGHBORHOODS, PASTE_CAP, PHOTO_FILL_ENABLED, SALE_ITEM_CAP, SALE_KINDS, saleDayAllowance } from "@/lib/rummlee/constants";
 import {
   blankLine,
   guessCategory,
@@ -140,7 +140,7 @@ function NewListingPage() {
             haul: guessHaul(category, row.title, current.kind === "moving" ? "two" : "one"),
           });
         });
-      return { ...current, lines: empty ? nextLines : [...current.lines, ...nextLines].slice(0, PASTE_CAP) };
+      return { ...current, lines: empty ? nextLines : [...current.lines, ...nextLines].slice(0, meQ.data?.me.plusTier === "trio" ? 400 : PASTE_CAP) };
     });
     setPaste("");
     toast.success(parsed.length === 1 ? "Added 1 item." : `Added ${parsed.length} items.`);
@@ -190,6 +190,8 @@ function NewListingPage() {
         saleId = created.id;
       }
       const ids: string[] = [];
+      const researchId = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("rummlee-research") ?? undefined : undefined;
+      let linked = false;
       for (const line of ready) {
         const priceCents = dollarsToCents(line.price);
         const floorCents = dollarsToCents(line.floor || line.price);
@@ -210,10 +212,13 @@ function NewListingPage() {
             pack: line.pack === "as_is" ? "as_is" : "box",
             weightLbs: line.weightLbs?.trim() ? Math.round(Number(line.weightLbs)) : null,
             handoffModes: modes,
+            researchId: !linked ? researchId : undefined,
           },
         });
+        linked = true;
         ids.push(created.id);
       }
+      if (researchId) sessionStorage.removeItem("rummlee-research");
       return { saleId, ids };
     },
     onSuccess: ({ saleId, ids }) => {
@@ -298,13 +303,14 @@ function NewListingPage() {
   const saleDays = countSaleDays(draft.startsOn, draft.endsOn);
   const dayFeeCents = feeById(DEFAULT_FEES, "sale_day")?.amountCents ?? 299;
   const plus = Boolean(meQ.data?.me.isPremium);
+  const allowance = saleDayAllowance(meQ.data?.me.plusTier);
   const freeLeft = meQ.data?.plusSaleDaysLeft ?? 0;
   const saleQuote = quoteSaleDays({
     dayFeeCents,
     days: saleDays,
     plus,
-    freeUsed: plus ? Math.max(0, PLUS_SALE_DAYS_PER_MONTH - freeLeft) : 0,
-    freePerMonth: PLUS_SALE_DAYS_PER_MONTH,
+    freeUsed: plus ? Math.max(0, allowance - freeLeft) : 0,
+    freePerMonth: allowance,
   });
   const wallet = meQ.data?.me.walletCents ?? 0;
   const saleShort = Boolean(user) && saleQuote.chargeCents > wallet;
@@ -403,7 +409,7 @@ function NewListingPage() {
         <div className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
           <Label htmlFor="paste">Paste a list</Label>
           <p className="mt-1 text-sm text-muted">
-            One item per line. Price at the end. Clothing: title · size · price. Up to {PASTE_CAP}.
+            One item per line. Price at the end. Clothing: title · size · price. Up to {meQ.data?.me.plusTier === "trio" ? "no cap on +++" : PASTE_CAP}.
           </p>
           <Textarea
             id="paste"
@@ -428,6 +434,7 @@ function NewListingPage() {
             draft={draft}
             plus={Boolean(meQ.data?.me.isPremium)}
             freeLeft={meQ.data?.plusSaleDaysLeft ?? 0}
+            freePerMonth={saleDayAllowance(meQ.data?.me.plusTier)}
             onChange={(patch) => {
               setSaved(false);
               setDraft((current) => ({ ...current, ...patch }));
@@ -520,6 +527,11 @@ function NewListingPage() {
                 still set the price and the weight. Off during beta.
               </p>
             )}
+            <p className="text-sm text-muted">
+              <Link to="/research" className="font-medium text-primary-ink">
+                Don’t know what it is? Ask a researcher.
+              </Link>
+            </p>
             <p className="text-base font-medium">Add a photo of this item before you continue.</p>
             <div>
               <Label htmlFor={`title-${line.id}`}>What is it?</Label>
@@ -703,7 +715,7 @@ function NewListingPage() {
           type="button"
           variant="secondary"
           className="w-full"
-          onClick={() => setDraft((current) => ({ ...current, lines: [...current.lines, blankLine({ category: current.lines[0]?.category ?? "furniture", haul: current.lines[0]?.haul ?? "one" })].slice(0, PASTE_CAP) }))}
+          onClick={() => setDraft((current) => ({ ...current, lines: [...current.lines, blankLine({ category: current.lines[0]?.category ?? "furniture", haul: current.lines[0]?.haul ?? "one" })].slice(0, meQ.data?.me.plusTier === "trio" ? 400 : SALE_ITEM_CAP) }))}
         >
           Add another item to this sale
         </Button>
@@ -777,11 +789,13 @@ function SaleDates({
   draft,
   plus,
   freeLeft,
+  freePerMonth,
   onChange,
 }: {
   draft: ListingDraft;
   plus: boolean;
   freeLeft: number;
+  freePerMonth: number;
   onChange: (patch: Partial<ListingDraft>) => void;
 }) {
   const days = countSaleDays(draft.startsOn, draft.endsOn);
@@ -791,15 +805,14 @@ function SaleDates({
     dayFeeCents,
     days,
     plus,
-    freeUsed: plus ? Math.max(0, PLUS_SALE_DAYS_PER_MONTH - freeLeft) : 0,
-    freePerMonth: PLUS_SALE_DAYS_PER_MONTH,
+    freeUsed: plus ? Math.max(0, freePerMonth - freeLeft) : 0,
+    freePerMonth,
   });
   return (
     <div className="space-y-3 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
       <p className="font-medium">Sale dates</p>
       <p className="text-sm text-muted">
-        {formatFeeValue(dayFee ?? DEFAULT_FEES[0])} per date. Plus includes {PLUS_SALE_DAYS_PER_MONTH} days each month
-        free.
+        {formatFeeValue(dayFee ?? DEFAULT_FEES[0])} per date. Plus includes 3 days each month. +++ includes {freePerMonth === 5 ? "5" : "3"}.
       </p>
       <div className="grid grid-cols-2 gap-2">
         <div>

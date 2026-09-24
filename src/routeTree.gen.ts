@@ -20,6 +20,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RecordsRouteImport } from './routes/records'
+import { Route as ResearchRouteImport } from './routes/research'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -87,6 +88,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const RecordsRoute = RecordsRouteImport.update({
   id: '/records',
   path: '/records',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResearchRoute = ResearchRouteImport.update({
+  id: '/research',
+  path: '/research',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SellRoute = SellRouteImport.update({
@@ -167,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/partners': typeof PartnersRoute
   '/privacy': typeof PrivacyRoute
   '/records': typeof RecordsRoute
+  '/research': typeof ResearchRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/partners': typeof PartnersRoute
   '/privacy': typeof PrivacyRoute
   '/records': typeof RecordsRoute
+  '/research': typeof ResearchRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -220,6 +228,7 @@ export interface FileRoutesById {
   '/partners': typeof PartnersRoute
   '/privacy': typeof PrivacyRoute
   '/records': typeof RecordsRoute
+  '/research': typeof ResearchRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -248,6 +257,7 @@ export interface FileRouteTypes {
     | '/partners'
     | '/privacy'
     | '/records'
+    | '/research'
     | '/sell'
     | '/support'
     | '/terms'
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
     | '/partners'
     | '/privacy'
     | '/records'
+    | '/research'
     | '/sell'
     | '/support'
     | '/terms'
@@ -300,6 +311,7 @@ export interface FileRouteTypes {
     | '/partners'
     | '/privacy'
     | '/records'
+    | '/research'
     | '/sell'
     | '/support'
     | '/terms'
@@ -327,6 +339,7 @@ export interface RootRouteChildren {
   PartnersRoute: typeof PartnersRoute
   PrivacyRoute: typeof PrivacyRoute
   RecordsRoute: typeof RecordsRoute
+  ResearchRoute: typeof ResearchRoute
   SellRoute: typeof SellRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
@@ -419,6 +432,13 @@ declare module '@tanstack/react-router' {
       path: '/records'
       fullPath: '/records'
       preLoaderRoute: typeof RecordsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/research': {
+      id: '/research'
+      path: '/research'
+      fullPath: '/research'
+      preLoaderRoute: typeof ResearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sell': {
@@ -527,6 +547,7 @@ const rootRouteChildren: RootRouteChildren = {
   PartnersRoute: PartnersRoute,
   PrivacyRoute: PrivacyRoute,
   RecordsRoute: RecordsRoute,
+  ResearchRoute: ResearchRoute,
   SellRoute: SellRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
@@ -544,12 +565,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

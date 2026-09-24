@@ -6,8 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { errMessage } from "@/lib/rummlee/errors";
 import { money } from "@/lib/rummlee/format";
-import { decideAdmission, getCorporateDesk, submitAdmission, type CorporateMetrics } from "@/lib/rummlee/corporate";
+import { decideAdmission, getCorporateDesk, getJobMap, submitAdmission, type CorporateMetrics } from "@/lib/rummlee/corporate";
+import type { HouseDesk } from "@/lib/rummlee/house";
 import { assignDesk, listPartnerSpots, pairCounter } from "@/lib/rummlee/desk";
+import { attributeNeighbor, attributeStore, enrollReferrer, referralLedgerFile } from "@/lib/rummlee/referrals";
+import { getOpenHolds, resolveHold } from "@/lib/rummlee/books";
+import { decideResearcher, getResearcherQueue } from "@/lib/rummlee/research";
 import { StatementView } from "@/components/statement";
 import { closeCase, getCustomerStatement, type Statement } from "@/lib/rummlee/records";
 
@@ -77,7 +81,12 @@ function CorporatePage() {
       </p>
 
       {data?.isStaff && data.metrics ? <Metrics metrics={data.metrics} /> : null}
+      {data?.isStaff && data.house ? <HouseShelf house={data.house} /> : null}
       {data?.isStaff ? <Counters /> : null}
+      {data?.isStaff ? <Holds /> : null}
+      {data?.isStaff ? <JobMap /> : null}
+      {data?.isStaff ? <ReferralLedger /> : null}
+      {data?.isStaff ? <ResearcherApps /> : null}
 
       {data?.isStaff ? (
         <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
@@ -237,6 +246,204 @@ function CorporatePage() {
   );
 }
 
+function ResearcherApps() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["researcher-apps"], queryFn: () => getResearcherQueue() });
+  const decide = useMutation({
+    mutationFn: (data: { profileId: string; approve: boolean }) => decideResearcher({ data }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["researcher-apps"] });
+      toast.success("Saved.");
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const apps = q.data?.apps ?? [];
+  return (
+    <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-xl">Researcher applications</h2>
+      <p className="mt-1 text-sm text-muted">
+        1099 contractors. The legal name is for the form, not for listings. Approving turns on their account. Pay stays
+        on the researcher payout row.
+      </p>
+      {apps.length === 0 ? <p className="mt-3 text-sm text-muted">None waiting.</p> : null}
+      <ul className="mt-3 space-y-3">
+        {apps.map((row) => (
+          <li key={row.profileId} className="rounded-2xl bg-bg px-3 py-3 text-sm">
+            <p className="font-medium">@{row.handle} · {row.legalName}</p>
+            <p className="text-muted">{row.city}</p>
+            <p className="mt-1">{row.skills}</p>
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" disabled={decide.isPending} onClick={() => decide.mutate({ profileId: row.profileId, approve: true })}>
+                Approve
+              </Button>
+              <Button size="sm" variant="secondary" disabled={decide.isPending} onClick={() => decide.mutate({ profileId: row.profileId, approve: false })}>
+                Deny
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function JobMap() {
+  const q = useQuery({ queryKey: ["job-map"], queryFn: () => getJobMap() });
+  const jobs = q.data;
+  const rows = [
+    {
+      name: "Market lead",
+      count: jobs ? String(jobs.leads) : "…",
+      pay: "5% of the fees Rummlee kept on neighbors they signed. Store bonuses at 50 and 500 handoffs. Not on the public site.",
+    },
+    {
+      name: "Ambassador",
+      count: jobs ? String(jobs.ambassadors) : "…",
+      pay: "$25 once, when someone they signed has put $25 of kept fees into Rummlee. Not on the public site.",
+    },
+    {
+      name: "Researcher",
+      count: jobs ? `${jobs.researchers} active · ${jobs.pendingResearchers} waiting` : "…",
+      pay: "$4.60 when a seller accepts a write-up. $2.50 if the sale lands in the top half of their range. $2.50 more if it sells at full asking. One item at a time, 15 minutes, one hold. Paid from the research ledger, not the referral file.",
+    },
+  ];
+  return (
+    <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-xl">Job map</h2>
+      <p className="mt-1 text-sm text-muted">
+        Contractor jobs. Market leads, ambassadors, and researchers are all 1099-NEC. None are employees. No W-2. Research asks open now: {jobs ? jobs.openAsks : "…"}. Someone is on the clock: {jobs ? jobs.claimed : "…"}.
+      </p>
+      <ul className="mt-4 space-y-3">
+        {rows.map((row) => (
+          <li key={row.name} className="rounded-2xl bg-bg px-4 py-3">
+            <p className="font-medium">{row.name}</p>
+            <p className="text-sm text-muted">{row.count}</p>
+            <p className="mt-1 text-sm">{row.pay}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function ReferralLedger() {
+  const qc = useQueryClient();
+  const file = useMutation({
+    mutationFn: () => referralLedgerFile(),
+    onSuccess: (res) => {
+      const blob = new Blob([res.csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = res.filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const [handle, setHandle] = useState("");
+  const [role, setRole] = useState<"market_lead" | "ambassador">("market_lead");
+  const [city, setCity] = useState("");
+  const [neighbor, setNeighbor] = useState("");
+  const [referrer, setReferrer] = useState("");
+  const [spotId, setSpotId] = useState("");
+  const [storeReferrer, setStoreReferrer] = useState("");
+  const enroll = useMutation({
+    mutationFn: () => enrollReferrer({ data: { handle, role, city: city || undefined, acceptingSignups: true } }),
+    onSuccess: () => {
+      toast.success("Referrer saved.");
+      setHandle("");
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const tagNeighbor = useMutation({
+    mutationFn: () => attributeNeighbor({ data: { neighbor, referrer } }),
+    onSuccess: () => {
+      toast.success("Neighbor tagged.");
+      setNeighbor("");
+      void qc.invalidateQueries();
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const tagStore = useMutation({
+    mutationFn: () => attributeStore({ data: { spotId, referrer: storeReferrer } }),
+    onSuccess: () => {
+      toast.success("Store tagged.");
+      setSpotId("");
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  return (
+    <section className="mt-8 max-w-lg rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-xl">Referral ledger</h2>
+      <p className="mt-1 text-sm text-muted">
+        Amounts stay off this page. Tag who signed whom, then download the file for the books. Test rows are not a payable.
+      </p>
+      <form
+        className="mt-4 space-y-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          enroll.mutate();
+        }}
+      >
+        <p className="text-sm font-medium">Referrer</p>
+        <Input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Handle" />
+        <div className="flex gap-2">
+          {(["market_lead", "ambassador"] as const).map((id) => (
+            <button
+              key={id}
+              type="button"
+              className={
+                role === id
+                  ? "rounded-full bg-fg px-3 py-1.5 text-sm font-medium text-primary-fg"
+                  : "rounded-full bg-bg px-3 py-1.5 text-sm font-medium text-muted"
+              }
+              onClick={() => setRole(id)}
+            >
+              {id === "market_lead" ? "Market lead" : "Ambassador"}
+            </button>
+          ))}
+        </div>
+        <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City, if a lead" />
+        <Button size="sm" type="submit" disabled={enroll.isPending || handle.trim().length < 2}>
+          Save referrer
+        </Button>
+      </form>
+      <form
+        className="mt-5 space-y-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          tagNeighbor.mutate();
+        }}
+      >
+        <p className="text-sm font-medium">Neighbor they signed</p>
+        <Input value={neighbor} onChange={(e) => setNeighbor(e.target.value)} placeholder="Neighbor handle" />
+        <Input value={referrer} onChange={(e) => setReferrer(e.target.value)} placeholder="Referrer handle" />
+        <Button size="sm" type="submit" disabled={tagNeighbor.isPending}>
+          Tag neighbor
+        </Button>
+      </form>
+      <form
+        className="mt-5 space-y-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          tagStore.mutate();
+        }}
+      >
+        <p className="text-sm font-medium">Official store a lead signed</p>
+        <Input value={spotId} onChange={(e) => setSpotId(e.target.value)} placeholder="Store id" />
+        <Input value={storeReferrer} onChange={(e) => setStoreReferrer(e.target.value)} placeholder="Lead handle" />
+        <Button size="sm" type="submit" disabled={tagStore.isPending}>
+          Tag store
+        </Button>
+      </form>
+      <Button className="mt-5" size="sm" variant="secondary" disabled={file.isPending} onClick={() => file.mutate()}>
+        {file.isPending ? "Preparing…" : "Download ledger file"}
+      </Button>
+    </section>
+  );
+}
+
 function Counters() {
   const spots = useQuery({ queryKey: ["partner-spots"], queryFn: () => listPartnerSpots() });
   const [spotId, setSpotId] = useState("");
@@ -307,6 +514,96 @@ function Counters() {
           Give them counter login
         </Button>
       </form>
+    </section>
+  );
+}
+
+function Holds() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["holds"], queryFn: () => getOpenHolds() });
+  const decide = useMutation({
+    mutationFn: (data: { orderId: string; action: "refund" | "pay" }) => resolveHold({ data }),
+    onSuccess: () => {
+      toast.success("Saved.");
+      void qc.invalidateQueries({ queryKey: ["holds"] });
+    },
+    onError: (e) => toast.error(errMessage(e)),
+  });
+  const rows = q.data ?? [];
+  return (
+    <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-xl">Payouts waiting</h2>
+      <p className="mt-1 text-sm text-muted">
+        Seller is paid 48 hours after handoff. A reported problem stays here until you refund the buyer or pay the seller.
+      </p>
+      {rows.length === 0 ? <p className="mt-3 text-sm text-muted">None waiting.</p> : null}
+      <ul className="mt-3 space-y-2">
+        {rows.map((row) => (
+          <li key={row.id} className="rounded-xl bg-bg px-3 py-3 text-sm">
+            <p className="font-medium">{row.title}</p>
+            <p className="text-muted">
+              {row.dispute_status === "open" ? "Problem reported" : "Window open"}
+              {row.payout_cents != null ? ` · seller would get ${money(Number(row.payout_cents))}` : ""}
+              {row.dispute_note ? ` · ${row.dispute_note}` : ""}
+            </p>
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" disabled={decide.isPending} onClick={() => decide.mutate({ orderId: row.id, action: "pay" })}>
+                Pay seller
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={decide.isPending}
+                onClick={() => decide.mutate({ orderId: row.id, action: "refund" })}
+              >
+                Refund buyer
+              </Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function HouseShelf({ house }: { house: HouseDesk }) {
+  return (
+    <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-xl">Rummlee shelf · {house.market}</h2>
+      <p className="mt-1 text-sm text-muted">
+        Packages a seller left. No names on this list. Charity set-aside is a liability, not revenue.{" "}
+        {money(house.charityCents)} set aside so far. Test credits until real billing is on.
+      </p>
+      <p className="mt-2 text-sm">
+        <Link to="/sales/$id" params={{ id: house.saleId }} className="font-medium text-primary-ink">
+          Open the public shelf
+        </Link>
+      </p>
+      {house.waiting.length ? (
+        <div className="mt-4">
+          <h3 className="text-sm font-medium">Waiting on a choice</h3>
+          <ul className="mt-2 space-y-1 text-sm text-muted">
+            {house.waiting.map((row) => (
+              <li key={`${row.title}-${row.packageNo}`}>
+                Tag {row.packageNo} · {row.title}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="mt-4 text-sm text-muted">No seller is waiting to choose.</p>
+      )}
+      {house.shelf.length ? (
+        <ul className="mt-4 space-y-1 text-sm">
+          {house.shelf.map((row) => (
+            <li key={`${row.title}-${row.packageNo}`}>
+              Tag {row.packageNo} · {row.title} · {money(row.priceCents)} · {row.status === "held" ? "held" : "on the shelf"}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm text-muted">Nothing on the shelf yet.</p>
+      )}
     </section>
   );
 }

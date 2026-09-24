@@ -4,6 +4,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { ensureSeed } from "./seed";
 import { ensureProfile, optionalUserId } from "./server";
+import { loadHouseDesk, type HouseDesk } from "./house";
 
 export type Admission = {
   id: string;
@@ -54,7 +55,7 @@ export const getCorporateDesk = createServerFn({ method: "GET" }).handler(async 
   const sql = await getSql();
   await ensureSeed(sql);
   const userId = await optionalUserId();
-  if (!userId) return { signedIn: false as const, isStaff: false, metrics: null, queue: [] as Admission[] };
+  if (!userId) return { signedIn: false as const, isStaff: false, metrics: null, queue: [] as Admission[], house: null as HouseDesk | null };
   const me = await ensureProfile(sql, userId);
   const mine = me.isStaff
     ? await sql<{
@@ -93,9 +94,10 @@ export const getCorporateDesk = createServerFn({ method: "GET" }).handler(async 
         limit 20
       `;
   const queue = mine.map(mapAdmission);
-  if (!me.isStaff) return { signedIn: true as const, isStaff: false, metrics: null, queue };
+  if (!me.isStaff) return { signedIn: true as const, isStaff: false, metrics: null, queue, house: null as HouseDesk | null };
   const metrics = await loadMetrics(sql);
-  return { signedIn: true as const, isStaff: true, metrics, queue };
+  const house = await loadHouseDesk(sql);
+  return { signedIn: true as const, isStaff: true, metrics, queue, house };
 });
 
 function mapAdmission(row: {
@@ -123,6 +125,37 @@ function mapAdmission(row: {
     createdAt: row.created_at,
   };
 }
+
+export const getJobMap = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const { sql } = await requireStaff(context.userId);
+    const rows = await sql<{
+      leads: number;
+      ambassadors: number;
+      researchers: number;
+      pending: number;
+      open_asks: number;
+      claimed: number;
+    }>`
+      select
+        (select count(*)::int from referrers where role = 'market_lead' and status = 'active') as leads,
+        (select count(*)::int from referrers where role = 'ambassador' and status = 'active') as ambassadors,
+        (select count(*)::int from researcher_accounts where status = 'active') as researchers,
+        (select count(*)::int from researcher_accounts where status = 'pending') as pending,
+        (select count(*)::int from research_requests where status = 'open') as open_asks,
+        (select count(*)::int from research_requests where status = 'claimed') as claimed
+    `;
+    const row = rows[0];
+    return {
+      leads: Number(row?.leads ?? 0),
+      ambassadors: Number(row?.ambassadors ?? 0),
+      researchers: Number(row?.researchers ?? 0),
+      pendingResearchers: Number(row?.pending ?? 0),
+      openAsks: Number(row?.open_asks ?? 0),
+      claimed: Number(row?.claimed ?? 0),
+    };
+  });
 
 async function loadMetrics(sql: Awaited<ReturnType<typeof getSql>>): Promise<CorporateMetrics> {
   const orders = await sql<{

@@ -15,6 +15,7 @@ import { errMessage } from "@/lib/rummlee/errors";
 import { cityOf, money, saleWindow } from "@/lib/rummlee/format";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
 import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, exportMyData, verifyId, finishIdentityCheck, challengeRating, releaseIdentity, setHandle } from "@/lib/rummlee/server";
+import { getMyRep } from "@/lib/rummlee/rep";
 
 export const Route = createFileRoute("/you")({ component: YouPage });
 
@@ -24,6 +25,11 @@ function YouPage() {
   const q = useQuery({
     queryKey: ["me"],
     queryFn: () => getMe(),
+    enabled: Boolean(user),
+  });
+  const repQ = useQuery({
+    queryKey: ["my-rep"],
+    queryFn: () => getMyRep(),
     enabled: Boolean(user),
   });
 
@@ -37,16 +43,17 @@ function YouPage() {
   });
 
   const premium = useMutation({
-    mutationFn: (data: { plan?: "month" | "year"; cancel?: boolean }) => togglePremium({ data }),
+    mutationFn: (data: { plan?: "month" | "year" | "trio_month" | "trio_year"; cancel?: boolean }) => togglePremium({ data }),
     onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["me"] });
       void qc.invalidateQueries({ queryKey: ["bootstrap"] });
+      const name = res.plusTier === "trio" ? "Rummlee +++" : "Rummlee Plus";
       toast.success(
         res.isPremium
           ? res.plusPlan === "year"
-            ? "Rummlee Plus on for a year. Official store fee waived on your side."
-            : "Rummlee Plus on for a month. Official store fee waived on your side."
-          : "Rummlee Plus off. Official store is $2.99 a side again.",
+            ? `${name} on for a year. Official store fee waived on your side.`
+            : `${name} on for a month. Official store fee waived on your side.`
+          : "Subscription off. Official store is $2.99 a side again.",
       );
     },
     onError: (e) => toast.error(errMessage(e)),
@@ -231,6 +238,20 @@ function YouPage() {
           </form>
           <p className="mt-1 text-sm text-muted">Neighbors never see your address — only a neighborhood label, if you set one.</p>
           <ThumbTally up={me?.thumbsUp} down={me?.thumbsDown} className="mt-1 block" />
+          <p className="mt-1 text-sm text-fg">
+            Rummlee Rep {repQ.data?.rep ?? me?.rep ?? 100}
+            {repQ.data ? ` · ${repQ.data.catches} catches · ${repQ.data.facts} additions` : ""}
+            {repQ.data && repQ.data.agreedUp + repQ.data.agreedDown >= 3
+              ? ` · ${repQ.data.agreedUp}/${repQ.data.agreedUp + repQ.data.agreedDown} as listed`
+              : ""}
+            {repQ.data && repQ.data.dropoffs >= 3 ? ` · ${repQ.data.refused}/${repQ.data.dropoffs} refused at the counter` : ""}
+          </p>
+          <Link to="/rep" className="mt-1 inline-block text-sm font-medium text-primary-ink">
+            Scoreboard
+          </Link>
+          <Link to="/research" className="mt-1 block text-sm font-medium text-primary-ink">
+            Ask a researcher
+          </Link>
           {q.data?.isDesk ? (
             <Link to="/desk" className="mt-2 inline-block text-sm font-medium text-primary-ink">
               Open the counter
@@ -262,17 +283,24 @@ function YouPage() {
             Official store is {formatFeeValue(feeById(DEFAULT_FEES, "official_handoff") ?? DEFAULT_FEES[0])} each side per
             pickup. Plus waives <em>your</em> side when you buy or sell there. Buyer fee is 0% with Plus, 5% without.
             Plus is its own charge. It is never added to an item. On an iPhone, Plus will be billed by Apple. The item
-            stays a separate payment. Plus also includes a 3-day sale each month — extra sale days are $2.99 each.
+            stays a separate payment. Plus includes 3 sale days a month. +++ is $29.99 a month or $299.99 a year and
+            includes Plus, 5 sale days, 5 researcher requests, Rummlee Reveal 5 times a month, and no item cap. More researches are $5.99 each. Unused researches and Reveals don’t roll over.
+            Extra sale days are $2.99.
           </p>
           {me?.isPremium ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm text-fg">
-                {me.plusPlan === "year" ? "Yearly" : "Monthly"}
+                {me.plusTier === "trio" ? "+++" : "Plus"} · {me.plusPlan === "year" ? "Yearly" : "Monthly"}
                 {me.plusUntil ? ` · through ${new Date(me.plusUntil).toLocaleDateString()}` : " · on"}
               </p>
               <Button size="sm" variant="secondary" onClick={() => premium.mutate({ cancel: true })} disabled={premium.isPending}>
                 Turn off
               </Button>
+              {me.plusTier !== "trio" ? (
+                <Button size="sm" onClick={() => premium.mutate({ plan: "trio_month" })} disabled={premium.isPending}>
+                  Move to +++ · $29.99
+                </Button>
+              ) : null}
             </div>
           ) : (
             <div className="mt-3 flex flex-wrap gap-2">
@@ -281,6 +309,12 @@ function YouPage() {
               </Button>
               <Button size="sm" variant="secondary" onClick={() => premium.mutate({ plan: "year" })} disabled={premium.isPending}>
                 {TEST_MODE ? "Plus, 1 year · $99.99 test" : "Plus, $99.99 / year"}
+              </Button>
+              <Button size="sm" onClick={() => premium.mutate({ plan: "trio_month" })} disabled={premium.isPending}>
+                {TEST_MODE ? "+++ , 1 month · $29.99 test" : "+++ , $29.99 / month"}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => premium.mutate({ plan: "trio_year" })} disabled={premium.isPending}>
+                {TEST_MODE ? "+++ , 1 year · $299.99 test" : "+++ , $299.99 / year"}
               </Button>
             </div>
           )}
