@@ -1,6 +1,7 @@
 import type { Sql } from "@/lib/db";
 import { addDaysIso, nextSaturdayIso } from "./format";
 import { DEFAULT_FEES } from "./fees";
+import { ensureHouse } from "./house";
 
 const SEED_VERSION = "v14-counter";
 
@@ -75,6 +76,7 @@ export function ensureSeed(sql: Sql) {
 
 async function runSeed(sql: Sql) {
   await ensureFees(sql);
+  await ensureHouse(sql);
   const existing = await sql<{ value: string }>`select value from app_meta where key = ${"seeded"}`;
   if (existing[0]?.value === SEED_VERSION) return;
 

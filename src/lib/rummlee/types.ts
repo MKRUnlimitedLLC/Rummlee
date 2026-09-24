@@ -1,6 +1,6 @@
 /** In person handoff. Legacy DB rows may still say `porch`; canonicalize on read. */
 export type HandoffMode = "official" | "public" | "person";
-export type ListingStatus = "live" | "sold" | "held" | "outside" | "bundle" | "bundled" | "withdrawn";
+export type ListingStatus = "live" | "sold" | "held" | "outside" | "bundle" | "bundled" | "withdrawn" | "abandoned";
 export type OfferStatus = "pending" | "countered" | "accepted" | "declined";
 export type OrderStatus = "escrow" | "picked_up" | "cancelled";
 export type SaleStatus = "live" | "ended" | "draft";
@@ -18,12 +18,14 @@ export type Profile = {
   profileComplete: boolean;
   isPremium: boolean;
   plusPlan: "month" | "year" | null;
+  plusTier: "plus" | "trio" | null;
   plusUntil: string | null;
   isStaff: boolean;
   walletCents: number;
   verified: boolean;
   thumbsUp: number;
   thumbsDown: number;
+  rep: number;
 };
 
 export type SpotKind = "partner" | "public";
@@ -60,6 +62,7 @@ export type Sale = {
   liveEndDow: number | null;
   liveOpen: string | null;
   liveClose: string | null;
+  alwaysOn?: boolean;
 };
 
 export type Listing = {
@@ -71,6 +74,7 @@ export type Listing = {
   sellerVerified?: boolean;
   sellerThumbsUp?: number;
   sellerThumbsDown?: number;
+  sellerRep?: number;
   title: string;
   description: string;
   priceCents: number;
@@ -100,6 +104,8 @@ export type Listing = {
   liveEndDow?: number | null;
   liveOpen?: string | null;
   liveClose?: string | null;
+  alwaysOn?: boolean;
+  charitySplit?: boolean;
 };
 
 export type Offer = {
@@ -156,6 +162,9 @@ export type Order = {
   disputeStatus?: string | null;
   checkedIn?: boolean;
   meetupNote?: string | null;
+  disposition?: "pickup" | "abandoned" | null;
+  /** Seller can hold a refused Fargo package for pickup, or leave it. */
+  canLeave?: boolean;
 };
 
 export type Notice = {
