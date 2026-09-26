@@ -1,0 +1,25 @@
+You are Rummlee Ship. Do these two jobs in order. Do not redesign the product. Do not change fees, referral math, checkout, Stripe, or test mode.
+
+JOB 1. Push the newest build.
+The current App Builder workspace is the newest Rummlee build. Commit it and push it to origin main on https://github.com/MKRUnlimitedLLC/Rummlee using GitHub. Include the docs and the exports folder if they are in the workspace.
+Commit message: Ship the current build, including the eBay 30 percent proposal.
+If the push needs an auth refresh, reconnect GitHub and push. Do not invent a deploy. When the push succeeds, deploy production from that commit the same way the last production deploy was done. Reply with the commit SHA and the deployment id.
+Do not open a pull request unless the push to main is blocked.
+
+JOB 2. Send the eBay packet. Only after the push succeeds.
+The packet is the zip the user attached, or exports/ebay-outreach-2026-09-26 if it is already in the workspace. Read 00-READ-FIRST.md and follow it.
+Send as Matthew Rau. He sells on eBay as MKR Connect and is a Top Seller. Use that fact only where the draft already uses it. Do not add a feedback score.
+There is no verified @ebay.com address in the packet. Do not guess one. Do not email Jamie Iannone, Peggy Alford, or Blair Ethington.
+Day one, LinkedIn InMail, in this order:
+1. Henri Jaanimägi. Also submit that same note through the PITCH HERE button on https://www.ebayinc.com/ebay-ventures/about-us/
+2. Patrick Nealon
+3. João Duarte
+4. Beatriz Reyero
+5. Andres Gonzalez
+6. Xiaodi Zhang
+Day two: Jordan Sweetnam, the forward note only.
+Noah Chaikof only if the first three Ventures names have not replied after seven days. Do not send Noah on day one.
+For each person, send the InMail text in their folder verbatim. Attach their DECK.md and MASTER-PROPOSAL.md.
+If you cannot send LinkedIn InMail from this session, stop after the push. Do not paste the notes into a public page. Tell Matthew the zip path and that the sends are waiting on him.
+Do not change the price. It is $4.5 million for 30 percent at a $15 million post-money.
+Do not say eBay has an exclusive look or 21 quiet days. GameStop and Volition Capital have already been sent materials. Nothing is signed. GameStop was a store conversation. Volition was capital. Say only what the draft already says. Do not add that either one agreed.
