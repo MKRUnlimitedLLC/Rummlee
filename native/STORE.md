@@ -46,18 +46,9 @@ Review notes for Apple:
 
 ## Android (Play Console)
 
-```
-npm install
-npx cap add android
-npx cap sync android
-npx cap open android
-```
+Full click-path: [native/ANDROID.md](ANDROID.md).
 
-In Android Studio: Build → Generate Signed App Bundle. Package `com.mkrunlimited.rummlee`.
-
-Or run the `Native Android` GitHub Action on `main` and download the AAB artifact, then sign with Play App Signing.
-
-Permissions already requested: CAMERA, READ_MEDIA_IMAGES. Keep the store listing privacy URL https://rummlee.com/privacy.
+Package `com.mkrunlimited.rummlee`. Privacy URL https://rummlee.com/privacy. Upload a **signed** AAB to Internal testing only. The GitHub Action AAB is unsigned — Play will reject it until you sign it yourself. Debug APK artifact `rummlee-android-debug` is for your own phone, not Play.
 
 ## Screenshots
 
