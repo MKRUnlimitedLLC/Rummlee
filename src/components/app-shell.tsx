@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Wordmark } from "./logo";
 import { BetaNotice } from "./beta-notice";
+import { LaunchSignup } from "./launch-signup";
 import { cn } from "@/lib/utils";
 import { TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -103,6 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
       )}
       <BetaNotice />
+      <LaunchSignup />
     </div>
   );
 }

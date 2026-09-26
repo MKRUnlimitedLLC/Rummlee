@@ -12,6 +12,9 @@ import { assignDesk, listPartnerSpots, pairCounter } from "@/lib/rummlee/desk";
 import { attributeNeighbor, attributeStore, enrollReferrer, referralLedgerFile } from "@/lib/rummlee/referrals";
 import { getOpenHolds, resolveHold } from "@/lib/rummlee/books";
 import { decideResearcher, getResearcherQueue } from "@/lib/rummlee/research";
+import { EXPENSE_CATEGORIES, expenseLabel, type ExpenseCategory } from "@/lib/rummlee/expenses-policy";
+import { addCompanyExpense, exportCompanyExpenses, listCompanyExpenses, voidCompanyExpense } from "@/lib/rummlee/expenses";
+import { exportLaunchList } from "@/lib/rummlee/launch-list";
 import { StatementView } from "@/components/statement";
 import { closeCase, getCustomerStatement, type Statement } from "@/lib/rummlee/records";
 
@@ -86,6 +89,8 @@ function CorporatePage() {
       {data?.isStaff ? <Holds /> : null}
       {data?.isStaff ? <JobMap /> : null}
       {data?.isStaff ? <ReferralLedger /> : null}
+      {data?.isStaff ? <LaunchEmails /> : null}
+      {data?.isStaff ? <CompanyExpenses /> : null}
       {data?.isStaff ? <ResearcherApps /> : null}
 
       {data?.isStaff ? (
@@ -639,6 +644,170 @@ function Metrics({ metrics }: { metrics: CorporateMetrics }) {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+function downloadBlob(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function LaunchEmails() {
+  const launch = useMutation({
+    mutationFn: () => exportLaunchList(),
+    onSuccess: (res) => downloadBlob(res.filename, new Blob([res.csv], { type: "text/csv" })),
+    onError: (error) => toast.error(errMessage(error)),
+  });
+  return (
+    <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-xl">Launch emails</h2>
+      <p className="mt-1 text-sm text-muted">Staff-only CSV of addresses that asked to be told when real listings open.</p>
+      <div className="mt-3">
+        <Button type="button" size="sm" disabled={launch.isPending} onClick={() => launch.mutate()}>
+          Launch emails
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function CompanyExpenses() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["company-expenses"], queryFn: () => listCompanyExpenses() });
+  const [spentOn, setSpentOn] = useState("2026-09-25");
+  const [payee, setPayee] = useState("");
+  const [category, setCategory] = useState<ExpenseCategory>("hosting");
+  const [dollars, setDollars] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [paidBy, setPaidBy] = useState<"company" | "founder">("company");
+  const [hasReceipt, setHasReceipt] = useState(true);
+  const add = useMutation({
+    mutationFn: () => {
+      const amountCents = Math.round(Number(dollars) * 100);
+      return addCompanyExpense({
+        data: { spentOn, payee, category, amountCents, businessPurpose: purpose, paidBy, hasReceipt },
+      });
+    },
+    onSuccess: (res) => {
+      toast.success(res.deductibleCents > 0 ? "Saved. The deductible amount is on the row." : "Saved. Not a current deduction.");
+      setPayee("");
+      setDollars("");
+      setPurpose("");
+      void qc.invalidateQueries({ queryKey: ["company-expenses"] });
+    },
+    onError: (error) => toast.error(errMessage(error)),
+  });
+  const drop = useMutation({
+    mutationFn: (id: string) => voidCompanyExpense({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Voided. It stays in the file.");
+      void qc.invalidateQueries({ queryKey: ["company-expenses"] });
+    },
+    onError: (error) => toast.error(errMessage(error)),
+  });
+  const file = useMutation({
+    mutationFn: (mode: "live" | "beta") => exportCompanyExpenses({ data: { mode } }),
+    onSuccess: (res) => downloadBlob(res.filename, new Blob([res.csv], { type: "text/csv" })),
+    onError: (error) => toast.error(errMessage(error)),
+  });
+  return (
+    <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+      <h2 className="font-display text-xl">Company costs</h2>
+      <p className="mt-1 text-sm text-muted">
+        A receipt and a business purpose, or it is not a deduction. Meals are half. Entertainment, fines, and personal costs are never a deduction. This desk does not change a customer fee.
+      </p>
+      <form
+        className="mt-4 grid gap-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          add.mutate();
+        }}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="exp-date">Date</Label>
+            <Input id="exp-date" type="date" value={spentOn} onChange={(event) => setSpentOn(event.target.value)} required />
+          </div>
+          <div>
+            <Label htmlFor="exp-payee">Payee</Label>
+            <Input id="exp-payee" value={payee} onChange={(event) => setPayee(event.target.value)} required />
+          </div>
+          <div>
+            <Label htmlFor="exp-cat">Kind</Label>
+            <select
+              id="exp-cat"
+              className="mt-1 h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+              value={category}
+              onChange={(event) => setCategory(event.target.value as ExpenseCategory)}
+            >
+              {EXPENSE_CATEGORIES.map((id) => (
+                <option key={id} value={id}>
+                  {expenseLabel(id)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label htmlFor="exp-amt">Amount</Label>
+            <Input id="exp-amt" inputMode="decimal" value={dollars} onChange={(event) => setDollars(event.target.value)} placeholder="0.00" required />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="exp-why">Business purpose</Label>
+          <Textarea id="exp-why" value={purpose} onChange={(event) => setPurpose(event.target.value)} required />
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <label className="flex items-center gap-2">
+            <input type="radio" name="paid-by" checked={paidBy === "company"} onChange={() => setPaidBy("company")} />
+            Company paid
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="radio" name="paid-by" checked={paidBy === "founder"} onChange={() => setPaidBy("founder")} />
+            Founder paid, reimburse
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={hasReceipt} onChange={(event) => setHasReceipt(event.target.checked)} />
+            Receipt is on file
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" size="sm" disabled={add.isPending}>
+            Save cost
+          </Button>
+          <Button type="button" size="sm" variant="secondary" disabled={file.isPending} onClick={() => file.mutate("live")}>
+            Live costs
+          </Button>
+          <Button type="button" size="sm" variant="secondary" disabled={file.isPending} onClick={() => file.mutate("beta")}>
+            Beta file, not for the books
+          </Button>
+        </div>
+      </form>
+      <ul className="mt-4 grid gap-2">
+        {(q.data ?? []).map((row) => (
+          <li key={row.id} className="flex flex-wrap items-start justify-between gap-2 rounded-2xl border border-border px-3 py-2 text-sm">
+            <div>
+              <div className={row.voided ? "text-muted line-through" : ""}>
+                {row.spentOn} · {row.payee} · {money(row.amountCents)}
+              </div>
+              <div className="text-muted">
+                {row.label}
+                {row.voided ? " · voided" : ` · deductible now ${money(row.deductibleCents)}`}
+                {row.testMode ? " · test mode" : ""}
+              </div>
+            </div>
+            {row.voided ? null : (
+              <Button type="button" size="sm" variant="secondary" disabled={drop.isPending} onClick={() => drop.mutate(row.id)}>
+                Void
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

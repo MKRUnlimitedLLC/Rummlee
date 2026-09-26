@@ -1,0 +1,39 @@
+Rummlee Ship — commit and push the App Builder workspace. Do not redesign.
+
+Repo: https://github.com/MKRUnlimitedLLC/Rummlee
+Branch: main
+Site: https://rummlee.com
+
+The work is already written in this workspace. Commit it and push origin/main. Do not rebuild the product. Do not change fee rates, checkout math, referral percentages, payout timing, or turn on Stripe charges. Test credits stay the wallet. Do not put referral pay, company costs, or the launch-email list on any public page.
+
+WHAT LANDED
+
+1) Launch updates popup
+After the testing dialog is dismissed (“I understand”), a second dialog asks for an email. Copy: one note when real listings open, nothing else, address is not sold. Notify me saves it. Not now hides it on that browser. It shows only while TEST_MODE is on. A repeat address stays one row. A filled honeypot field is ignored.
+- src/components/launch-signup.tsx
+- src/components/beta-notice.tsx (dismiss fires rummlee-beta-dismissed only)
+- src/components/app-shell.tsx
+- src/lib/rummlee/launch-email.ts
+- src/lib/rummlee/launch-list.ts
+- src/lib/rummlee/launch-list.test.ts
+- migrations/0049_launch_signups.sql
+Corporate desk button “Launch emails” downloads launch_signups.csv. Staff only.
+
+2) Company costs on the Corporate desk
+Staff-only log. A receipt and a business purpose are required or the row is refused. Meals are half. Entertainment, fines, politics, and personal costs deduct zero. Domestic development is deductible now and flagged qre. Foreign development is parked for 15-year amortization. Equipment at or under $2,500 is parked for the de minimis election and is not auto-deducted. Formation and pre-opening costs are parked. Charity cash is parked. Founder-paid rows need a receipt. Live CSV is company_expenses_live.csv. Beta CSV is not for the books. test_mode stays on the row.
+- migrations/0048_company_expenses.sql
+- src/lib/rummlee/expenses-policy.ts
+- src/lib/rummlee/expenses-policy.test.ts
+- src/lib/rummlee/expenses.ts
+- src/routes/corporate.tsx
+- BOOKKEEPER-TAX-WRITEOFFS-2026-09-25.md
+- package.json (test script only, if it lists the two new test files)
+
+CHECK
+- npx tsc --noEmit
+- node --experimental-strip-types --test src/lib/rummlee/launch-list.test.ts src/lib/rummlee/expenses-policy.test.ts
+- Migrations 0048 and 0049 apply. Do not edit 0001_auth.sql.
+- Do not import test_mode rows as live revenue.
+
+DONE WHEN
+origin/main has this workspace and the production deploy is READY. rummlee.com shows the launch popup after the testing notice is dismissed.
