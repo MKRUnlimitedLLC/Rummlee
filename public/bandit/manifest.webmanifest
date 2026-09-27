@@ -1,0 +1,30 @@
+{
+  "name": "Bandit",
+  "short_name": "Bandit",
+  "id": "/bandit",
+  "start_url": "/bandit",
+  "scope": "/bandit",
+  "display": "standalone",
+  "background_color": "#e4dfd6",
+  "theme_color": "#e4dfd6",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
