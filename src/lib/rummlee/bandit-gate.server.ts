@@ -1,24 +1,66 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { getCookie, setCookie } from "@tanstack/react-start/server";
+import { banditTurn } from "./bandit";
+import { banditAccessCode, banditCodesMatch, banditGateToken, banditTokenMatches } from "./bandit-gate";
 
-/** Server only. Not imported by the browser bundle. Change this line to change the code. */
-const CODE = "Kite-4419";
+export const BANDIT_GATE_COOKIE = "bandit_gate";
+const MAX_AGE = 60 * 60 * 24 * 400;
 
-export const BANDIT_COOKIE = "rummlee_bandit";
-
-export function codeMatches(input: string): boolean {
-  const a = createHash("sha256").update(CODE, "utf8").digest();
-  const b = createHash("sha256").update(input.trim(), "utf8").digest();
-  return timingSafeEqual(a, b);
+function cookieSecure() {
+  return process.env.NODE_ENV === "production";
 }
 
-export function sessionToken(): string {
-  return createHmac("sha256", CODE).update("rummlee-bandit-v1").digest("hex");
+function writeGateCookie(token: string) {
+  setCookie(BANDIT_GATE_COOKIE, token, {
+    path: "/",
+    httpOnly: true,
+    secure: cookieSecure(),
+    sameSite: "lax",
+    maxAge: MAX_AGE,
+  });
 }
 
-export function sessionOk(value: string | undefined): boolean {
-  if (!value) return false;
-  const expected = Buffer.from(sessionToken());
-  const got = Buffer.from(value);
-  if (expected.length !== got.length) return false;
-  return timingSafeEqual(expected, got);
+export async function banditCookieOpen() {
+  const code = banditAccessCode();
+  if (!code) return false;
+  return banditTokenMatches(getCookie(BANDIT_GATE_COOKIE), code);
+}
+
+export async function unlockBanditCode(given: string) {
+  const code = banditAccessCode();
+  if (!banditCodesMatch(given, code)) return { ok: false as const };
+  const token = banditGateToken(code);
+  writeGateCookie(token);
+  return { ok: true as const, token };
+}
+
+export async function resumeBanditToken(token: string) {
+  const code = banditAccessCode();
+  if (!banditTokenMatches(token, code)) return { ok: false as const };
+  writeGateCookie(token);
+  return { ok: true as const };
+}
+
+export async function askOpenBandit(question: string, token?: string, prior?: string) {
+  const code = banditAccessCode();
+  const open = (await banditCookieOpen()) || banditTokenMatches(token, code);
+  if (!open) return { ok: false as const };
+  if (token && banditTokenMatches(token, code)) writeGateCookie(banditGateToken(code));
+  const { readFeeTable } = await import("./server");
+  let table = null;
+  try {
+    const fees = await readFeeTable();
+    table = fees.length ? fees : null;
+  } catch {
+    table = null;
+  }
+  const turn = banditTurn(question, table, prior);
+  let audio: string | null = null;
+  try {
+    const { synthesizeBandit } = await import("./bandit-voice");
+    const spoken = await synthesizeBandit(turn.say);
+    if (spoken) audio = Buffer.from(spoken.bytes).toString("base64");
+  } catch {
+    audio = null;
+  }
+  return { ok: true as const, answer: turn.say, note: turn.note, audio };
 }
