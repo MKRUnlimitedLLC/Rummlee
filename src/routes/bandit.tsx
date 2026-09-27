@@ -2,30 +2,93 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
-import { BANDIT_UPDATED, MODELS, TRICIA, briefForFriend, type LeadBrief } from "@/lib/rummlee/bandit";
+import { getBanditDesk, unlockBandit } from "@/lib/rummlee/bandit-api";
+import { briefForFriend, type LeadBrief } from "@/lib/rummlee/bandit-types";
 
 const SAVED = "rummlee.bandit.leads";
-
-const DESK = [
-  { href: "/bandit/rummlee-tricia.html", label: "Deck: Rummlee for Tricia" },
-  { href: "/bandit/tricia-rummlee-briefing.html", label: "Deck: briefing" },
-  { href: "/bandit/TRICIA-GROK-COMPANION.txt", label: "Grok companion" },
-  { href: "/bandit/TRICIA-RUMMLEE-COMPANION.txt", label: "Rummlee companion" },
-] as const;
 
 type SavedLead = { name: string; city: string };
 
 export const Route = createFileRoute("/bandit")({
   head: () => ({
     meta: [
-      { title: "Market lead briefing" },
+      { title: "Rummlee" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
+  loader: () => getBanditDesk(),
   component: BanditPage,
 });
 
 function BanditPage() {
+  const desk = Route.useLoaderData();
+  if (!desk.open) return <Lock />;
+  return <Desk updated={desk.updated} tricia={desk.tricia} models={desk.models} links={desk.desk} />;
+}
+
+function Lock() {
+  const [code, setCode] = useState("");
+  const [wrong, setWrong] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function submit() {
+    setPending(true);
+    setWrong(false);
+    try {
+      const res = await unlockBandit({ data: { code } });
+      if (!res.ok) {
+        setWrong(true);
+        setPending(false);
+        return;
+      }
+      window.location.assign("/bandit");
+    } catch {
+      setWrong(true);
+      setPending(false);
+    }
+  }
+
+  return (
+    <main className="py-10">
+      <h1 className="font-display text-3xl font-medium tracking-[-0.03em]">Private</h1>
+      <p className="mt-2 max-w-md text-muted">This page needs a code.</p>
+      <form
+        className="mt-6 max-w-sm space-y-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit();
+        }}
+      >
+        <div>
+          <Label htmlFor="bandit-code">Code</Label>
+          <Input
+            id="bandit-code"
+            type="password"
+            autoComplete="off"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+        </div>
+        {wrong ? <p className="text-sm text-primary-ink">That code is not right.</p> : null}
+        <Button type="submit" disabled={pending || code.trim().length === 0}>
+          Open
+        </Button>
+      </form>
+    </main>
+  );
+}
+
+function Desk({
+  updated,
+  tricia,
+  models,
+  links,
+}: {
+  updated: string;
+  tricia: LeadBrief;
+  models: LeadBrief[];
+  links: { href: string; label: string }[];
+}) {
   const [saved, setSaved] = useState<SavedLead[]>([]);
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
@@ -39,18 +102,18 @@ function BanditPage() {
       /* ignore a bad local note */
     }
   }, []);
-
-  const friends = saved.map((s) => briefForFriend(s.name, s.city));
-  const all = [TRICIA, ...MODELS, ...friends];
-  const brief = all.find((b) => b.id === pick) ?? TRICIA;
+  const pattern = models[0];
+  const friends = pattern ? saved.map((s) => briefForFriend(pattern, s.name, s.city)) : [];
+  const all = [tricia, ...models, ...friends];
+  const brief = all.find((b) => b.id === pick) ?? tricia;
 
   function addFriend() {
     const next = { name: name.trim(), city: city.trim() };
-    if (!next.name || !next.city) return;
+    if (!next.name || !next.city || !pattern) return;
     const list = [...saved.filter((s) => s.name.toLowerCase() !== next.name.toLowerCase()), next];
     setSaved(list);
     localStorage.setItem(SAVED, JSON.stringify(list));
-    setPick(briefForFriend(next.name, next.city).id);
+    setPick(briefForFriend(pattern, next.name, next.city).id);
     setName("");
     setCity("");
   }
@@ -59,20 +122,14 @@ function BanditPage() {
     <main className="py-6">
       <p className="text-sm font-medium text-primary-ink">Private briefing. Not linked from the app.</p>
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">Market leads</h1>
-      <p className="mt-2 max-w-2xl text-pretty text-muted">
-        Tricia assigns the city. Diane, Erin, and Kirstin are the models. Updated {BANDIT_UPDATED}. Not an offer.
-      </p>
+      <p className="mt-2 max-w-2xl text-pretty text-muted">Updated {updated}. Not an offer.</p>
       <nav className="mt-6 max-w-2xl" aria-label="Private desk">
-        <h2 className="font-display text-xl font-medium">For Tricia</h2>
+        <h2 className="font-display text-xl font-medium">Decks</h2>
         <p className="mt-1 text-sm text-muted">Private. Open these from here. They are not in the app menu.</p>
         <ul className="mt-3 space-y-1">
-          {DESK.map((item) => (
+          {links.map((item) => (
             <li key={item.href}>
-              <a
-                href={item.href}
-                rel="nofollow"
-                className="inline-flex min-h-11 items-center font-medium text-primary-ink underline-offset-4 hover:underline"
-              >
+              <a href={item.href} rel="nofollow" className="inline-flex min-h-11 items-center font-medium text-primary-ink underline-offset-4 hover:underline">
                 {item.label}
               </a>
             </li>
@@ -99,8 +156,8 @@ function BanditPage() {
       </div>
       <Brief brief={brief} />
       <section className="mt-10 max-w-lg rounded-2xl border border-border p-4">
-        <h2 className="font-display text-xl font-medium">A friend Tricia is bringing on</h2>
-        <p className="mt-1 text-sm text-muted">Same briefing as the models. The city is the part Tricia assigns. Saved on this phone only.</p>
+        <h2 className="font-display text-xl font-medium">A new friend</h2>
+        <p className="mt-1 text-sm text-muted">Same briefing as the models. You assign the city. Saved on this phone only.</p>
         <div className="mt-4 space-y-3">
           <div>
             <Label htmlFor="lead-name">Name</Label>
@@ -108,7 +165,7 @@ function BanditPage() {
           </div>
           <div>
             <Label htmlFor="lead-city">City area</Label>
-            <Input id="lead-city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City Tricia assigns" />
+            <Input id="lead-city" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City area" />
           </div>
           <Button type="button" onClick={addFriend} disabled={!name.trim() || !city.trim()}>
             Make the briefing
