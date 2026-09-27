@@ -14,7 +14,7 @@ function tree(dir, files) {
 }
 
 const REQUIRED = {
-  "server/middleware/bandit-gate.ts": 'return denied(401, "Code required.");',
+  "server/middleware/bandit-gate.ts": 'return denied(401, "Code required.");\nrenderExplainPage',
   "server/bandit-private/rummlee-tricia.html": "deck",
   "server/bandit-private/tricia-rummlee-briefing.html": "deck",
   "server/bandit-private/TRICIA-GROK-COMPANION.txt": "note",

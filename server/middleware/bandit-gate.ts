@@ -1,4 +1,5 @@
 import { BANDIT_COOKIE, sessionOk } from "../../src/lib/rummlee/bandit-gate.server";
+import { EXPLAIN_PATH, renderExplainPage } from "../../src/lib/rummlee/explain.server";
 import deckTricia from "../bandit-private/rummlee-tricia.html?raw";
 import deckBriefing from "../bandit-private/tricia-rummlee-briefing.html?raw";
 import companionGrok from "../bandit-private/TRICIA-GROK-COMPANION.txt?raw";
@@ -36,14 +37,28 @@ function denied(status: number, text: string): Response {
   });
 }
 
-export default function banditGate(event: GateEvent, next: () => unknown): unknown {
+function allowed(event: GateEvent): boolean {
+  return sessionOk(cookieValue(event.req.headers.get("cookie"), BANDIT_COOKIE));
+}
+
+export default async function banditGate(event: GateEvent, next: () => unknown): Promise<unknown> {
   const path = event.url.pathname;
   if (!path.startsWith("/bandit/")) return next();
+  if ((event.req.method ?? "GET").toUpperCase() !== "GET") return denied(405, "Not allowed.");
+  if (path === EXPLAIN_PATH) {
+    if (!allowed(event)) return denied(401, "Code required.");
+    return new Response(await renderExplainPage(), {
+      status: 200,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-store",
+        "x-robots-tag": "noindex, nofollow",
+      },
+    });
+  }
   const file = FILES[path];
   if (!file) return denied(404, "Not found.");
-  if ((event.req.method ?? "GET").toUpperCase() !== "GET") return denied(405, "Not allowed.");
-  const open = sessionOk(cookieValue(event.req.headers.get("cookie"), BANDIT_COOKIE));
-  if (!open) return denied(401, "Code required.");
+  if (!allowed(event)) return denied(401, "Code required.");
   return new Response(file.body, {
     status: 200,
     headers: {

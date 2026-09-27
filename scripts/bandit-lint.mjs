@@ -26,6 +26,8 @@ export function lintBandit(root) {
   if (!existsSync(gate)) errors.push("Missing server/middleware/bandit-gate.ts");
   else if (!readFileSync(gate, "utf8").includes("Code required.")) {
     errors.push("bandit-gate.ts must refuse with “Code required.”");
+  } else if (!readFileSync(gate, "utf8").includes("renderExplainPage")) {
+    errors.push("bandit-gate.ts must serve the explainer from the current copy.");
   }
 
   for (const file of [

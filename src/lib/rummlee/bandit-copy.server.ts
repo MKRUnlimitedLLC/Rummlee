@@ -74,6 +74,7 @@ export const MODELS: LeadBrief[] = [
 ];
 
 export const DESK = [
+  { href: "/bandit/explain", label: "Explain Rummlee to someone new" },
   { href: "/bandit/rummlee-tricia.html", label: "Deck: Rummlee for Tricia" },
   { href: "/bandit/tricia-rummlee-briefing.html", label: "Deck: briefing" },
   { href: "/bandit/TRICIA-GROK-COMPANION.txt", label: "Grok companion" },
