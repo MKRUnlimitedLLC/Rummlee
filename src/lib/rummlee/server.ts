@@ -3222,9 +3222,16 @@ export const releaseIdentity = createServerFn({ method: "POST" })
     return { ok: true as const, handle };
   });
 
-export const getFeeTable = createServerFn({ method: "GET" }).handler(async () => {
+/** Same fee-row load as `/fees`. A database override wins over the code defaults. */
+export async function readFeeTable(): Promise<FeeRow[]> {
   const sql = await getSql();
   await ensureSeed(sql);
+  return loadFees(sql);
+}
+
+export const getFeeTable = createServerFn({ method: "GET" }).handler(async () => {
+  const fees = await readFeeTable();
+  const sql = await getSql();
   const userId = await optionalUserId();
   let isStaff = false;
   let canClaim = false;
@@ -3234,7 +3241,7 @@ export const getFeeTable = createServerFn({ method: "GET" }).handler(async () =>
     const staff = await sql<{ n: number }>`select count(*)::int as n from profiles where is_staff = true`;
     canClaim = !isStaff && Number(staff[0]?.n ?? 0) === 0;
   }
-  return { fees: await loadFees(sql), isStaff, canClaim, signedIn: Boolean(userId) };
+  return { fees, isStaff, canClaim, signedIn: Boolean(userId) };
 });
 
 export const claimOperator = createServerFn({ method: "POST" })

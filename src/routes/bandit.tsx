@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { answerBandit } from "@/lib/rummlee/bandit";
-import type { FeeRow } from "@/lib/rummlee/fees";
-import { getFeeTable } from "@/lib/rummlee/server";
+import { BANDIT_GATE_STORAGE, askBandit, banditOpen, resumeBandit, unlockBandit } from "@/lib/rummlee/bandit-access";
 
 export const Route = createFileRoute("/bandit")({
+  loader: () => banditOpen(),
+  pendingComponent: BanditPending,
   head: () => ({
     meta: [
       { title: "Bandit" },
@@ -72,7 +72,125 @@ function clearEnglishVoice() {
   return english.find((voice) => /en-US/i.test(voice.lang)) ?? english[0];
 }
 
+function BanditPending() {
+  return <main className="min-h-full bg-[#e4dfd6]" />;
+}
+
 function BanditPage() {
+  const { open } = Route.useLoaderData();
+  const [unlocked, setUnlocked] = useState(open);
+
+  useEffect(() => {
+    if (open || unlocked) return;
+    let saved = "";
+    try {
+      saved = localStorage.getItem(BANDIT_GATE_STORAGE) ?? "";
+    } catch {
+      saved = "";
+    }
+    if (!saved) return;
+    let cancel = false;
+    void resumeBandit({ data: { token: saved } }).then((result) => {
+      if (cancel) return;
+      if (result.ok) setUnlocked(true);
+      else {
+        try {
+          localStorage.removeItem(BANDIT_GATE_STORAGE);
+        } catch {
+          /* private mode */
+        }
+      }
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [open, unlocked]);
+
+  if (!unlocked) {
+    return (
+      <UnlockForm
+        onUnlocked={(token) => {
+          try {
+            localStorage.setItem(BANDIT_GATE_STORAGE, token);
+          } catch {
+            /* cookie still holds the gate */
+          }
+          setUnlocked(true);
+        }}
+      />
+    );
+  }
+  return <BanditTutor />;
+}
+
+function UnlockForm({ onUnlocked }: { onUnlocked: (token: string) => void }) {
+  const [code, setCode] = useState("");
+  const [wrong, setWrong] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [standalone, setStandalone] = useState(false);
+
+  useEffect(() => {
+    document.body.style.background = "#e4dfd6";
+    setStandalone(installedApp());
+  }, []);
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (busy || !code.trim()) return;
+    setBusy(true);
+    setWrong(false);
+    try {
+      const result = await unlockBandit({ data: { code } });
+      if (result.ok) onUnlocked(result.token);
+      else setWrong(true);
+    } catch {
+      setWrong(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className={`flex min-h-full flex-col bg-[#e4dfd6] text-[#161412] ${standalone ? "bandit-app" : ""}`}>
+      <style>{`
+        .bandit-install { display: block; }
+        @media (display-mode: standalone) {
+          .bandit-install { display: none; }
+        }
+        .bandit-app .bandit-install { display: none; }
+      `}</style>
+      <form
+        onSubmit={onSubmit}
+        className="flex flex-1 flex-col items-center justify-center px-6 pt-[max(1.5rem,env(safe-area-inset-top))]"
+      >
+        <label htmlFor="bandit-code" className="text-center text-base">
+          Code
+        </label>
+        <input
+          id="bandit-code"
+          type="password"
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
+          autoComplete="current-password"
+          enterKeyHint="go"
+          autoFocus
+          className="mt-4 w-full max-w-xs border-0 border-b border-[#161412]/30 bg-transparent px-1 py-3 text-center text-base outline-none"
+        />
+        {wrong ? <p className="mt-4 text-center text-base">That code does not open Bandit.</p> : null}
+        <button type="submit" disabled={busy} className="mt-8 min-h-11 min-w-28 bg-transparent text-base">
+          Unlock
+        </button>
+      </form>
+      <div className="bandit-install space-y-1 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center text-base">
+        <p>Share</p>
+        <p>Add to Home Screen</p>
+        <p>Add</p>
+      </div>
+    </main>
+  );
+}
+
+function BanditTutor() {
   const [standalone, setStandalone] = useState(false);
   const [phase, setPhase] = useState<Phase>("wait");
   const [line, setLine] = useState("");
@@ -227,15 +345,21 @@ function BanditPage() {
     setPhase("speaking");
     stopHearing();
     void (async () => {
-      let table: FeeRow[] | null = null;
+      let answer = "";
       try {
-        const data = await getFeeTable();
-        table = data.fees?.length ? data.fees : null;
+        let token = "";
+        try {
+          token = localStorage.getItem(BANDIT_GATE_STORAGE) ?? "";
+        } catch {
+          token = "";
+        }
+        const result = await askBandit({ data: { question, token } });
+        if (!result.ok) return;
+        answer = result.answer;
       } catch {
-        table = null;
+        return;
       }
       if (leftRef.current) return;
-      const answer = answerBandit(question, table);
       setLine(answer);
       speak(answer);
     })();
