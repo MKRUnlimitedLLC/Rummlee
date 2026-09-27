@@ -23,6 +23,7 @@ const TABS = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const bare = pathname === "/bandit" || pathname === "/bandit/";
   const hideNav = pathname.startsWith("/login") || pathname.startsWith("/welcome");
   const [large, setLarge] = useState(false);
   useEffect(() => {
@@ -35,6 +36,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     setLarge(next);
     localStorage.setItem("rummlee.largeType", next ? "1" : "0");
     document.documentElement.classList.toggle("rummlee-large", next);
+  }
+
+  if (bare) {
+    return <div className="fixed inset-0 overflow-auto bg-[#e4dfd6] text-fg">{children}</div>;
   }
 
   return (
