@@ -54,5 +54,13 @@ export async function askOpenBandit(question: string, token?: string, prior?: st
     table = null;
   }
   const turn = banditTurn(question, table, prior);
-  return { ok: true as const, answer: turn.say, note: turn.note };
+  let audio: string | null = null;
+  try {
+    const { synthesizeBandit } = await import("./bandit-voice");
+    const spoken = await synthesizeBandit(turn.say);
+    if (spoken) audio = Buffer.from(spoken.bytes).toString("base64");
+  } catch {
+    audio = null;
+  }
+  return { ok: true as const, answer: turn.say, note: turn.note, audio };
 }

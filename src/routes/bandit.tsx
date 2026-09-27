@@ -230,6 +230,10 @@ function BanditTutor() {
   const speakTimer = useRef(0);
   const recRef = useRef<BanditRec | null>(null);
   const fieldRef = useRef<HTMLInputElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const draggedRef = useRef(false);
+  const earRef = useRef<AudioContext | null>(null);
+  const [flat, setFlat] = useState(false);
   const askRef = useRef<(question: string) => void>(() => {});
 
   useEffect(() => {
@@ -265,6 +269,56 @@ function BanditTutor() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const host = stageRef.current;
+    if (!host) return;
+    let stop = () => {};
+    let cancel = false;
+    void import("@/components/bandit-dog")
+      .then((mod) => {
+        if (cancel) return;
+        stop = mod.mountBanditDog(
+          host,
+          () => phaseRef.current,
+          () => {
+            draggedRef.current = true;
+          },
+          () => setFlat(true),
+        );
+      })
+      .catch(() => setFlat(true));
+    return () => {
+      cancel = true;
+      stop();
+    };
+  }, []);
+
+  function unlockEar() {
+    const Ctor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    if (!earRef.current) earRef.current = new Ctor();
+    void earRef.current.resume();
+  }
+
+  async function playMpeg(b64: string) {
+    const ear = earRef.current;
+    if (!ear) return false;
+    await ear.resume();
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    const copy = bytes.buffer.slice(0);
+    const buffer = await ear.decodeAudioData(copy);
+    const source = ear.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ear.destination);
+    source.start();
+    await new Promise<void>((resolve) => {
+      source.onended = () => resolve();
+    });
+    return true;
+  }
 
   function stopHearing() {
     const rec = recRef.current;
@@ -400,6 +454,17 @@ function BanditTutor() {
         if (!isWriteUp(question)) priorRef.current = question;
         setLine(result.answer);
         setNote(result.note ?? null);
+        if (result.audio) {
+          try {
+            const played = await playMpeg(result.audio);
+            if (played) {
+              resumeListen();
+              return;
+            }
+          } catch {
+            /* phone voice */
+          }
+        }
         speak(result.answer);
       } catch {
         resumeListen();
@@ -415,6 +480,7 @@ function BanditTutor() {
       return;
     }
     loopRef.current = true;
+    unlockEar();
     const synth = window.speechSynthesis;
     if (synth) {
       const unlock = new SpeechSynthesisUtterance(" ");
@@ -429,6 +495,7 @@ function BanditTutor() {
     event.preventDefault();
     const question = draft.trim();
     if (!question || phaseRef.current === "speaking") return;
+    unlockEar();
     setDraft("");
     askRef.current(question);
   }
@@ -459,18 +526,27 @@ function BanditTutor() {
       <div className="flex flex-1 flex-col items-center justify-center px-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
         <button
           type="button"
-          onClick={onDog}
+          onClick={() => {
+            if (draggedRef.current) {
+              draggedRef.current = false;
+              return;
+            }
+            onDog();
+          }}
           aria-label="Bandit"
           className="border-0 bg-transparent p-0"
         >
-          <img
-            src="/brand/mark.png"
-            alt=""
-            width={256}
-            height={256}
-            className={`bandit-mark w-[min(78vw,320px)] max-w-full ${bob}`}
-            style={{ outline: "none" }}
-          />
+          <div ref={stageRef} className={`relative h-[min(78vw,320px)] w-[min(78vw,320px)] ${flat ? "hidden" : ""}`} />
+          {flat ? (
+            <img
+              src="/brand/mark.png"
+              alt=""
+              width={256}
+              height={256}
+              className={`bandit-mark w-[min(78vw,320px)] max-w-full ${bob}`}
+              style={{ outline: "none" }}
+            />
+          ) : null}
         </button>
         {phase === "wait" ? <p className="bandit-tap mt-8 text-center text-lg">Tap him to talk.</p> : null}
         {line ? (
