@@ -6,6 +6,13 @@ import { BANDIT_UPDATED, MODELS, TRICIA, briefForFriend, type LeadBrief } from "
 
 const SAVED = "rummlee.bandit.leads";
 
+const DESK = [
+  { href: "/bandit/rummlee-tricia.html", label: "Deck: Rummlee for Tricia" },
+  { href: "/bandit/tricia-rummlee-briefing.html", label: "Deck: briefing" },
+  { href: "/bandit/TRICIA-GROK-COMPANION.txt", label: "Grok companion" },
+  { href: "/bandit/TRICIA-RUMMLEE-COMPANION.txt", label: "Rummlee companion" },
+] as const;
+
 type SavedLead = { name: string; city: string };
 
 export const Route = createFileRoute("/bandit")({
@@ -55,6 +62,23 @@ function BanditPage() {
       <p className="mt-2 max-w-2xl text-pretty text-muted">
         Tricia assigns the city. Diane, Erin, and Kirstin are the models. Updated {BANDIT_UPDATED}. Not an offer.
       </p>
+      <nav className="mt-6 max-w-2xl" aria-label="Private desk">
+        <h2 className="font-display text-xl font-medium">For Tricia</h2>
+        <p className="mt-1 text-sm text-muted">Private. Open these from here. They are not in the app menu.</p>
+        <ul className="mt-3 space-y-1">
+          {DESK.map((item) => (
+            <li key={item.href}>
+              <a
+                href={item.href}
+                rel="nofollow"
+                className="inline-flex min-h-11 items-center font-medium text-primary-ink underline-offset-4 hover:underline"
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
       <div className="mt-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Briefings">
         {all.map((b) => (
           <button

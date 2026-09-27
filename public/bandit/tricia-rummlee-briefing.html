@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Rummlee — briefing for Tricia</title>
+<meta name="robots" content="noindex, nofollow" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --paper: #f6f1ea;
+    --ink: #1c1916;
+    --muted: #5e574e;
+    --line: #ddd4c8;
+    --pine: #1f4d40;
+    --pine-soft: #e5f0eb;
+    --card: #fffdf9;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #241f1b; color: var(--ink); font-family: "Iowan Old Style", Palatino, Georgia, serif; }
+  .deck { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
+  .slide {
+    min-height: 100vh; scroll-snap-align: start; background: var(--paper);
+    padding: 48px 64px 40px; display: flex; flex-direction: column;
+  }
+  .kicker { font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pine); font-weight: 650; margin: 0 0 14px; }
+  h1 { font-weight: 500; letter-spacing: -0.03em; font-size: 58px; line-height: 0.96; margin: 0; }
+  h2 { font-weight: 500; letter-spacing: -0.03em; font-size: 34px; line-height: 1.08; margin: 0 0 16px; }
+  p, li { font-family: "Avenir Next", "Segoe UI", sans-serif; }
+  p { font-size: 17px; line-height: 1.45; margin: 0 0 12px; }
+  li { font-size: 15.5px; line-height: 1.4; margin: 0 0 7px; }
+  .lede { font-size: 20px; max-width: 980px; }
+  .muted { color: var(--muted); }
+  .foot { margin-top: auto; padding-top: 14px; display: flex; justify-content: space-between; font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 12px; color: var(--muted); }
+  .grid { display: grid; gap: 14px; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 18px; font-weight: 560; }
+  .card p, .card li { font-size: 14.5px; }
+  table { width: 100%; border-collapse: collapse; font-family: "Avenir Next", "Segoe UI", sans-serif; font-size: 14px; }
+  th { text-align: left; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 650; padding: 0 8px 6px 0; }
+  td { padding: 7px 8px 7px 0; border-top: 1px solid var(--line); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  ul, ol { margin: 0; padding-left: 18px; }
+  .cover { background: #14352d; color: #f6f1ea; justify-content: flex-end; }
+  .cover .kicker { color: #b7d7cb; }
+  .cover p { color: #e4ddd3; }
+  .cover .foot { color: #9bb5ac; }
+  .warn { font-size: 13.5px; color: var(--muted); }
+  @media print {
+    .deck { height: auto; overflow: visible; }
+    .slide { page-break-after: always; }
+    .cover { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+<section class="slide cover">
+  <p class="kicker">Private · For Tricia · 24 September 2026 · Not for the website</p>
+  <h1>The good stuff, before Saturday.</h1>
+  <p style="margin-top:22px;font-size:22px;color:#f6f1ea">What Rummlee is, how a sale works, how the money works, and what your job is.</p>
+  <p>Co-owner briefing. Arrow keys to move. Nothing in here is a public claim, a job offer, or legal advice.</p>
+  <div class="foot"><span>rummlee.com</span><span>01</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">Why this exists</p>
+  <h2>You are not a fourth city. You are the person who keeps the three cities telling the same story.</h2>
+  <div class="grid g3">
+    <div class="card"><h3>Kirstin</h3><p>Fargo–Moorhead. First market, because that is where a left-behind box can actually be stored.</p></div>
+    <div class="card"><h3>Diane</h3><p>Chicago.</p></div>
+    <div class="card"><h3>Erin</h3><p>Minneapolis–St. Paul.</p></div>
+  </div>
+  <p style="margin-top:16px">Their names stay off rummlee.com. So do yours and Matthew’s. The public line is “by invitation.” This deck is the private version, so you can answer a hard question without guessing.</p>
+  <p>Do not tell any of them they have been hired, that they own a city, or that a check is waiting. The pay rules are written. A lawyer has not signed them. Real cards are not on. Test credits are not a paycheck.</p>
+  <div class="foot"><span>Your role</span><span>02</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">The product in one page</p>
+  <h2>A neighbor pays before anyone drives. The handoff is at a store, not at a house on a public card.</h2>
+  <div class="grid g2">
+    <div>
+      <ol>
+        <li>A seller opens a Neighborhood sale. Online days stay open. In-person hours are optional. The public card shows hours, never a street.</li>
+        <li>They set an asking price and a lowest price. The lowest price is hidden.</li>
+        <li>A buyer pays asking, or makes one offer. Each side gets one counteroffer. A decline ends it.</li>
+        <li>The money is held until both people confirm the handoff. In beta that money is test credits.</li>
+        <li>Official store first. Public place second. In person only if the seller turned it on, and only after payment.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>The words we use</h3>
+      <p>Neighborhood sale. Handoff location. Official store handoff. Public place handoff. In-person handoff.</p>
+      <p>We do not say porch, driveway, meet at my house, or garage-sale app. We do not ship. A couch, anything over 50 pounds, or anything not in an outer box is in person only. A store is not a warehouse for furniture.</p>
+      <p class="muted">Marketed hardest to women in cities and suburbs, because that is who will not publish a house number. The marketplace is for everyone.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Product</span><span>03</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">Why someone pays us</p>
+  <h2>The fee is the cheap part. The address, and the no-show, are the expensive part.</h2>
+  <table>
+    <thead><tr><th></th><th>Marketplace and Craigslist</th><th>eBay and the shippers</th><th>Rummlee</th></tr></thead>
+    <tbody>
+      <tr><td>Cost</td><td>Free, until they don’t show</td><td>Low-teens take, plus postage</td><td>Held before anyone drives</td></tr>
+      <tr><td>Place</td><td>A house, or a lot</td><td>A carrier</td><td>A named store, ranked first</td></tr>
+      <tr><td>Name</td><td>A real name and a pin</td><td>A public seller history</td><td>A handle. The counter sees a code.</td></tr>
+      <tr><td>Haggling</td><td>All weekend</td><td>Offers, then a label</td><td>One counteroffer each. Then it ends.</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:14px">Facebook’s local sale is free, so we will not win by being cheaper. We win if a person would rather pay a few dollars than put their street on the internet, and if the seller stops losing evenings to people who never come. If that trade is not real, the fee table does not matter.</p>
+  <div class="foot"><span>The bet</span><span>04</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">A sale, in order</p>
+  <h2>Online does not turn off because the tables are out.</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>What the seller sets</h3>
+      <ul>
+        <li>Dates. A sale cannot run longer than 14 days.</li>
+        <li>Online window. Default is Tuesday through Thursday. Offers and pay-asking stay open.</li>
+        <li>Live hours, optional. Neighbors see the days and a rough distance. The address appears after they pay.</li>
+        <li>If they want, a note that a paid item can be picked up at the sale itself.</li>
+        <li>Which handoffs they offer. Official is the default. They can also turn on public, and in person for the live hours.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>When something sells online during the sale</h3>
+      <ul>
+        <li>It is held. Nobody else can buy it.</li>
+        <li>The seller takes it off the table and sets it aside.</li>
+        <li>Only after that do they tap “I set this aside.” The card then says sold online.</li>
+        <li>A walk-up cannot pay cash in the app. If it sold outside Rummlee, the seller marks “sold outside.” That ends the listing and does not move money we never held.</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top:14px">Asking price is public. Lowest price is not, except a +++ member can reveal it up to five times a month. One offer, one counteroffer, one decline. A decline ends the deal. Pay asking stays available the whole time the item is live.</p>
+  <div class="foot"><span>Operating a sale</span><span>05</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">The handoff</p>
+  <h2>Two different codes. No names. One box at a time.</h2>
+  <div class="grid g3">
+    <div class="card">
+      <h3>Seller arrives</h3>
+      <p>The account code is on their phone and stays hidden until they tap it. It hides again after 20 seconds. They wrote a short code on the box. That short code is not sitting in the buyer’s app.</p>
+      <p>The counter scans the phone, then checks the code on that box. A match means the store is holding that package.</p>
+    </div>
+    <div class="card">
+      <h3>Buyer arrives</h3>
+      <p>A different account code, same sale. The screen lists the short codes to pull. The buyer types the code on the box they are holding. Only that box is confirmed.</p>
+      <p>Two items from the same seller are one trip and two boxes. Same account scan. Each box still has to be confirmed.</p>
+    </div>
+    <div class="card">
+      <h3>After that</h3>
+      <p>The seller is not paid for 48 hours. In that window the buyer can report a problem. A camera reads a code and does not save the picture. The counter never shows a name, a price, or an address.</p>
+      <p>Seller has 2 days to drop a box. Buyer has 5 days to pick it up. After that the buyer is refunded.</p>
+    </div>
+  </div>
+  <p class="warn" style="margin-top:12px">In person, the same idea: both people confirm with a scan or a 6-character code. The meetup note appears only after payment. A photo of the account code is the same as handing over the phone.</p>
+  <div class="foot"><span>Chain of custody</span><span>06</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">What the store is, and is not</p>
+  <h2>The store holds a box. The store does not run the marketplace.</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>The associate does</h3>
+      <ul>
+        <li>Scan a phone. Type the short code on the label.</li>
+        <li>Put the box on a shelf. Pull it when the buyer’s code is scanned.</li>
+        <li>Refuse a package that is unsafe, illegal, or obviously not the item. A refuse refunds the buyer. No names on that screen.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>The associate does not</h3>
+      <ul>
+        <li>See a name, a price, or take cash.</li>
+        <li>Accept a couch, an unboxed item, or anything over 50 pounds.</li>
+        <li>Set a fee, close an account, or photograph the phone.</li>
+        <li>Get a location fee. That slot is $0 on purpose. The bet is foot traffic. It can be turned on later without rewriting checkout. Do not promise a store a dollar.</li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top:14px">A buyer or seller can tap “I’m on my way.” That is a button, not a live map of their house. Showing up on time is part of reputation. The store, the buyer, and the seller can each rate the handoff. Thumbs up or down, plus a private comment. A down can be challenged.</p>
+  <div class="foot"><span>Official store</span><span>07</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">How a dollar moves</p>
+  <h2>Two fees on the item. A membership if they do this often. Listing is free.</h2>
+  <table>
+    <thead><tr><th>What</th><th>Who pays</th><th>Amount</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Browse, list</td><td>Nobody</td><td>$0</td><td>Asking price has a $5 floor. That is not a fee.</td></tr>
+      <tr><td>Buyer fee</td><td>Buyer</td><td>5%, or 0% with Plus or +++</td><td>Added at checkout. Shown as one total, with a way to expand. Tax, when it applies, stays visible.</td></tr>
+      <tr><td>Seller fee</td><td>Seller, from the payout</td><td>$2.99 or 12% Standard, 8.5% Plus, 6% +++ — whichever is more</td><td>Same at a store, a public place, or in person. The $2.99 floor is not waived.</td></tr>
+      <tr><td>Plus</td><td>Member</td><td>$9.99 a month or $99.99 a year</td><td>Buyer fee goes to $0. Five sale days a month. ID Verified when that check is turned on.</td></tr>
+      <tr><td>+++</td><td>Member</td><td>$39.99 a month or $399.99 a year</td><td>Plus, plus the 6% seller fee, unlimited sale days, no item cap, five researches and five price reveals a month, an early look at items being prepared, and overtime on unsold items.</td></tr>
+      <tr><td>Sale day</td><td>Seller</td><td>$2.99 a date</td><td>Free inside the Plus allowance. Free on +++. Still a 14-day cap.</td></tr>
+      <tr><td>Feature</td><td>Seller</td><td>$1.99 an item, $4.99 a sale</td><td>Sorted ahead until the sale ends.</td></tr>
+    </tbody>
+  </table>
+  <p class="warn" style="margin-top:10px">There is no separate store-use fee while that slot is $0. Sales tax is not our revenue. Card processing is not inside these rates. Beta does not charge a real card.</p>
+  <div class="foot"><span>Fees · current table</span><span>08</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">Worked items</p>
+  <h2>On a $45 item we keep about $6 to $8. The floor matters more on the cheap things.</h2>
+  <table>
+    <thead><tr><th></th><th class="num">$45 · both Standard</th><th class="num">$45 · Plus buyer, Standard seller</th><th class="num">$120 · both Standard</th><th class="num">$20 · both Standard</th></tr></thead>
+    <tbody>
+      <tr><td>Seller fee</td><td class="num">$5.40</td><td class="num">$5.40</td><td class="num">$14.40</td><td class="num">$2.99</td></tr>
+      <tr><td>Buyer fee</td><td class="num">$2.25</td><td class="num">$0</td><td class="num">$6.00</td><td class="num">$1.00</td></tr>
+      <tr><td>Rummlee</td><td class="num">$7.65</td><td class="num">$5.40</td><td class="num">$20.40</td><td class="num">$3.99</td></tr>
+      <tr><td>Seller receives</td><td class="num">$39.60</td><td class="num">$39.60</td><td class="num">$105.60</td><td class="num">$17.01</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:12px">At $20, 12% is $2.40, so the $2.99 floor wins. That is how a small item does not become a loss after support and a card fee. A blend we use for planning, not a result: if 70% of sellers are Standard, 20% Plus, 10% +++ , and 40% of buyers are on a plan, a $45 sale yields about $6.17, roughly 14% of the item. Membership dues are on top of that 14%. Card fees, support, insurance, and any future store share come out of it.</p>
+  <p class="warn">Nothing in this table has been collected. There is no live GMV.</p>
+  <div class="foot"><span>Unit economics · a model</span><span>09</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">Why the memberships exist</p>
+  <h2>Plus removes the buyer fee. +++ is for the person who sells often and wants the tools.</h2>
+  <div class="grid g3">
+    <div class="card">
+      <h3>Standard</h3>
+      <p>Free to join. 5% when they buy. Seller pays $2.99 or 12%. Every sale date is $2.99. They can favorite anything.</p>
+    </div>
+    <div class="card">
+      <h3>Plus · $9.99</h3>
+      <p>Buyer fee is $0, so Plus pays for itself after about $200 of buying in a month. Five free sale days. Alerts for categories, handoff locations, or upcoming in-person sales they pick. ID Verified is included when that check is on. Seller fee drops to 8.5%, still with the $2.99 floor.</p>
+    </div>
+    <div class="card">
+      <h3>+++ · $39.99</h3>
+      <p>Everything in Plus. Seller fee 6%. Unlimited sale days, no item cap. Five researcher asks and five “show me their lowest price” reveals a month. Extra researches can be bought one at a time. After a sale, they can see unsold items in overtime. Before a sale starts, they can see items being prepared, with no price.</p>
+    </div>
+  </div>
+  <p style="margin-top:12px">A seller who does not join still sells. The membership is not a toll to list. It is how a frequent buyer stops paying 5%, and how a frequent seller buys a lower percent, more sale days, and help figuring out what a thing is.</p>
+  <div class="foot"><span>Memberships</span><span>10</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">The smaller lines</p>
+  <h2>These are tools. They are not the business. Several are off until you say otherwise.</h2>
+  <table>
+    <thead><tr><th>Tool</th><th>Price</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Ask a researcher</td><td>Seller pays $7.99. Researcher is paid $4.60 if the seller accepts the write-up. $2.50 more if it sells in the top half of their range. $2.50 more if it sells at full asking.</td><td>Built. $4.60 is 15 minutes at $18.40 an hour, the highest 2026 minimum wage. One active item at a time. 15 minutes, then they can ask for a hold. They can ask the seller for another photo.</td></tr>
+      <tr><td>Photo fill</td><td>$0.99</td><td>Off in beta. Suggests a title and category from the photo. Does not set the price.</td></tr>
+      <tr><td>ID Verified</td><td>$4.99 once, or free with Plus</td><td>Off in beta. Stripe Identity is wired and capped at 50 checks. The name on the account has to match the ID. We do not keep a photo of the ID.</td></tr>
+      <tr><td>Left-behind resale</td><td>Not a buyer fee</td><td>If a seller does not want a rejected or abandoned item back, it can become Rummlee’s to resell. Half of what Rummlee receives on that resale is set aside for charity. The charity does not have to be in Fargo.</td></tr>
+    </tbody>
+  </table>
+  <p class="warn" style="margin-top:10px">There is no 50% buyer abandonment fee. That idea was discussed and is not in the product. Do not describe it as if it is.</p>
+  <div class="foot"><span>Side lines</span><span>11</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">Partner pay · private</p>
+  <h2>Two roles. Paid monthly. No cap. Not a job, and not on the website.</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Market lead · invitation only</h3>
+      <p>Kirstin, Diane, Erin. Paid only on people they personally signed, and on an official store they signed.</p>
+      <ul>
+        <li>Signed one side: 5% of the fees Rummlee kept on that whole sale. Buyer fee, seller fee, and any store fee. Not the item price. Not tax.</li>
+        <li>Signed both: 10% of that same pool, once. On an $85 Standard sale that is about $1.45, not 72 cents.</li>
+        <li>Plus they signed, in a month that was actually billed: $2.50 that month. A yearly plan is twelve of those, not a $40 check.</li>
+        <li>Official store they signed: $500 once at 50 completed handoffs, $2,000 once at 500. Signing the store does not pay them on strangers who use the counter.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Ambassador · the role that keeps growing</h3>
+      <p>$25 once, when someone they signed has generated $25 that Rummlee kept. After that, later sales pay the ambassador nothing.</p>
+      <p>No cap on how many people, because each $25 is paid only after that $25 was collected. If a lead already signed that person, the ambassador gets nothing on them.</p>
+      <p>What never pays: signing another lead, an empty account, a percent of a whole city, two referrers on one person, equity, or a store’s dollar. The scout role is gone.</p>
+      <p class="muted">Test-mode rows are not a payable. Bookkeeper exports this from Corporate. The public site does not show a rate.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Do not forward this slide as an offer</span><span>12</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">A lead example, using the code</p>
+  <h2>On an $85 item, both Standard, a lead who signed one side is owed about 72 cents. Both sides is about $1.45.</h2>
+  <table>
+    <thead><tr><th></th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      <tr><td>Buyer fee, 5% of $85</td><td class="num">$4.25</td></tr>
+      <tr><td>Seller fee, 12% of $85</td><td class="num">$10.20</td></tr>
+      <tr><td>Rummlee keeps</td><td class="num">$14.45</td></tr>
+      <tr><td>Lead signed one side</td><td class="num">$0.72</td></tr>
+      <tr><td>Lead signed both</td><td class="num">$1.45</td></tr>
+      <tr><td>If the buyer is on Plus, buyer fee is $0</td><td class="num">Lead’s buyer-side on that sale is $0. The $2.50 is the Plus month, not this item.</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:12px">Say this out loud before anyone hears a percentage: the percent is of our fee, not of the lamp. A lead who signed both sides of an $85 sale is owed about $1.45. An ambassador does not get that. They get nothing until that person’s kept fees add up to $25, and then $25 once.</p>
+  <div class="foot"><span>Say the fee, not the item</span><span>13</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">What you can say</p>
+  <h2>The public story is short. The private story is this deck. Do not mix them.</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Fine in a conversation with a lead</h3>
+      <ul>
+        <li>We hold the money until both people confirm.</li>
+        <li>Official store first. No home address on a listing.</li>
+        <li>We never ship.</li>
+        <li>You would be invited, not hired. Nothing pays until real money is on and a lawyer has written the paper.</li>
+        <li>You earn on people you personally sign up. You do not earn on the whole city.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Do not say</h3>
+      <ul>
+        <li>You own Fargo, Chicago, or Minneapolis.</li>
+        <li>A residual on every sale in your city.</li>
+        <li>A check is waiting, or a dollar amount they will make this year.</li>
+        <li>GameStop has agreed to anything. That was a private note to one investor. It is not a plan you brief.</li>
+        <li>Anyone’s last name, yours, or Matthew’s, on a page, a post, or a screenshot of this deck.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Language</span><span>14</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">What is actually built</p>
+  <h2>The website behaves. The money is still pretend.</h2>
+  <div class="grid g3">
+    <div class="card">
+      <h3>You can click through</h3>
+      <p>Browse, list, offer, pay in test credits, official / public / in-person handoff, counter scan, memberships, a fees page, sale windows, pickup at the event, set-aside, favorites, Plus alerts, +++ early look and overtime, researcher application, corporate desk, and a bookkeeper export.</p>
+    </div>
+    <div class="card">
+      <h3>In test</h3>
+      <p>rummlee.com is up. An iOS build has been uploaded toward TestFlight. A practice counter account can run a fake handoff. A banner says this is a test and the items are not real.</p>
+    </div>
+    <div class="card">
+      <h3>Dark on purpose</h3>
+      <p>Real card charges. ID checks, capped and off. Photo fill. A store fee. Shipping. Insurance for a lost box. Sales-tax permits. Partner checks.</p>
+    </div>
+  </div>
+  <p style="margin-top:14px">Accounts that repeat a violation, or list something prohibited, are flagged, then suspended, then closed. Explicit photos and explicit wording are blocked before a listing goes up. One ID, one account. A new account does not reset a rating.</p>
+  <div class="foot"><span>Stage</span><span>15</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">The books, in plain language</p>
+  <h2>Money we are holding is not money we earned. The export already separates them.</h2>
+  <div class="grid g2">
+    <div>
+      <ul>
+        <li><strong>Held for the buyer</strong> until pickup. Not revenue.</li>
+        <li><strong>Owed to the seller</strong> after both confirm, then held about 48 hours. Not revenue.</li>
+        <li><strong>Sales tax</strong> sits in its own pile for the handoff city. Not revenue.</li>
+        <li><strong>Charity</strong> on a left-behind resale sits in its own pile. Not revenue. The charity can be national.</li>
+        <li><strong>Plus paid for a year</strong> is earned across the year, not all in the month they paid.</li>
+        <li><strong>Referral pay</strong> is a private payable. It is not a public page.</li>
+        <li>Every practice transaction is marked test mode. Do not import those into the real books.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>What is not done</h3>
+      <p>No sales-tax permits. No live Stripe. No insurance policy you can hand a store. No signed contractor agreement for a lead. The bookkeeper has an export and a note. They do not have a finished chart of accounts from us. They map our names to their codes.</p>
+      <p>If a state treats us as the seller of record for local sales, that is a permit and a filing, not a sentence on the website. That question is for the accountant and a lawyer, not for a city lead.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Money</span><span>16</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">What can go wrong</p>
+  <h2>The idea is simple. The operations are not.</h2>
+  <div class="grid g2">
+    <div>
+      <ul>
+        <li><strong>Nobody shows after they pay.</strong> We refund. The seller is angry. The store is a closet. Five days is the hold.</li>
+        <li><strong>The store loses a box.</strong> Today the buyer is refunded. That sentence is not an insurance policy.</li>
+        <li><strong>A sealed box is not what the listing said.</strong> A clerk can refuse what they can see. A locker, later, cannot. Stores first.</li>
+        <li><strong>A city with no sellers.</strong> An empty shelf teaches the store that this is a favor. Density is a city problem. Fargo first, then the next city, not three cities on the same Saturday.</li>
+      </ul>
+    </div>
+    <div>
+      <ul>
+        <li><strong>A name or a street on a public card.</strong> That is a different failure than a bug. Privacy is the product.</li>
+        <li><strong>A lead is promised a cut of the lamp.</strong> The percent is of our fee. $1.45 on an $85 sale is the both-sides number. Say that before the percentage.</li>
+        <li><strong>We tell a store the traffic is enough, and it is not.</strong> The fee table can add a store line. Do not invent the number in a meeting.</li>
+        <li><strong>Real cards turn on before the books, the tax permits, and a lost-package rule.</strong> That is the order. Not the other way around.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Risks</span><span>17</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">The next 90 days</p>
+  <h2>Four numbers. Then the conversations.</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>What “working” means</h3>
+      <ul>
+        <li>Handoffs per store per week. Under 4, it is a favor. Over 12, it is a job for the counter.</li>
+        <li>Show-up rate after payment. This is the whole claim against Marketplace.</li>
+        <li>Share of buyers who join Plus. If nobody does, we are still a take-rate business. Just a smaller one.</li>
+        <li>Whether a store visit also buys something else. That is the store’s number. We should count it before we promise traffic.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>What you do</h3>
+      <ul>
+        <li>One story for Kirstin, Diane, and Erin. Invitation, not a hire. People they sign, not a city they own.</li>
+        <li>Fargo is the first shelf. Chicago and Minneapolis wait until that shelf has a number.</li>
+        <li>Read a sale the way a seller will. If the set-aside step is confusing, say so before a real Saturday.</li>
+        <li>Send legal and tax questions to counsel and the bookkeeper. Do not answer them yourself in a group text.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Operating plan</span><span>18</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">A companion</p>
+  <h2>Yes. A Grok bot can be your private expert. It cannot be a second you, and it cannot sign anything.</h2>
+  <p class="lede">The file next to this deck is the brain. Paste it into a Grok bot’s instructions, or attach it to a project that only you use. It is written to answer from what is built, to separate a model from a result, and to think like an operator: the decision, the number, the risk, what to do next.</p>
+  <div class="grid g3">
+    <div class="card"><h3>It should</h3><p>Explain a fee, walk a handoff, draft what you can say to Erin, and flag when the old note and the software disagree.</p></div>
+    <div class="card"><h3>It should not</h3><p>Invent a rate, promise a check, put a name on a public page, or give legal or tax advice as if it were a lawyer.</p></div>
+    <div class="card"><h3>You still</h3><p>Decide. The bot is the brief you can ask at 9 at night. It is not the signature.</p></div>
+  </div>
+  <p style="margin-top:14px">How: in Grok, make a bot or a project. Name it something only you would open. Put the companion file in the instructions. Do not share that bot with the leads. Their version, if you ever want one, gets a shorter file with the rates taken out.</p>
+  <div class="foot"><span>Companion</span><span>19</span></div>
+</section>
+
+<section class="slide">
+  <p class="kicker">Close</p>
+  <h2>Hold the money. Hide the address. Pay the people who actually signed the neighbor. Not before the paper, and not on the website.</h2>
+  <p>Rummlee. The good stuff, before Saturday.</p>
+  <p class="muted">Private briefing for Tricia, 24 September 2026. Fees match the product table. Lead pay matches the software: 5% of the sale’s fees for one side, 10% for both. No live revenue. Not an offer. Not legal advice. Not tax advice.</p>
+  <div class="foot"><span>rummlee.com</span><span>20</span></div>
+</section>
+
+</div>
+<script>
+  const deck = document.getElementById("deck");
+  document.addEventListener("keydown", (e) => {
+    const h = window.innerHeight;
+    if (["ArrowDown", "ArrowRight", "PageDown", " "].includes(e.key)) {
+      e.preventDefault();
+      deck.scrollBy({ top: h, behavior: "smooth" });
+    }
+    if (["ArrowUp", "ArrowLeft", "PageUp"].includes(e.key)) {
+      e.preventDefault();
+      deck.scrollBy({ top: -h, behavior: "smooth" });
+    }
+  });
+</script>
+</body>
+</html>
