@@ -20,7 +20,7 @@ export function briefForFriend(model: LeadBrief, name: string, city: string): Le
       index === 0
         ? {
             title: "Your city",
-            body: [`${who}, your city area is ${where}. Tricia assigned it. Stay inside it unless she reassigns you.`],
+            body: [`${who}, your city area is ${where}. That city was assigned to you. Stay inside it unless you are reassigned.`],
           }
         : section,
     ),

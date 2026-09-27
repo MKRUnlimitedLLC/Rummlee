@@ -1,2 +1,2 @@
-/** Briefings moved to bandit-copy.server.ts so they are not in the public script. */
+/** Briefings live in the server copy so they are not in the public script. */
 export {}
