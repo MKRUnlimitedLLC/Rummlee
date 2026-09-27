@@ -1,5 +1,5 @@
 import { getCookie, setCookie } from "@tanstack/react-start/server";
-import { answerBandit } from "./bandit";
+import { banditTurn } from "./bandit";
 import { banditAccessCode, banditCodesMatch, banditGateToken, banditTokenMatches } from "./bandit-gate";
 
 export const BANDIT_GATE_COOKIE = "bandit_gate";
@@ -40,7 +40,7 @@ export async function resumeBanditToken(token: string) {
   return { ok: true as const };
 }
 
-export async function askOpenBandit(question: string, token?: string) {
+export async function askOpenBandit(question: string, token?: string, prior?: string) {
   const code = banditAccessCode();
   const open = (await banditCookieOpen()) || banditTokenMatches(token, code);
   if (!open) return { ok: false as const };
@@ -53,5 +53,6 @@ export async function askOpenBandit(question: string, token?: string) {
   } catch {
     table = null;
   }
-  return { ok: true as const, answer: answerBandit(question, table) };
+  const turn = banditTurn(question, table, prior);
+  return { ok: true as const, answer: turn.say, note: turn.note };
 }

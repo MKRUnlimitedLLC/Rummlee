@@ -190,10 +190,35 @@ function UnlockForm({ onUnlocked }: { onUnlocked: (token: string) => void }) {
   );
 }
 
+function shareNote(note: { title: string; body: string }) {
+  const text = `${note.title}\n\n${note.body}`;
+  const file = new File([text], "bandit-note.txt", { type: "text/plain" });
+  const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
+  if (nav.canShare?.({ files: [file] })) {
+    void navigator.share({ files: [file], title: note.title }).catch(() => {});
+    return;
+  }
+  if (navigator.share) {
+    void navigator.share({ title: note.title, text: note.body }).catch(() => {});
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "bandit-note.txt";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function isWriteUp(question: string) {
+  return /\b(write (it |that |this )?(up|down)|document|a note|pdf|on paper)\b/i.test(question);
+}
+
 function BanditTutor() {
   const [standalone, setStandalone] = useState(false);
   const [phase, setPhase] = useState<Phase>("wait");
   const [line, setLine] = useState("");
+  const [note, setNote] = useState<{ title: string; body: string } | null>(null);
   const [needsType, setNeedsType] = useState(false);
   const [draft, setDraft] = useState("");
   const phaseRef = useRef<Phase>("wait");
@@ -201,6 +226,8 @@ function BanditTutor() {
   const leftRef = useRef(false);
   const heardRef = useRef(false);
   const typeRef = useRef(false);
+  const priorRef = useRef("");
+  const speakTimer = useRef(0);
   const recRef = useRef<BanditRec | null>(null);
   const fieldRef = useRef<HTMLInputElement>(null);
   const askRef = useRef<(question: string) => void>(() => {});
@@ -227,6 +254,7 @@ function BanditTutor() {
     return () => {
       leftRef.current = true;
       loopRef.current = false;
+      window.clearTimeout(speakTimer.current);
       document.body.style.background = previous;
       synth?.cancel();
       synth?.removeEventListener("voiceschanged", loadVoices);
@@ -320,24 +348,33 @@ function BanditTutor() {
 
   function speak(text: string) {
     const synth = window.speechSynthesis;
+    window.clearTimeout(speakTimer.current);
     if (!synth) {
       resumeListen();
       return;
     }
-    synth.cancel();
+    if (synth.speaking || synth.pending) synth.cancel();
     const voice = clearEnglishVoice();
-    const parts = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((part) => part.trim()).filter(Boolean) ?? [text];
-    parts.forEach((part, index) => {
-      const utter = new SpeechSynthesisUtterance(part);
-      utter.lang = voice?.lang || "en-US";
-      if (voice) utter.voice = voice;
-      utter.rate = 0.96;
-      if (index === parts.length - 1) {
-        utter.onend = () => resumeListen();
-        utter.onerror = () => resumeListen();
-      }
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = voice?.lang || "en-US";
+    if (voice) utter.voice = voice;
+    utter.rate = 0.94;
+    let finished = false;
+    const finish = () => {
+      if (finished || leftRef.current) return;
+      finished = true;
+      window.clearTimeout(speakTimer.current);
+      window.setTimeout(resumeListen, 400);
+    };
+    utter.onend = finish;
+    utter.onerror = finish;
+    window.setTimeout(() => {
+      if (leftRef.current || finished) return;
+      synth.resume();
       synth.speak(utter);
-    });
+      window.setTimeout(() => synth.resume(), 250);
+    }, 60);
+    speakTimer.current = window.setTimeout(finish, Math.min(12000, 1200 + text.length * 68));
   }
 
   askRef.current = (question: string) => {
@@ -345,7 +382,6 @@ function BanditTutor() {
     setPhase("speaking");
     stopHearing();
     void (async () => {
-      let answer = "";
       try {
         let token = "";
         try {
@@ -353,15 +389,21 @@ function BanditTutor() {
         } catch {
           token = "";
         }
-        const result = await askBandit({ data: { question, token } });
-        if (!result.ok) return;
-        answer = result.answer;
+        const result = await askBandit({
+          data: { question, token, prior: priorRef.current || undefined },
+        });
+        if (!result.ok) {
+          resumeListen();
+          return;
+        }
+        if (leftRef.current) return;
+        if (!isWriteUp(question)) priorRef.current = question;
+        setLine(result.answer);
+        setNote(result.note ?? null);
+        speak(result.answer);
       } catch {
-        return;
+        resumeListen();
       }
-      if (leftRef.current) return;
-      setLine(answer);
-      speak(answer);
     })();
   };
 
@@ -391,7 +433,7 @@ function BanditTutor() {
     askRef.current(question);
   }
 
-  const bob = phase === "speaking" ? "bandit-speak" : "bandit-idle";
+  const bob = phase === "speaking" ? "bandit-speak" : phase === "listening" ? "bandit-listen" : "bandit-idle";
 
   return (
     <main className={`flex min-h-full flex-col bg-[#e4dfd6] text-[#161412] ${standalone ? "bandit-app" : ""}`}>
@@ -400,8 +442,9 @@ function BanditTutor() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-10px); }
         }
-        .bandit-idle { animation: bandit-bob 2.8s ease-in-out infinite; }
-        .bandit-speak { animation: bandit-bob 1.05s ease-in-out infinite; }
+        .bandit-idle { animation: bandit-bob 3.2s ease-in-out infinite; }
+        .bandit-listen { animation: bandit-bob 1.8s ease-in-out infinite; }
+        .bandit-speak { animation: bandit-bob 0.9s ease-in-out infinite; }
         .bandit-tap { display: none; }
         @media (display-mode: standalone) {
           .bandit-install { display: none; }
@@ -410,7 +453,7 @@ function BanditTutor() {
         .bandit-app .bandit-install { display: none; }
         .bandit-app .bandit-tap { display: block; }
         @media (prefers-reduced-motion: reduce) {
-          .bandit-idle, .bandit-speak { animation: none; }
+          .bandit-idle, .bandit-listen, .bandit-speak { animation: none; }
         }
       `}</style>
       <div className="flex flex-1 flex-col items-center justify-center px-6 pt-[max(1.5rem,env(safe-area-inset-top))]">
@@ -439,6 +482,11 @@ function BanditTutor() {
             {phase === "listening" ? "Listening" : ""}
           </p>
         )}
+        {note ? (
+          <button type="button" onClick={() => shareNote(note)} className="mt-4 min-h-11 bg-transparent text-base underline">
+            The note
+          </button>
+        ) : null}
         {needsType ? (
           <form onSubmit={onTyped} className="mt-8 w-full max-w-sm">
             <label htmlFor="bandit-ask" className="sr-only">

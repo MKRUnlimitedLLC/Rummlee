@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { answerBandit, BANDIT_SAMPLE_CENTS } from "./bandit.ts";
-import { checkoutQuote, DEFAULT_FEES, feeById, formatFeeValue, sellerFeeCents, type FeeRow } from "./fees.ts";
+import { answerBandit, banditTurn, BANDIT_SAMPLE_CENTS } from "./bandit.ts";
+import { checkoutQuote, DEFAULT_FEES, feeById, formatFeeValue, type FeeRow } from "./fees.ts";
 import { money } from "./format.ts";
 
 function buyerAnswer(table: FeeRow[]) {
@@ -17,12 +17,12 @@ test("a buyer-fee answer quotes the live table for a $42 item", () => {
   assert.ok(answer.includes(money(standard.buyerFeeCents)));
   assert.ok(answer.includes(money(plus.buyerFeeCents)));
   assert.ok(answer.includes(money(trio.buyerFeeCents)));
-  assert.ok(answer.includes(money(sellerFeeCents(DEFAULT_FEES, BANDIT_SAMPLE_CENTS, null))));
   assert.ok(answer.includes(formatFeeValue(feeById(DEFAULT_FEES, "buyer_standard")!)));
   assert.equal(answer.includes("10%"), false);
   assert.equal(/\$4(?!\d)/.test(answer), false);
   assert.match(answer, /does not waive the seller fee/i);
   assert.match(answer, /buyer fee zero/i);
+  assert.equal(answer.includes("sale day"), false);
 });
 
 test("a changed buyer percent is spoken from the table, not a fixed 5%", () => {
@@ -41,6 +41,19 @@ test("Plus is the live monthly price, not a $4 switch", () => {
   assert.ok(answer.includes(formatFeeValue(plus)));
   assert.equal(/\$4(?!\d)/.test(answer), false);
   assert.equal(answer.includes("10%"), false);
+});
+
+test("a follow-up about the seller stays on the last question", () => {
+  const answer = answerBandit("and the seller?", DEFAULT_FEES, "What is the buyer fee?");
+  assert.match(answer, /seller fee/i);
+  assert.equal(answer.includes("10%"), false);
+});
+
+test("write that up returns a note and a short line", () => {
+  const turn = banditTurn("Write that up.", DEFAULT_FEES, "What is the buyer fee?");
+  assert.equal(turn.say, "I wrote that on a note.");
+  assert.ok(turn.note);
+  assert.match(turn.note.body, /buyer fee/i);
 });
 
 test("photo fill and ID check say priced and off while the flags are off", () => {

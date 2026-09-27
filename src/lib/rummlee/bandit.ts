@@ -25,6 +25,10 @@ export const BANDIT_SAMPLE_CENTS = 42 * 100;
 
 const UNKNOWN = "I do not have that in this build.";
 
+export type BanditNote = { title: string; body: string };
+
+export type BanditTurn = { say: string; note: BanditNote | null };
+
 function norm(raw: string) {
   return raw
     .toLowerCase()
@@ -36,11 +40,6 @@ function norm(raw: string) {
 
 function say(parts: Array<string | false | null | undefined>) {
   return parts.filter((part): part is string => Boolean(part)).join(" ");
-}
-
-function withTest(parts: Array<string | false | null | undefined>) {
-  if (TEST_MODE) parts.push(TEST_PAY_NOTE);
-  return say(parts);
 }
 
 function feeText(table: FeeRow[], id: string) {
@@ -62,49 +61,56 @@ function sampleQuotes(table: FeeRow[]) {
   };
 }
 
-function sameSellerFee(table: FeeRow[]) {
-  const tiers: MemberTier[] = [null, "plus", "trio"];
-  const places = ["official", "public", "person", "partner"] as const;
-  return tiers.every((tier) => {
-    const amounts = places.map(
-      (handoff) =>
-        checkoutQuote(
-          table,
-          BANDIT_SAMPLE_CENTS,
-          { buyer: false, seller: tier != null, sellerTier: tier },
-          handoff,
-        ).sellerFeeCents,
-    );
-    return amounts.every((amount) => amount === amounts[0]);
-  });
+function wantsNote(q: string) {
+  return /\b(write (it |that |this )?(up|down)|document|a note|the note|pdf|on paper)\b/.test(q);
 }
 
-function moneySentences(table: FeeRow[]) {
+function followUp(q: string) {
+  if (!q || q.split(" ").length > 8) return false;
+  return /^(and|what about|how about|why|again|seller|buyer|plus|trio|\+\+\+|that|same|the seller|the buyer)\b/.test(q);
+}
+
+function topicOf(q: string, prior: string) {
+  if (wantsNote(q)) return prior;
+  if (!followUp(q) || !prior) return q;
+  if (/^(why|again|that|same)\b/.test(q)) return `${prior} ${q}`.replace(/\s+/g, " ").trim();
+  return q;
+}
+
+function buyerSay(table: FeeRow[]) {
   const q = sampleQuotes(table);
   const buyerRow = feeById(table, q.standard.buyerFeeId);
-  const floor = feeById(table, "seller_floor");
-  return [
-    `Take a ${money(BANDIT_SAMPLE_CENTS)} item.`,
-    buyerRow
-      ? `Standard buyer fee is ${formatFeeValue(buyerRow)}, ${money(q.standard.buyerFeeCents)} on this item.`
-      : `Standard buyer fee is ${money(q.standard.buyerFeeCents)}.`,
-    `Plus buyer fee is ${money(q.plus.buyerFeeCents)}.`,
-    `+++ buyer fee is ${money(q.trio.buyerFeeCents)}.`,
-    q.plus.buyerFeeCents === 0 && q.trio.buyerFeeCents === 0 ? "Plus or +++ makes the buyer fee zero." : "",
-    q.plusSeller > 0 || q.trioSeller > 0 ? "It does not waive the seller fee." : "",
-    `Standard seller fee is ${feeText(table, "seller_payout")}, ${money(q.standardSeller)} on this item.`,
-    `Plus seller fee is ${feeText(table, "seller_plus")}, ${money(q.plusSeller)} on this item.`,
-    `+++ seller fee is ${feeText(table, "seller_trio")}, ${money(q.trioSeller)} on this item.`,
-    floor ? `The seller pays ${formatFeeValue(floor)} or the tier percent, whichever is more.` : "",
-    sameSellerFee(table) ? "That seller fee is the same for an official store, a public place, and in person." : "",
-  ];
+  const standard = buyerRow
+    ? `the standard buyer fee is ${formatFeeValue(buyerRow)}, ${money(q.standard.buyerFeeCents)}`
+    : `the standard buyer fee is ${money(q.standard.buyerFeeCents)}`;
+  return `On a ${money(BANDIT_SAMPLE_CENTS)} item, ${standard}. Plus is ${money(q.plus.buyerFeeCents)}. +++ is ${money(q.trio.buyerFeeCents)}. Plus or +++ makes the buyer fee zero. It does not waive the seller fee.`;
 }
 
-function planSentences(table: FeeRow[]) {
-  const rows = ["premium_switch", "plus_year", "trio_month", "trio_year"]
-    .map((id) => feeById(table, id))
-    .filter((row): row is FeeRow => Boolean(row));
-  return rows.map((row) => `${row.label} is ${formatFeeValue(row)}.`);
+function sellerSay(table: FeeRow[]) {
+  const q = sampleQuotes(table);
+  const floor = feeById(table, "seller_floor");
+  const priced = feeText(table, "seller_payout");
+  const lead = priced
+    ? `the standard seller fee is ${priced}, ${money(q.standardSeller)}`
+    : `the standard seller fee is ${money(q.standardSeller)}`;
+  const floorBit = floor ? ` The seller pays ${formatFeeValue(floor)} or the tier percent, whichever is more.` : "";
+  return `On a ${money(BANDIT_SAMPLE_CENTS)} item, ${lead}.${floorBit}`;
+}
+
+function plusSay(table: FeeRow[]) {
+  const row = feeById(table, "premium_switch");
+  if (!row) return UNKNOWN;
+  return `${row.label} is ${formatFeeValue(row)}. Plus or +++ makes the buyer fee zero. It does not waive the seller fee.`;
+}
+
+function handoffSay() {
+  const [first, second, third] = HANDOFF_MODES;
+  return say([
+    first ? `${first.label} first.` : "",
+    second ? `${second.label} second.` : "",
+    third ? `${third.label} last.` : "",
+    "Never a home address on a listing.",
+  ]);
 }
 
 function pricedAndOff(name: string, table: FeeRow[], id: string, enabled: boolean) {
@@ -113,43 +119,22 @@ function pricedAndOff(name: string, table: FeeRow[], id: string, enabled: boolea
   return price ? `${name} is ${price}.` : `${name} is on.`;
 }
 
-function handoffAnswer() {
-  const [first, second, third] = HANDOFF_MODES;
-  return say([
-    first ? `${first.label} first.` : "",
-    second ? `${second.label} second.` : "",
-    third ? `${third.label} last.` : "",
-    "The street shows after pay.",
-    "Never a home address on a listing.",
-    HOLD_LINE,
-  ]);
-}
-
-function saleDayAnswer(table: FeeRow[]) {
+function saleDaySay(table: FeeRow[]) {
   const row = feeById(table, "sale_day");
   const dayFee = row?.unit === "cents" ? row.amountCents : 0;
-  const standard = quoteSaleDays({
-    dayFeeCents: dayFee,
-    days: 1,
-    plus: false,
-    freeUsed: 0,
-    freePerMonth: saleDayAllowance(null),
-  });
+  const plusAllowance = saleDayAllowance("plus");
+  const trioAllowance = saleDayAllowance("trio");
   const plus = quoteSaleDays({
     dayFeeCents: dayFee,
     days: 1,
     plus: true,
     freeUsed: 0,
-    freePerMonth: saleDayAllowance("plus"),
+    freePerMonth: plusAllowance,
   });
-  const trioAllowance = saleDayAllowance("trio");
-  const plusAllowance = saleDayAllowance("plus");
   return say([
     plusAllowance != null ? `Plus includes ${plusAllowance} sale days a month.` : "",
     trioAllowance == null ? "+++ sale days are free." : "",
-    `One Standard sale day is ${money(standard.chargeCents)}.`,
     `The first Plus sale day this month is ${money(plus.chargeCents)}.`,
-    row ? `A paid sale day is ${formatFeeValue(row)}.` : "",
     `A sale cannot run longer than ${MAX_SALE_DAYS} days.`,
   ]);
 }
@@ -178,8 +163,11 @@ function speakKnown(q: string, table: FeeRow[]) {
   if (/\bid check\b|\bid verified\b|\bidentity\b|\bverify (my |an )?id\b/.test(q)) {
     return pricedAndOff("ID check", table, "id_verify", IDENTITY_ENABLED);
   }
+  if (/\bwhy\b/.test(q) && /\bbuyer\b|\bfee\b|\bplus\b/.test(q)) {
+    return "Plus or +++ makes the buyer fee zero. The seller fee stays.";
+  }
   if (/\bhandoff\b|\bstreet\b|\baddress\b|\bpartner\b|\bpublic place\b|\bin person\b|\bprivate\b|\bwhere\b.*\b(meet|pickup|handoff)\b|\b(meet|pickup|handoff)\b.*\bwhere\b/.test(q)) {
-    return handoffAnswer();
+    return handoffSay();
   }
   if (/\bheld\b|\bhold\b|\bboth confirm\b|\bconfirm pickup\b|\bpickup\b/.test(q)) {
     return HOLD_LINE;
@@ -187,12 +175,11 @@ function speakKnown(q: string, table: FeeRow[]) {
   if (/\bcard\b|\bstripe\b|\bship\b|\btest credit\b|\breal money\b/.test(q)) {
     return TEST_MODE ? TEST_PAY_NOTE : UNKNOWN;
   }
-  if (/\bsale day\b/.test(q)) return saleDayAnswer(table);
+  if (/\bsale day\b/.test(q)) return saleDaySay(table);
   if (/\bfeature\b/.test(q)) {
     return say([
       feeById(table, "feature_item") ? `Feature an item is ${feeText(table, "feature_item")}.` : "",
       feeById(table, "feature_sale") ? `Feature a sale is ${feeText(table, "feature_sale")}.` : "",
-      "Both run until the sale ends.",
     ]);
   }
   if (/\bresearch/.test(q)) {
@@ -203,42 +190,91 @@ function speakKnown(q: string, table: FeeRow[]) {
   }
   if (/\btax\b/.test(q)) {
     const tax = feeText(table, "sales_tax");
-    return tax ? `Sales tax is ${tax}. It is its own line at checkout.` : UNKNOWN;
+    return tax ? `Sales tax is ${tax}, its own line at checkout.` : UNKNOWN;
   }
   if (/\bbrowse\b|\blist an item\b|\bminimum\b|\bmin asking\b/.test(q)) {
-    return say([
-      feeById(table, "browse") ? `Browse is ${feeText(table, "browse")}.` : "",
-      feeById(table, "list") ? `List an item is ${feeText(table, "list")}.` : "",
-      feeById(table, "min_asking") ? `Minimum asking is ${feeText(table, "min_asking")}.` : "",
-    ]);
+    if (/\bbrowse\b/.test(q)) return feeById(table, "browse") ? `Browse is ${feeText(table, "browse")}.` : UNKNOWN;
+    if (/\bminimum\b|\bmin asking\b/.test(q)) {
+      return feeById(table, "min_asking") ? `Minimum asking is ${feeText(table, "min_asking")}.` : UNKNOWN;
+    }
+    return feeById(table, "list") ? `List an item is ${feeText(table, "list")}.` : UNKNOWN;
   }
   if (/\bcancel\b/.test(q)) {
     const cancel = feeText(table, "cancel");
     return cancel ? `Cancel after pay is ${cancel}.` : UNKNOWN;
   }
-  if (/\bplus\b|\bpremium\b|\+\+\+|\btrio\b|\bsubscription\b/.test(q)) {
-    return withTest([...planSentences(table), ...moneySentences(table)]);
+  if (/\bplus\b|\bpremium\b|\bsubscription\b/.test(q) && !/\+\+\+|\btrio\b/.test(q)) return plusSay(table);
+  if (/\+\+\+|\btrio\b/.test(q)) {
+    const month = feeById(table, "trio_month");
+    const lead = month ? `${month.label} is ${formatFeeValue(month)}.` : "";
+    return say([lead, "+++ makes the buyer fee zero. It does not waive the seller fee."]);
   }
-  if (/\bbuyer\b|\bseller\b|\bfee\b|\bcost\b|\bprice\b|\bpay\b|\bpercent\b|\bmoney\b|\bhow much\b|\bcheckout\b/.test(q)) {
-    return withTest(moneySentences(table));
+  if (/\bseller\b/.test(q) && !/\bbuyer\b/.test(q)) return sellerSay(table);
+  if (/\bbuyer\b|\bfee\b|\bcost\b|\bprice\b|\bpay\b|\bpercent\b|\bmoney\b|\bhow much\b|\bcheckout\b/.test(q)) {
+    return buyerSay(table);
   }
   if (/^(hi|hello|hey)\b|\bwho are you\b|\byour name\b|\bbandit\b/.test(q)) {
-    return "I'm Bandit. Ask me about a fee, a handoff, or pickup.";
+    return "I'm Bandit. Ask about a fee, then keep talking.";
   }
   if (/\brummlee\b|\bhow does (this|it) work\b|\bwhat is this\b/.test(q)) {
-    return say([
-      "I'm Bandit. I teach Rummlee from this build.",
-      handoffAnswer(),
-      TEST_MODE ? TEST_PAY_NOTE : "",
-    ]);
+    return "I'm Bandit. Ask me one fee, or where the handoff happens.";
   }
   return "";
 }
 
-export function answerBandit(question: string, table: FeeRow[] | null) {
-  const q = norm(question);
-  if (!q) return "I'm Bandit. Ask me about a fee, a handoff, or pickup.";
-  if (needsLiveTable(q) && (!table || table.length === 0)) return "I can't read the fee table right now.";
+function noteFor(topic: string, table: FeeRow[]): BanditNote | null {
+  const spoken = speakKnown(topic, table);
+  if (!spoken || spoken === UNKNOWN) return null;
+  const q = sampleQuotes(table);
+  const extra =
+    /\bbuyer\b|\bfee\b|\bplus\b/.test(topic) && !/\bhandoff\b|\bwhere\b/.test(topic)
+      ? say([
+          sellerSay(table),
+          `Plus seller fee on this item is ${money(q.plusSeller)}.`,
+          `+++ seller fee on this item is ${money(q.trioSeller)}.`,
+          samePlace(table) ? "The seller fee does not change with the handoff." : "",
+        ])
+      : "";
+  const body = [spoken, extra].filter(Boolean).join("\n\n");
+  return { title: "Bandit", body };
+}
+
+function samePlace(table: FeeRow[]) {
+  const tiers: MemberTier[] = [null, "plus", "trio"];
+  const places = ["official", "public", "person", "partner"] as const;
+  return tiers.every((tier) => {
+    const amounts = places.map(
+      (handoff) =>
+        checkoutQuote(
+          table,
+          BANDIT_SAMPLE_CENTS,
+          { buyer: false, seller: tier != null, sellerTier: tier },
+          handoff,
+        ).sellerFeeCents,
+    );
+    return amounts.every((amount) => amount === amounts[0]);
+  });
+}
+
+export function banditTurn(question: string, table: FeeRow[] | null, prior?: string | null): BanditTurn {
+  const asked = norm(question);
+  const before = norm(prior ?? "");
+  if (!asked) return { say: "I'm Bandit. Ask about a fee, then keep talking.", note: null };
+  if (wantsNote(asked)) {
+    const topic = before || asked;
+    if (needsLiveTable(topic) && (!table || table.length === 0)) {
+      return { say: "I can't read the fee table right now.", note: null };
+    }
+    const note = noteFor(topic, table ?? []);
+    if (!note) return { say: "Ask me first. Then tell me to write it up.", note: null };
+    return { say: "I wrote that on a note.", note };
+  }
+  const q = topicOf(asked, before);
+  if (needsLiveTable(q) && (!table || table.length === 0)) return { say: "I can't read the fee table right now.", note: null };
   const spoken = speakKnown(q, table ?? []);
-  return spoken || UNKNOWN;
+  return { say: spoken || UNKNOWN, note: null };
+}
+
+export function answerBandit(question: string, table: FeeRow[] | null, prior?: string | null) {
+  return banditTurn(question, table, prior).say;
 }

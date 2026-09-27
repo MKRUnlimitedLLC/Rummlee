@@ -32,10 +32,11 @@ export const askBandit = createServerFn({ method: "POST" })
       .object({
         question: z.string().max(500),
         token: z.string().max(128).optional(),
+        prior: z.string().max(500).optional(),
       })
       .parse(data),
   )
   .handler(async ({ data }) => {
     const { askOpenBandit } = await import("./bandit-gate.server");
-    return askOpenBandit(data.question, data.token);
+    return askOpenBandit(data.question, data.token, data.prior);
   });
