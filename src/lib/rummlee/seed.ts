@@ -40,10 +40,10 @@ export async function ensureFees(sql: Sql) {
       on conflict (id) do nothing
     `;
   }
-  const pack = "seller-floor-399-plus-199-pct-12";
+  const pack = "seller-floor-plus-199";
   const marked = await sql<{ value: string }>`select value from app_meta where key = ${"fees_pack"}`;
   if (marked[0]?.value === pack) return;
-  const sellerIds = ["seller_floor", "seller_plus_floor", "seller_payout", "seller_plus", "seller_trio"];
+  const sellerIds = ["seller_floor", "seller_floor_plus", "seller_payout", "seller_plus", "seller_trio"];
   for (const fee of DEFAULT_FEES) {
     if (!sellerIds.includes(fee.id)) continue;
     await sql`

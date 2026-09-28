@@ -41,7 +41,7 @@ function FeesPage() {
   return (
     <LegalPage
       title="Fees"
-      lede="Beta. Buyer fee is 5%, or $0 with Plus and +++. The seller pays $3.99 or 12% Standard, $1.99 or 8.5% Plus, $3.99 or 6% +++, whichever is more. That fee is the same for an official store, a public place, or in person. Plus is 5 free sale days a month. +++ sale days are free. Feature one item or a whole sale until it ends. If test credits don’t cover a sale day or a feature, the rest comes out of the next payout. Sales tax is always listed on its own. Paid in test credits. No card is charged."
+      lede="Beta. Buyer fee is 5%, or $0 with Plus and +++. The seller pays $3.99 or 12% Standard, $1.99 or 8.5% Plus, and $3.99 or 6% +++. That fee is the same for an official store, a public place, or in person. Plus is 5 free sale days a month. +++ sale days are free. Feature one item or a whole sale until it ends. If test credits don’t cover a sale day or a feature, the rest comes out of the next payout. Sales tax is always listed on its own. Paid in test credits. No card is charged."
     >
       <TierCards fees={fees} />
       <div className="overflow-x-auto rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
@@ -94,8 +94,7 @@ function FeesPage() {
 function TierCards({ fees }: { fees: FeeRow[] }) {
   const month = (id: string) => formatFeeValue(feeById(fees, id) ?? { id, label: "", description: "", unit: "cents", percentBps: 0, amountCents: 0, chargedTo: "none", chargedWhen: "never", sort: 0, enabled: true });
   const seller = (tier: "plus" | "trio" | null) => {
-    const shared = feeById(fees, "seller_floor");
-    const floor = tier === "plus" ? (feeById(fees, "seller_plus_floor") ?? shared) : shared;
+    const floor = feeById(fees, tier === "plus" ? "seller_floor_plus" : "seller_floor");
     const rate = feeById(fees, tier === "trio" ? "seller_trio" : tier === "plus" ? "seller_plus" : "seller_payout");
     const sample = sellerFeeCents(fees, 4200, tier);
     const fallback = tier === "plus" ? "$1.99" : "$3.99";

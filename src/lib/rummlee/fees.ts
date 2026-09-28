@@ -236,7 +236,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "seller_floor",
     label: "Seller fee floor",
-    description: "Standard and +++ seller fee floor. $3.99 or 12% Standard, $3.99 or 6% +++. Plus uses the Plus seller fee floor. Same on official store, public place, and in person. Not waived by Plus or +++.",
+    description: "Standard and +++ floor. The seller pays this or their tier percent, whichever is more. Plus uses its own floor. Same on official store, public place, and in person. Not waived.",
     unit: "cents",
     percentBps: 0,
     amountCents: 399,
@@ -246,9 +246,9 @@ export const DEFAULT_FEES: FeeRow[] = [
     enabled: true,
   },
   {
-    id: "seller_plus_floor",
+    id: "seller_floor_plus",
     label: "Seller fee floor, Plus",
-    description: "Plus seller fee floor. A Plus seller pays this or 8.5%, whichever is more. Standard and +++ stay on the $3.99 floor.",
+    description: "Plus only. The seller pays this or 8.5%, whichever is more. Standard and +++ keep the $3.99 floor. Same on every handoff. Plus does not waive the seller fee.",
     unit: "cents",
     percentBps: 0,
     amountCents: 199,
@@ -260,7 +260,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "seller_payout",
     label: "Seller fee, Standard",
-    description: "Standard seller percent. The seller pays this or the $3.99 seller fee floor, whichever is more.",
+    description: "Standard seller percent. The seller pays this or the seller fee floor, whichever is more.",
     unit: "percent",
     percentBps: 1200,
     amountCents: 0,
@@ -272,7 +272,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "seller_plus",
     label: "Seller fee, Plus",
-    description: "Plus seller percent. The seller pays this or the $1.99 Plus seller fee floor, whichever is more. Plus does not waive it.",
+    description: "Plus seller percent. The seller pays this or the Plus floor, whichever is more. Plus does not waive it.",
     unit: "percent",
     percentBps: 850,
     amountCents: 0,
@@ -284,7 +284,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "seller_trio",
     label: "Seller fee, +++",
-    description: "+++ seller percent. The seller pays this or the $3.99 seller fee floor, whichever is more. +++ does not waive it.",
+    description: "+++ seller percent. The seller pays this or the $3.99 floor, whichever is more. +++ does not use the Plus floor.",
     unit: "percent",
     percentBps: 600,
     amountCents: 0,
@@ -495,18 +495,15 @@ export type MemberTier = "plus" | "trio" | null;
 
 export type PlusFlags = boolean | { buyer?: boolean; seller?: boolean; sellerTier?: MemberTier };
 
-function enabledCents(row: FeeRow | undefined) {
-  if (!row?.enabled || row.unit !== "cents") return null;
-  return row.amountCents;
-}
-
-/** Standard and +++ share seller_floor. Plus uses seller_plus_floor when that row exists. */
 function sellerFloorCents(fees: FeeRow[], tier: MemberTier) {
-  const shared = enabledCents(fees.find((row) => row.id === "seller_floor")) ?? 0;
-  if (tier !== "plus") return shared;
-  const plus = fees.find((row) => row.id === "seller_plus_floor");
-  if (!plus) return shared;
-  return enabledCents(plus) ?? 0;
+  if (tier === "plus") {
+    const plusFloor = feeById(fees, "seller_floor_plus");
+    if (plusFloor?.enabled && plusFloor.unit === "cents") return plusFloor.amountCents;
+    return 199;
+  }
+  const floorRow = feeById(fees, "seller_floor");
+  if (floorRow?.enabled && floorRow.unit === "cents") return floorRow.amountCents;
+  return 399;
 }
 
 export function sellerFeeCents(table: FeeRow[], baseCents: number, tier: MemberTier) {

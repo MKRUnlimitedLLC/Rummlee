@@ -1,9 +1,9 @@
 insert into rummlee_fees (
   id, label, description, unit, percent_bps, amount_cents, charged_to, charged_when, sort, enabled
 ) values (
-  'seller_plus_floor',
+  'seller_floor_plus',
   'Seller fee floor, Plus',
-  'Plus seller fee floor. A Plus seller pays this or 8.5%, whichever is more. Standard and +++ stay on the $3.99 floor.',
+  'Plus only. The seller pays this or 8.5%, whichever is more. Standard and +++ keep the $3.99 floor. Same on every handoff. Plus does not waive the seller fee.',
   'cents',
   0,
   199,
@@ -24,22 +24,24 @@ on conflict (id) do update set
   enabled = excluded.enabled,
   updated_at = now();
 
+delete from rummlee_fees where id = 'seller_plus_floor';
+
 update rummlee_fees
-set description = 'Standard and +++ seller fee floor. $3.99 or 12% Standard, $3.99 or 6% +++. Plus uses the Plus seller fee floor. Same on official store, public place, and in person. Not waived by Plus or +++.',
+set description = 'Standard and +++ floor. The seller pays this or their tier percent, whichever is more. Plus uses its own floor. Same on official store, public place, and in person. Not waived.',
     updated_at = now()
 where id = 'seller_floor';
 
 update rummlee_fees
-set description = 'Standard seller percent. The seller pays this or the $3.99 seller fee floor, whichever is more.',
+set description = 'Standard seller percent. The seller pays this or the seller fee floor, whichever is more.',
     updated_at = now()
 where id = 'seller_payout';
 
 update rummlee_fees
-set description = 'Plus seller percent. The seller pays this or the $1.99 Plus seller fee floor, whichever is more. Plus does not waive it.',
+set description = 'Plus seller percent. The seller pays this or the Plus floor, whichever is more. Plus does not waive it.',
     updated_at = now()
 where id = 'seller_plus';
 
 update rummlee_fees
-set description = '+++ seller percent. The seller pays this or the $3.99 seller fee floor, whichever is more. +++ does not waive it.',
+set description = '+++ seller percent. The seller pays this or the $3.99 floor, whichever is more. +++ does not use the Plus floor.',
     updated_at = now()
 where id = 'seller_trio';
