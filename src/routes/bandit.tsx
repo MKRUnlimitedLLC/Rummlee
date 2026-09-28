@@ -23,7 +23,15 @@ export const Route = createFileRoute("/bandit")({
 function BanditPage() {
   const desk = Route.useLoaderData();
   if (!desk.open) return <Lock />;
-  return <Desk updated={desk.updated} tricia={desk.tricia} models={desk.models} links={desk.desk} />;
+  return (
+    <Desk
+      updated={desk.updated}
+      tricia={desk.tricia}
+      models={desk.models}
+      shared={desk.shared}
+      links={desk.desk}
+    />
+  );
 }
 
 function Lock() {
@@ -49,11 +57,12 @@ function Lock() {
   }
 
   return (
-    <main className="py-10">
-      <h1 className="font-display text-3xl font-medium tracking-[-0.03em]">Private</h1>
-      <p className="mt-2 max-w-md text-muted">This page needs a code.</p>
+    <main className="flex min-h-[70vh] flex-col items-center justify-center py-10 text-center">
+      <img src="/brand/mark.png" alt="" width={160} height={160} className="h-40 w-40" />
+      <h1 className="mt-4 font-display text-3xl font-medium tracking-[-0.03em]">Bandit</h1>
+      <p className="mt-2 max-w-xs text-muted">A code opens the briefing.</p>
       <form
-        className="mt-6 max-w-sm space-y-3"
+        className="mt-6 w-full max-w-xs space-y-3 text-left"
         onSubmit={(e) => {
           e.preventDefault();
           void submit();
@@ -64,13 +73,15 @@ function Lock() {
           <Input
             id="bandit-code"
             type="password"
-            autoComplete="off"
+            autoComplete="current-password"
+            enterKeyHint="go"
+            autoFocus
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
         </div>
         {wrong ? <p className="text-sm text-primary-ink">That code is not right.</p> : null}
-        <Button type="submit" disabled={pending || code.trim().length === 0}>
+        <Button type="submit" className="w-full" disabled={pending || code.trim().length === 0}>
           Open
         </Button>
       </form>
@@ -82,11 +93,13 @@ function Desk({
   updated,
   tricia,
   models,
+  shared,
   links,
 }: {
   updated: string;
   tricia: LeadBrief;
   models: LeadBrief[];
+  shared: LeadBrief["sections"];
   links: { href: string; label: string }[];
 }) {
   const [saved, setSaved] = useState<SavedLead[]>([]);
@@ -123,19 +136,6 @@ function Desk({
       <p className="text-sm font-medium text-primary-ink">Private briefing. Not linked from the app.</p>
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">Market leads</h1>
       <p className="mt-2 max-w-2xl text-pretty text-muted">Updated {updated}. Not an offer.</p>
-      <nav className="mt-6 max-w-2xl" aria-label="Private desk">
-        <h2 className="font-display text-xl font-medium">Decks</h2>
-        <p className="mt-1 text-sm text-muted">Private. Open these from here. They are not in the app menu.</p>
-        <ul className="mt-3 space-y-1">
-          {links.map((item) => (
-            <li key={item.href}>
-              <a href={item.href} rel="nofollow" className="inline-flex min-h-11 items-center font-medium text-primary-ink underline-offset-4 hover:underline">
-                {item.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
       <div className="mt-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Briefings">
         {all.map((b) => (
           <button
@@ -155,6 +155,18 @@ function Desk({
         ))}
       </div>
       <Brief brief={brief} />
+      <div className="mt-8 max-w-2xl space-y-6 text-base leading-relaxed">
+        {shared.map((section) => (
+          <section key={section.title}>
+            <h3 className="font-display text-xl font-medium">{section.title}</h3>
+            <div className="mt-2 space-y-3">
+              {section.body.map((p) => (
+                <p key={p}>{p}</p>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
       <section className="mt-10 max-w-lg rounded-2xl border border-border p-4">
         <h2 className="font-display text-xl font-medium">A new friend</h2>
         <p className="mt-1 text-sm text-muted">Same briefing as the models. You assign the city. Saved on this phone only.</p>
@@ -172,6 +184,22 @@ function Desk({
           </Button>
         </div>
       </section>
+      <nav className="mt-10 max-w-2xl" aria-label="Private desk">
+        <h2 className="font-display text-xl font-medium">Decks</h2>
+        <ul className="mt-2 space-y-1">
+          {links.map((item) => (
+            <li key={item.href}>
+              <a
+                href={item.href}
+                rel="nofollow"
+                className="inline-flex min-h-11 items-center font-medium text-primary-ink underline-offset-4 hover:underline"
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </main>
   );
 }

@@ -39,7 +39,6 @@ function lead(id: string, name: string, city: string): LeadBrief {
         title: "Your city",
         body: [`${name}, your city area is ${city}. Tricia assigned it. Stay inside it unless she reassigns you.`],
       },
-      ...PRODUCT,
     ],
   };
 }
@@ -62,10 +61,10 @@ export const TRICIA: LeadBrief = {
         "Kirstin has Fargo–Moorhead. Diane has Chicago. Erin has Minneapolis–Saint Paul. A new friend gets the same briefing, with the city you write in.",
       ],
     },
-    PRODUCT[0],
-    { title: "What you do not say", body: PRODUCT[2].body },
   ],
 };
+
+export const SHARED = PRODUCT;
 
 export const MODELS: LeadBrief[] = [
   lead("kirstin", "Kirstin", "Fargo–Moorhead"),

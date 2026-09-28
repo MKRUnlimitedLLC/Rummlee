@@ -5,8 +5,8 @@ import { z } from "zod";
 export const getBanditDesk = createServerFn({ method: "GET" }).handler(async () => {
   const { BANDIT_COOKIE, sessionOk } = await import("./bandit-gate.server");
   if (!sessionOk(getCookie(BANDIT_COOKIE))) return { open: false as const };
-  const { BANDIT_UPDATED, DESK, MODELS, TRICIA } = await import("./bandit-copy.server");
-  return { open: true as const, updated: BANDIT_UPDATED, tricia: TRICIA, models: MODELS, desk: DESK };
+  const { BANDIT_UPDATED, DESK, MODELS, SHARED, TRICIA } = await import("./bandit-copy.server");
+  return { open: true as const, updated: BANDIT_UPDATED, tricia: TRICIA, models: MODELS, shared: SHARED, desk: DESK };
 });
 
 export const unlockBandit = createServerFn({ method: "POST" })
