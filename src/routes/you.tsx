@@ -281,7 +281,7 @@ function YouPage() {
         <div className="mt-4 rounded-xl bg-bg px-3 py-3">
           <p className="font-medium">Membership</p>
           <p className="mt-1 text-sm text-muted">
-            Standard seller fee is $2.99 or 12%, whichever is more. Plus is $2.99 or 8.5%. +++ is $2.99 or 6%. The buyer
+            Standard seller fee is $3.99 or 12%, whichever is more. Plus is $3.99 or 8.5%. +++ is $3.99 or 6%. The buyer
             fee is 5%, or $0 with Plus and +++. The seller fee is not waived, and it does not change for an official
             store, a public place, or in person. Plus includes 5 sale days a month. +++ sale days are free, with 5
             researcher requests, Reveal 5 times a month, and no item cap. Extra researches are $7.99. Unused researches

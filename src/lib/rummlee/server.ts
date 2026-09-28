@@ -6,7 +6,8 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
 import { storePhoto } from "./photo-store";
 import { feeOn, fitsOfficialCounter, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf, saleIsUpcoming } from "./format";
-import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, quoteSaleDays, type FeeRow } from "./fees";
+import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, priceCoversSellerFee, premiumStillOn, quoteSaleDays, assertTestMembershipPurchase, BELOW_SELLER_FEE, type FeeRow } from "./fees";
+import { assertStaysInApp } from "./message-guard";
 import { CITIES, IDENTITY_CAP, IDENTITY_ENABLED, MAX_SALE_DAYS, MIN_PRICE_CENTS, NEIGHBORHOODS, PHOTO_FILL_ENABLED, SALE_ITEM_CAP, TEST_MODE, TEST_STARTER_CENTS, resolveListingId, saleDayAllowance } from "./constants";
 import { beginIdentity, finishIdentity } from "./identity";
 import { suggestFromPhoto } from "./photo-fill";
@@ -257,9 +258,7 @@ function mapProfile(p: {
 }
 
 function plusActive(isPremium: boolean, plusUntil: string | Date | null) {
-  if (!isPremium) return false;
-  if (!plusUntil) return true;
-  return new Date(plusUntil).getTime() > Date.now();
+  return premiumStillOn(isPremium, plusUntil);
 }
 
 async function viewerTier(sql: Awaited<ReturnType<typeof getSql>>, userId: string | null) {
@@ -1267,6 +1266,7 @@ export const togglePremium = createServerFn({ method: "POST" })
       return { isPremium: false, plusPlan: null as "month" | "year" | null, plusTier: null as "plus" | "trio" | null };
     }
     const plan = data?.plan ?? "month";
+    assertTestMembershipPurchase(TEST_MODE);
     const yearly = plan === "year" || plan === "trio_year";
     const tier = plan === "trio_month" || plan === "trio_year" ? "trio" : "plus";
     const feeId = plan === "trio_year" ? "trio_year" : plan === "trio_month" ? "trio_month" : plan === "year" ? "plus_year" : "premium_switch";
@@ -1384,6 +1384,8 @@ export const createSale = createServerFn({ method: "POST" })
     if (physical && (!data.hoursStart || !data.hoursEnd)) throw new Error("In-person hours need an open and a close.");
     if (live && (!data.liveOpen || !data.liveClose)) throw new Error("Live hours need an open and a close.");
     const note = data.meetupNote?.trim() ?? "";
+    if (note) assertStaysInApp(note);
+    if (location) assertStaysInApp(location);
     const fees = await loadFees(sql);
     const dayFee = feeById(fees, "sale_day");
     const dayFeeCents = dayFee?.enabled && dayFee.unit === "cents" ? dayFee.amountCents : 0;
@@ -1942,6 +1944,10 @@ export const sendOffer = createServerFn({ method: "POST" })
     if (data.amountCents >= ask) {
       throw new Error(overtime ? "That’s the get-rid-of-it price or more. Pay that to hold it." : "That’s asking or more. Pay asking to hold it.");
     }
+    const offerFees = await loadFees(sql);
+    if (!priceCoversSellerFee(offerFees, data.amountCents, await viewerTier(sql, item.seller_id))) {
+      throw new Error(BELOW_SELLER_FEE);
+    }
     const id = crypto.randomUUID();
     let status: Offer["status"] = "pending";
     let declinedBy: "floor" | null = null;
@@ -1991,10 +1997,11 @@ export const respondOffer = createServerFn({ method: "POST" })
       floor_cents: number | null;
       price_cents: number;
       amount_cents: number;
+      counter_cents: number | null;
       phase: string;
       overtime_cents: number | null;
     }>`
-      select o.id, o.listing_id, o.buyer_id, o.seller_id, o.status, o.amount_cents, o.phase,
+      select o.id, o.listing_id, o.buyer_id, o.seller_id, o.status, o.amount_cents, o.counter_cents, o.phase,
              l.floor_cents, l.price_cents, l.overtime_cents
       from offers o
       join listings l on l.id = o.listing_id
@@ -2021,6 +2028,10 @@ export const respondOffer = createServerFn({ method: "POST" })
             ? "Counteroffer has to sit between their offer and your get-rid-of-it price."
             : "Counteroffer has to sit between your lowest and asking.",
         );
+      }
+      const counterFees = await loadFees(sql);
+      if (!priceCoversSellerFee(counterFees, data.counterCents, await viewerTier(sql, offer.seller_id))) {
+        throw new Error(BELOW_SELLER_FEE);
       }
       await sql`
         update offers set status = ${"countered"}, counter_cents = ${data.counterCents}, updated_at = now()
@@ -2061,6 +2072,11 @@ export const respondOffer = createServerFn({ method: "POST" })
     if (offer.status !== "pending" && offer.status !== "countered") {
       throw new Error("This offer is already closed.");
     }
+    const agreed = offer.status === "countered" && offer.counter_cents != null ? Number(offer.counter_cents) : Number(offer.amount_cents);
+    const acceptFees = await loadFees(sql);
+    if (!priceCoversSellerFee(acceptFees, agreed, await viewerTier(sql, offer.seller_id))) {
+      throw new Error(BELOW_SELLER_FEE);
+    }
     await sql`update offers set status = ${"accepted"}, updated_at = now() where id = ${offer.id}`;
     await sql`
       insert into messages (id, listing_id, from_id, to_id, body)
@@ -2097,6 +2113,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       : item.seller_id;
     if (!toId) throw new Error("No one to message yet.");
     if (toId === context.userId) throw new Error("That’s you.");
+    assertStaysInApp(data.body);
     await sql`
       insert into messages (id, listing_id, from_id, to_id, body)
       values (${crypto.randomUUID()}, ${listingId}, ${context.userId}, ${toId}, ${data.body.trim()})
@@ -2212,6 +2229,7 @@ export const buyNow = createServerFn({ method: "POST" })
     const sellerFee = quote.sellerFeeCents + quote.sellerHandoffFeeCents;
     const tax = quote.salesTaxCents;
     const total = quote.youPayCents;
+    if (base < sellerFee) throw new Error(BELOW_SELLER_FEE);
     if (me.walletCents < total) {
       throw new Error(
         TEST_MODE

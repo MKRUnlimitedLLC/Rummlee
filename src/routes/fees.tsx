@@ -41,7 +41,7 @@ function FeesPage() {
   return (
     <LegalPage
       title="Fees"
-      lede="Beta. Buyer fee is 5%, or $0 with Plus and +++. The seller pays $2.99 or a tier percent, whichever is more. That fee is the same for an official store, a public place, or in person. Plus is 5 free sale days a month. +++ sale days are free. Feature one item or a whole sale until it ends. If test credits don’t cover a sale day or a feature, the rest comes out of the next payout. Sales tax is always listed on its own. Paid in test credits. No card is charged."
+      lede="Beta. Buyer fee is 5%, or $0 with Plus and +++. The seller pays $3.99 or 12% Standard, 8.5% Plus, 6% +++, whichever is more. That fee is the same for an official store, a public place, or in person. Plus is 5 free sale days a month. +++ sale days are free. Feature one item or a whole sale until it ends. If test credits don’t cover a sale day or a feature, the rest comes out of the next payout. Sales tax is always listed on its own. Paid in test credits. No card is charged."
     >
       <TierCards fees={fees} />
       <div className="overflow-x-auto rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
@@ -97,7 +97,7 @@ function TierCards({ fees }: { fees: FeeRow[] }) {
     const floor = feeById(fees, "seller_floor");
     const rate = feeById(fees, tier === "trio" ? "seller_trio" : tier === "plus" ? "seller_plus" : "seller_payout");
     const sample = sellerFeeCents(fees, 4200, tier);
-    return `${floor ? formatFeeValue(floor) : "$2.99"} or ${rate ? formatFeeValue(rate) : "—"}, whichever is more. On a $42 item that is ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(sample / 100)}.`;
+    return `${floor ? formatFeeValue(floor) : "$3.99"} or ${rate ? formatFeeValue(rate) : "—"}, whichever is more. On a $42 item that is ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(sample / 100)}.`;
   };
   const tiers = [
     { name: "Standard", price: "$0", buyer: "5%", seller: seller(null), days: "$2.99 a day", extra: "ID check $4.99. Researcher $7.99. Photo fill $0.99. Feature an item $1.99 or a sale $4.99." },

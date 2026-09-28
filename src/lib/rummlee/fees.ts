@@ -236,10 +236,10 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "seller_floor",
     label: "Seller fee floor",
-    description: "The seller pays this or their tier percent, whichever is more. Same on official store, public place, and in person. Not waived by Plus or +++.",
+    description: "The seller pays this or their tier percent, whichever is more. $3.99 or 12% Standard, 8.5% Plus, 6% +++. Same on official store, public place, and in person. Not waived by Plus or +++.",
     unit: "cents",
     percentBps: 0,
-    amountCents: 299,
+    amountCents: 399,
     chargedTo: "seller",
     chargedWhen: "checkout",
     sort: 74,
@@ -492,6 +492,28 @@ export function sellerFeeCents(table: FeeRow[], baseCents: number, tier: MemberT
   if (!row?.enabled) return floor;
   const amount = row.unit === "percent" ? percentOf(baseCents, row.percentBps) : row.amountCents;
   return Math.max(floor, amount);
+}
+
+/** The agreed price has to cover the seller fee checkout will book. */
+export function priceCoversSellerFee(table: FeeRow[], baseCents: number, tier: MemberTier) {
+  if (!Number.isInteger(baseCents) || baseCents < 1) return false;
+  return baseCents >= sellerFeeCents(table, baseCents, tier);
+}
+
+export const BELOW_SELLER_FEE = "That price is below the seller fee. Raise it, or pay the listed price.";
+
+/** A premium flag with no end date is not a membership. */
+export function premiumStillOn(isPremium: boolean, plusUntil: string | Date | null | undefined) {
+  if (!isPremium) return false;
+  if (plusUntil == null || plusUntil === "") return false;
+  const ends = new Date(plusUntil).getTime();
+  return Number.isFinite(ends) && ends > Date.now();
+}
+
+export const TEST_WALLET_MEMBERSHIP = "Real billing isn’t on. Plus and +++ are not sold from the test wallet.";
+
+export function assertTestMembershipPurchase(testMode: boolean) {
+  if (!testMode) throw new Error(TEST_WALLET_MEMBERSHIP);
 }
 
 export type CheckoutQuote = {

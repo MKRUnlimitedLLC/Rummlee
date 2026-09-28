@@ -40,10 +40,12 @@ export async function ensureFees(sql: Sql) {
       on conflict (id) do nothing
     `;
   }
-  const pack = "plus-v7";
+  const pack = "seller-floor-399-pct-12";
   const marked = await sql<{ value: string }>`select value from app_meta where key = ${"fees_pack"}`;
   if (marked[0]?.value === pack) return;
+  const sellerIds = ["seller_floor", "seller_payout", "seller_plus", "seller_trio"];
   for (const fee of DEFAULT_FEES) {
+    if (!sellerIds.includes(fee.id)) continue;
     await sql`
       update rummlee_fees set
         label = ${fee.label},

@@ -99,7 +99,7 @@ export function CheckoutPay({
       ) : null}
       {!premium ? (
         <p className="text-sm text-muted">
-          Plus and +++ make the buyer fee $0. The seller still pays $2.99 or their tier percent, whichever is more.{" "}
+          Plus and +++ make the buyer fee $0. The seller still pays $3.99 or their tier percent, whichever is more.{" "}
           <Link to="/you" className="font-medium text-primary-ink">
             See Plus
           </Link>
