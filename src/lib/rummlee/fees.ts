@@ -236,10 +236,22 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "seller_floor",
     label: "Seller fee floor",
-    description: "The seller pays this or their tier percent, whichever is more. $3.99 or 12% Standard, 8.5% Plus, 6% +++. Same on official store, public place, and in person. Not waived by Plus or +++.",
+    description: "Standard and +++ floor. The seller pays this or their tier percent, whichever is more. Plus uses its own floor. Same on official store, public place, and in person. Not waived.",
     unit: "cents",
     percentBps: 0,
     amountCents: 399,
+    chargedTo: "seller",
+    chargedWhen: "checkout",
+    sort: 74,
+    enabled: true,
+  },
+  {
+    id: "seller_floor_plus",
+    label: "Seller fee floor, Plus",
+    description: "Plus only. The seller pays this or 8.5%, whichever is more. Standard and +++ keep the $3.99 floor. Same on every handoff. Plus does not waive the seller fee.",
+    unit: "cents",
+    percentBps: 0,
+    amountCents: 199,
     chargedTo: "seller",
     chargedWhen: "checkout",
     sort: 74,
@@ -260,7 +272,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "seller_plus",
     label: "Seller fee, Plus",
-    description: "Plus seller percent. The seller pays this or the seller fee floor, whichever is more. Plus does not waive it.",
+    description: "Plus seller percent. The seller pays this or the Plus floor, whichever is more. Plus does not waive it.",
     unit: "percent",
     percentBps: 850,
     amountCents: 0,
@@ -272,7 +284,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "seller_trio",
     label: "Seller fee, +++",
-    description: "+++ seller percent. The seller pays this or the seller fee floor, whichever is more. +++ does not waive it.",
+    description: "+++ seller percent. The seller pays this or the $3.99 floor, whichever is more. +++ does not use the Plus floor.",
     unit: "percent",
     percentBps: 600,
     amountCents: 0,
@@ -483,10 +495,20 @@ export type MemberTier = "plus" | "trio" | null;
 
 export type PlusFlags = boolean | { buyer?: boolean; seller?: boolean; sellerTier?: MemberTier };
 
+function sellerFloorCents(fees: FeeRow[], tier: MemberTier) {
+  if (tier === "plus") {
+    const plusFloor = feeById(fees, "seller_floor_plus");
+    if (plusFloor?.enabled && plusFloor.unit === "cents") return plusFloor.amountCents;
+    return 199;
+  }
+  const floorRow = feeById(fees, "seller_floor");
+  if (floorRow?.enabled && floorRow.unit === "cents") return floorRow.amountCents;
+  return 399;
+}
+
 export function sellerFeeCents(table: FeeRow[], baseCents: number, tier: MemberTier) {
   const fees = table.length ? table : DEFAULT_FEES;
-  const floorRow = feeById(fees, "seller_floor");
-  const floor = floorRow?.enabled && floorRow.unit === "cents" ? floorRow.amountCents : 0;
+  const floor = sellerFloorCents(fees, tier);
   const id = tier === "trio" ? "seller_trio" : tier === "plus" ? "seller_plus" : "seller_payout";
   const row = feeById(fees, id);
   if (!row?.enabled) return floor;
