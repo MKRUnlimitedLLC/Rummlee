@@ -5,7 +5,7 @@ export const Route = createFileRoute("/privacy")({ component: Privacy });
 
 function Privacy() {
   return (
-    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated September 23, 2026.">
+    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated September 28, 2026.">
       <LegalSection title="The short version">
         <p>
           Neighbors see a handle, a neighborhood you pick, and the listing. They do not see your legal name, email, or
@@ -70,7 +70,7 @@ function Privacy() {
           An in-person meetup note is shown only after you pay or an offer is accepted. Pickup codes are only for the
           two people on that order. The store counter sees a package number, not a name. If you leave a rejected package, the resale does not
           show your handle. A listing note is public once other neighbors
-          mark it helpful. Don’t put a name, phone, or address in a note. A missing detail shows, with the neighbor’s
+          mark it helpful. Don’t put a name, phone, or address in a note or in a message. A missing detail shows, with the neighbor’s
           handle, only after the seller approves it. Your lowest price is visible to you, and to a +++ member who spends
           a Reveal on that item.
         </p>

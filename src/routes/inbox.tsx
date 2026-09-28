@@ -98,7 +98,7 @@ function InboxPage() {
                     {o.handoffType === "official"
                       ? " · Official store handoff"
                       : o.handoffType === "public"
-                        ? " · Public place / lot"
+                        ? " · Public place, or the handoff already offered. Not a home address."
                         : " · In person handoff"}
                   </p>
                   <Link to="/pickup/$id" params={{ id: o.id }} className="text-base font-medium text-primary-ink">
