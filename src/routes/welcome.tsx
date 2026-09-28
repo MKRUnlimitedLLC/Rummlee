@@ -93,7 +93,7 @@ function Welcome() {
       <Wordmark className="mb-8 justify-center" />
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Set up your account</h1>
       <p className="mt-2 text-pretty text-muted">
-        Neighbors see @handle only. Your legal name and phone stay private. We never ask for a home address.
+        Neighbors see @handle only. Your legal name and phone stay private. A street address is never on a public listing. If you offer an in-person handoff, that note is shown only after someone pays.
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-3">
         <div>

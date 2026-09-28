@@ -1,0 +1,30 @@
+name: Confirm production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  confirm-production:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify privacy copy
+        run: node scripts/verify-privacy-copy.mjs
+      - name: Confirm live terms
+        run: |
+          deadline=$((SECONDS + 240))
+          while true; do
+            body=$(curl -fsS https://rummlee.com/terms || true)
+            if printf '%s' "$body" | grep -Fq "Updated September 28, 2026" \
+              && printf '%s' "$body" | grep -Fq "Do not put a home address in a message."; then
+              echo "live terms confirmed"
+              exit 0
+            fi
+            if (( SECONDS >= deadline )); then
+              echo "live terms did not contain the new copy within four minutes"
+              exit 1
+            fi
+            sleep 15
+          done

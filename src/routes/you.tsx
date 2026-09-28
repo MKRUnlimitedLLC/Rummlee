@@ -237,7 +237,7 @@ function YouPage() {
               {handleSave.isPending ? "Saving…" : "Change handle"}
             </Button>
           </form>
-          <p className="mt-1 text-sm text-muted">Neighbors never see your address — only a neighborhood label, if you set one.</p>
+          <p className="mt-1 text-sm text-muted">Neighbors never see your address on a listing — only a neighborhood label, if you set one.</p>
           <ThumbTally up={me?.thumbsUp} down={me?.thumbsDown} className="mt-1 block" />
           <p className="mt-1 text-sm text-fg">
             Rummlee Rep {repQ.data?.rep ?? me?.rep ?? 100}

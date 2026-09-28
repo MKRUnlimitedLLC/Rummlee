@@ -7,13 +7,12 @@ function Terms() {
   return (
     <LegalPage
       title="Terms"
-      lede="The house rules for listing, offering, and picking up on Rummlee. Updated September 23, 2026."
+      lede="The house rules for listing, offering, and picking up on Rummlee. Updated September 28, 2026."
     >
       <LegalSection title="The short version">
         <p>
           Rummlee is a local pre-sale for neighborhood, moving, and home clear-out sales. You deal under a handle.
-          Pickup is at a handoff location the seller offers — official store, public place, and/or in person. Rummlee never ships. No carriers, no postage, no delivery. Addresses are
-          not posted. You are responsible for what you list and what you buy.
+          Pickup is at a handoff location the seller offers — official store, public place, and/or in person. Rummlee never ships. No carriers, no postage, no delivery. A street address is not posted on a listing. A private meetup note, if the seller writes one, is shown only after someone pays. Do not put a home address in a message. You are responsible for what you list and what you buy.
         </p>
       </LegalSection>
 
