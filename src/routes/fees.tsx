@@ -41,7 +41,7 @@ function FeesPage() {
   return (
     <LegalPage
       title="Fees"
-      lede="Beta. Buyer fee is 5%, or $0 with Plus and +++. The seller pays $3.99 or 12% Standard, 8.5% Plus, 6% +++, whichever is more. That fee is the same for an official store, a public place, or in person. Plus is 5 free sale days a month. +++ sale days are free. Feature one item or a whole sale until it ends. If test credits don’t cover a sale day or a feature, the rest comes out of the next payout. Sales tax is always listed on its own. Paid in test credits. No card is charged."
+      lede="Beta. Buyer fee is 5%, or $0 with Plus and +++. The seller pays $3.99 or 12% Standard, $1.99 or 8.5% Plus, $3.99 or 6% +++, whichever is more. That fee is the same for an official store, a public place, or in person. Plus is 5 free sale days a month. +++ sale days are free. Feature one item or a whole sale until it ends. If test credits don’t cover a sale day or a feature, the rest comes out of the next payout. Sales tax is always listed on its own. Paid in test credits. No card is charged."
     >
       <TierCards fees={fees} />
       <div className="overflow-x-auto rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
@@ -94,10 +94,12 @@ function FeesPage() {
 function TierCards({ fees }: { fees: FeeRow[] }) {
   const month = (id: string) => formatFeeValue(feeById(fees, id) ?? { id, label: "", description: "", unit: "cents", percentBps: 0, amountCents: 0, chargedTo: "none", chargedWhen: "never", sort: 0, enabled: true });
   const seller = (tier: "plus" | "trio" | null) => {
-    const floor = feeById(fees, "seller_floor");
+    const shared = feeById(fees, "seller_floor");
+    const floor = tier === "plus" ? (feeById(fees, "seller_plus_floor") ?? shared) : shared;
     const rate = feeById(fees, tier === "trio" ? "seller_trio" : tier === "plus" ? "seller_plus" : "seller_payout");
     const sample = sellerFeeCents(fees, 4200, tier);
-    return `${floor ? formatFeeValue(floor) : "$3.99"} or ${rate ? formatFeeValue(rate) : "—"}, whichever is more. On a $42 item that is ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(sample / 100)}.`;
+    const fallback = tier === "plus" ? "$1.99" : "$3.99";
+    return `${floor ? formatFeeValue(floor) : fallback} or ${rate ? formatFeeValue(rate) : "—"}, whichever is more. On a $42 item that is ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(sample / 100)}.`;
   };
   const tiers = [
     { name: "Standard", price: "$0", buyer: "5%", seller: seller(null), days: "$2.99 a day", extra: "ID check $4.99. Researcher $7.99. Photo fill $0.99. Feature an item $1.99 or a sale $4.99." },
