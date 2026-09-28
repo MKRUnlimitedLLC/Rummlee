@@ -4,7 +4,7 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { splitModes } from "./format";
 import { HOUSE_FARGO } from "./constants";
-import { mapFeeRow, minAskingCents, DEFAULT_FEES } from "./fees";
+import { mapFeeRow, minAskingCents, priceCoversSellerFee, premiumStillOn, BELOW_SELLER_FEE, DEFAULT_FEES, type MemberTier } from "./fees";
 import type { HandoffMode } from "./types";
 
 type Sql = Awaited<ReturnType<typeof getSql>>;
@@ -51,6 +51,15 @@ async function readyProfile(sql: Sql, userId: string) {
       and phone is not null and neighborhood is not null
   `;
   if (!rows[0]) throw new Error("Finish your account first. Your legal name and phone stay private.");
+}
+
+async function sellerTier(sql: Sql, userId: string): Promise<MemberTier> {
+  const rows = await sql<{ is_premium: boolean; plus_until: string | null; plus_tier: string | null }>`
+    select is_premium, plus_until, plus_tier from profiles where id = ${userId}
+  `;
+  const row = rows[0];
+  if (!row || !premiumStillOn(Boolean(row.is_premium), row.plus_until)) return null;
+  return row.plus_tier === "trio" ? "trio" : "plus";
 }
 
 async function feeTable(sql: Sql) {
@@ -259,6 +268,10 @@ export const createSellerBundle = createServerFn({ method: "POST" })
     const min = minAskingCents(fees);
     if (data.priceCents < min || data.floorCents < min) throw new Error("Asking and lowest both have to meet the minimum.");
     if (data.floorCents > data.priceCents) throw new Error("Lowest price can’t be higher than asking.");
+    const tier = await sellerTier(sql, context.userId);
+    if (!priceCoversSellerFee(fees, data.priceCents, tier) || !priceCoversSellerFee(fees, data.floorCents, tier)) {
+      throw new Error(BELOW_SELLER_FEE);
+    }
     const id = await insertBundleListing(sql, items, {
       kind: "seller",
       title: data.title.trim(),
@@ -303,6 +316,9 @@ export const createBuyerBundle = createServerFn({ method: "POST" })
     const title = items.map((item) => item.title).join(" + ").slice(0, 80);
     if (data.amountCents != null && data.amountCents >= asking) {
       throw new Error("That’s the total or more. Pay the total to hold all of them.");
+    }
+    if (data.amountCents != null && !priceCoversSellerFee(await feeTable(sql), data.amountCents, await sellerTier(sql, seller))) {
+      throw new Error(BELOW_SELLER_FEE);
     }
     const id = await insertBundleListing(sql, items, {
       kind: "buyer",

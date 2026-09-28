@@ -1691,6 +1691,9 @@ export const addListing = createServerFn({ method: "POST" })
     if (data.floorCents < min) {
       throw new Error(`Lowest price has to be at least $${(min / 100).toFixed(min % 100 === 0 ? 0 : 2)}.`);
     }
+    if (!priceCoversSellerFee(fees, data.priceCents, me.plusTier) || !priceCoversSellerFee(fees, data.floorCents, me.plusTier)) {
+      throw new Error(BELOW_SELLER_FEE);
+    }
     const listFee = fees.find((row) => row.id === "list");
     if (listFee?.enabled && listFee.amountCents > 0) {
       await debitWallet(sql, context.userId, listFee.amountCents);
@@ -1782,6 +1785,9 @@ export const setOvertime = createServerFn({ method: "POST" })
     const min = minAskingCents(fees);
     if (data.cents < min) throw new Error(`Get rid of it has to be at least $${(min / 100).toFixed(min % 100 === 0 ? 0 : 2)}.`);
     if (data.cents > Number(item.price_cents)) throw new Error("Get rid of it can’t be higher than asking.");
+    if (!priceCoversSellerFee(fees, data.cents, await viewerTier(sql, context.userId))) {
+      throw new Error(BELOW_SELLER_FEE);
+    }
     await sql`update listings set overtime_cents = ${data.cents} where id = ${item.id}`;
     return { overtimeCents: data.cents };
   });
