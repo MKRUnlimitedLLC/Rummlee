@@ -1,15 +1,15 @@
 import type { BriefSection, LeadBrief } from "./bandit-types";
 
-/** Server only. The browser receives this after the code is accepted. No pay, no rates, no home addresses. */
+/** Server only. The browser receives this after the code is accepted. Check the listing flow before changing a claim. */
 
-export const BANDIT_UPDATED = "September 26, 2026";
+export const BANDIT_UPDATED = "September 28, 2026";
 
 const PRODUCT: BriefSection[] = [
   {
     title: "What Rummlee is",
     body: [
       "The good stuff, before Saturday. People list neighborhood finds for the city and the suburbs. Buyers pay in the app. Nothing ships.",
-      "The handoff is the product. An official partner store comes first. A public place is the backup. In person is the seller’s choice, and only after the buyer has paid. A listing never shows a home address. Neighbors see a handle, not a legal name.",
+      "The handoff is the product. A new listing starts at an official partner store. The seller can also offer a public place or a private handoff. Over 50 lb, not in a box, or a truck stays off the store counter and is in person only. The street or address shows after someone pays. Before that, a listing shows a rough distance, never a home address. Neighbors see a handle, not a legal name.",
     ],
   },
   {
