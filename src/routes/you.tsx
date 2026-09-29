@@ -11,7 +11,7 @@ import { ListingCard } from "@/components/listing-card";
 import { LegalLinks } from "@/components/legal";
 import { RateHandoff, ThumbTally, VerifiedBadge } from "@/components/trust";
 import { PlusAlerts } from "@/components/plus-alerts";
-import { NEIGHBORHOODS, CITIES, IDENTITY_ENABLED, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
+import { NEIGHBORHOODS, CITIES, IDENTITY_ENABLED, RUNNERS_ENABLED, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { errMessage } from "@/lib/rummlee/errors";
 import { cityOf, money, saleWindow } from "@/lib/rummlee/format";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
@@ -350,6 +350,13 @@ function YouPage() {
         ) : (
           <p className="mt-3 text-sm text-fg">ID checks are off during beta. No badge until we turn this on.</p>
         )}
+        {RUNNERS_ENABLED ? (
+          <p className="mt-4 text-sm">
+            <Link to="/runner" className="font-medium text-primary-ink">
+              Be a runner
+            </Link>
+          </p>
+        ) : null}
       </section>
 
       {q.data?.pendingRates.length ? (

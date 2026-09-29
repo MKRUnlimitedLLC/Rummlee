@@ -12,6 +12,13 @@ export const IDENTITY_CAP = 50;
 /** Photo fill suggests a title and category from the picture. Off for the beta. Plus includes it. */
 export const PHOTO_FILL_ENABLED = false;
 
+/** Lux runners. Off until Matthew turns it on. No signup link, no Checkr order, no mile pay. */
+export const RUNNERS_ENABLED = false;
+/** Checkr stays off even after signup is turned on, until an explicit go-ahead. */
+export const CHECKR_ENABLED = false;
+/** Paid checks ordered in a week while signup is on. Not used while runners are off. */
+export const RUNNER_WEEKLY_CAP = 10;
+
 /** Fargo first. That market can store a package the seller leaves. */
 export const HOUSE_FARGO = {
   profileId: "house-fargo",

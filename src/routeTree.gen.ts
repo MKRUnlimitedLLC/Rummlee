@@ -23,6 +23,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RecordsRouteImport } from './routes/records'
 import { Route as RepRouteImport } from './routes/rep'
 import { Route as ResearchRouteImport } from './routes/research'
+import { Route as RunnerRouteImport } from './routes/runner'
 import { Route as SellRouteImport } from './routes/sell'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -107,6 +108,11 @@ const ResearchRoute = ResearchRouteImport.update({
   path: '/research',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RunnerRoute = RunnerRouteImport.update({
+  id: '/runner',
+  path: '/runner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellRoute = SellRouteImport.update({
   id: '/sell',
   path: '/sell',
@@ -188,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/records': typeof RecordsRoute
   '/rep': typeof RepRoute
   '/research': typeof ResearchRoute
+  '/runner': typeof RunnerRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByTo {
   '/records': typeof RecordsRoute
   '/rep': typeof RepRoute
   '/research': typeof ResearchRoute
+  '/runner': typeof RunnerRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/records': typeof RecordsRoute
   '/rep': typeof RepRoute
   '/research': typeof ResearchRoute
+  '/runner': typeof RunnerRoute
   '/sell': typeof SellRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/records'
     | '/rep'
     | '/research'
+    | '/runner'
     | '/sell'
     | '/support'
     | '/terms'
@@ -307,6 +317,7 @@ export interface FileRouteTypes {
     | '/records'
     | '/rep'
     | '/research'
+    | '/runner'
     | '/sell'
     | '/support'
     | '/terms'
@@ -336,6 +347,7 @@ export interface FileRouteTypes {
     | '/records'
     | '/rep'
     | '/research'
+    | '/runner'
     | '/sell'
     | '/support'
     | '/terms'
@@ -366,6 +378,7 @@ export interface RootRouteChildren {
   RecordsRoute: typeof RecordsRoute
   RepRoute: typeof RepRoute
   ResearchRoute: typeof ResearchRoute
+  RunnerRoute: typeof RunnerRoute
   SellRoute: typeof SellRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
@@ -481,6 +494,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/runner': {
+      id: '/runner'
+      path: '/runner'
+      fullPath: '/runner'
+      preLoaderRoute: typeof RunnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sell': {
       id: '/sell'
       path: '/sell'
@@ -590,6 +610,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecordsRoute: RecordsRoute,
   RepRoute: RepRoute,
   ResearchRoute: ResearchRoute,
+  RunnerRoute: RunnerRoute,
   SellRoute: SellRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,

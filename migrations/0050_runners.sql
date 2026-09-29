@@ -1,0 +1,22 @@
+create table if not exists runners (
+  profile_id text primary key,
+  city text not null,
+  license_state text not null,
+  vehicle text not null,
+  range_miles integer not null,
+  small_per_mile_cents integer not null,
+  big_per_mile_cents integer not null,
+  insurance_shown boolean not null default false,
+  payout_noted boolean not null default false,
+  attested boolean not null default false,
+  consented boolean not null default false,
+  minnesota boolean not null default false,
+  repay_cents integer not null default 0,
+  repay_left_cents integer not null default 0,
+  status text not null,
+  mvr text not null default 'none',
+  criminal text not null default 'none',
+  checkr_id text,
+  failed_at timestamptz,
+  updated_at timestamptz not null default now()
+);
