@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Allow: /fees
+Allow: /partners
+Allow: /privacy
+Allow: /terms
+Allow: /support
+Allow: /sales
+Allow: /investors
+Allow: /welcome
+Disallow: /inbox
+Disallow: /you
+Disallow: /login
+Disallow: /listings/new
+Disallow: /corporate
+Disallow: /bandit
+Disallow: /desk
+Disallow: /api
+
+Sitemap: https://rummlee.com/sitemap.xml

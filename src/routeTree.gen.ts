@@ -17,6 +17,7 @@ import { Route as CorporateRouteImport } from './routes/corporate'
 import { Route as DeskRouteImport } from './routes/desk'
 import { Route as FeesRouteImport } from './routes/fees'
 import { Route as InboxRouteImport } from './routes/inbox'
+import { Route as InvestorsRouteImport } from './routes/investors'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -75,6 +76,11 @@ const FeesRoute = FeesRouteImport.update({
 const InboxRoute = InboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvestorsRoute = InvestorsRouteImport.update({
+  id: '/investors',
+  path: '/investors',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -182,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
+  '/investors': typeof InvestorsRoute
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
   '/privacy': typeof PrivacyRoute
@@ -211,6 +218,7 @@ export interface FileRoutesByTo {
   '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
+  '/investors': typeof InvestorsRoute
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
   '/privacy': typeof PrivacyRoute
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
   '/inbox': typeof InboxRoute
+  '/investors': typeof InvestorsRoute
   '/login': typeof LoginRoute
   '/partners': typeof PartnersRoute
   '/privacy': typeof PrivacyRoute
@@ -272,6 +281,7 @@ export interface FileRouteTypes {
     | '/desk'
     | '/fees'
     | '/inbox'
+    | '/investors'
     | '/login'
     | '/partners'
     | '/privacy'
@@ -301,6 +311,7 @@ export interface FileRouteTypes {
     | '/desk'
     | '/fees'
     | '/inbox'
+    | '/investors'
     | '/login'
     | '/partners'
     | '/privacy'
@@ -330,6 +341,7 @@ export interface FileRouteTypes {
     | '/desk'
     | '/fees'
     | '/inbox'
+    | '/investors'
     | '/login'
     | '/partners'
     | '/privacy'
@@ -360,6 +372,7 @@ export interface RootRouteChildren {
   DeskRoute: typeof DeskRoute
   FeesRoute: typeof FeesRoute
   InboxRoute: typeof InboxRoute
+  InvestorsRoute: typeof InvestorsRoute
   LoginRoute: typeof LoginRoute
   PartnersRoute: typeof PartnersRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -437,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/investors': {
+      id: '/investors'
+      path: '/investors'
+      fullPath: '/investors'
+      preLoaderRoute: typeof InvestorsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -584,6 +604,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeskRoute: DeskRoute,
   FeesRoute: FeesRoute,
   InboxRoute: InboxRoute,
+  InvestorsRoute: InvestorsRoute,
   LoginRoute: LoginRoute,
   PartnersRoute: PartnersRoute,
   PrivacyRoute: PrivacyRoute,

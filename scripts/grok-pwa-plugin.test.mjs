@@ -504,3 +504,55 @@ test("vite plugin bakes og identity as a virtual module", () => {
   assert.match(plugin, /snapshotOgIdentity/);
 });
 
+test("page title, description, and og:url survive as one share-card set", () => {
+  const html = `<html><head>
+    <title>Rummlee for investors</title>
+    <meta name="description" content="Local commerce marketplace. Beta.">
+    <meta property="og:title" content="Old title">
+    <meta property="og:description" content="Old description">
+    <meta property="og:url" content="https://rummlee.com/investors">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+  </head></html>`;
+  const site = {
+    title: "Rummlee — local marketplace with store handoffs",
+    description: "Site fallback description",
+    card: "custom",
+    image: "/og.jpg",
+  };
+  const ctx = {
+    host: "rummlee.com",
+    cwd: mkdtempSync(join(tmpdir(), "grok-og-page-")),
+    site,
+  };
+  const out = injectGrokPwaHead(html, ctx);
+  assert.match(out, /property="og:title" content="Rummlee for investors"/);
+  assert.match(out, /property="og:description" content="Local commerce marketplace. Beta."/);
+  assert.match(out, /property="og:url" content="https:\/\/rummlee.com\/investors"/);
+  assert.match(out, /property="og:type" content="website"/);
+  assert.match(out, /property="og:image" content="https:\/\/rummlee.com\/og.jpg"/);
+  assert.match(out, /name="twitter:card" content="summary_large_image"/);
+  assert.doesNotMatch(out, /Old title/);
+  assert.doesNotMatch(out, /Old description/);
+  assert.doesNotMatch(out, /content="summary"/);
+  assert.equal(out.split('property="og:title"').length - 1, 1);
+  assert.equal(out.split('property="og:url"').length - 1, 1);
+  assert.equal(out.split('property="og:type"').length - 1, 1);
+  assert.equal(out.split('name="twitter:card"').length - 1, 1);
+  const again = injectGrokPwaHead(out, {
+    ...ctx,
+    cwd: mkdtempSync(join(tmpdir(), "grok-og-page-2-")),
+  });
+  assert.equal(again, out);
+});
+
+test("non-game pages get og:type website and a host og:url", () => {
+  const out = injectGrokPwaHead("<html><head><title>Rummlee</title></head></html>", {
+    host: "rummlee.com",
+    site: { title: "Fallback" },
+  });
+  assert.match(out, /property="og:type" content="website"/);
+  assert.match(out, /property="og:url" content="https:\/\/rummlee.com\/"/);
+  assert.doesNotMatch(out, /x:game/);
+});
+
