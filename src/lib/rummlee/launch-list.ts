@@ -3,7 +3,17 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 
-import { handoffSuccess, launchSignupCsv, parseHandoff, parseWaitlist, waitlistSuccess, type LaunchExportRow } from "./launch-capture";
+import {
+  handoffSuccess,
+  launchSignupCsv,
+  ownershipSuccess,
+  parseHandoff,
+  parseOwnership,
+  parseWaitlist,
+  waitlistSuccess,
+  type LaunchExportRow,
+  type LaunchPath,
+} from "./launch-capture";
 
 async function ensureLaunchList(sql: Awaited<ReturnType<typeof getSql>>) {
   await sql`
@@ -39,6 +49,11 @@ async function ensureLaunchList(sql: Awaited<ReturnType<typeof getSql>>) {
   await sql`alter table launch_signups add column if not exists parking text`;
   await sql`alter table launch_signups add column if not exists source text`;
   await sql`alter table launch_signups add column if not exists dedupe text`;
+  await sql`alter table launch_signups add column if not exists utm_source text`;
+  await sql`alter table launch_signups add column if not exists utm_medium text`;
+  await sql`alter table launch_signups add column if not exists utm_campaign text`;
+  await sql`alter table launch_signups add column if not exists utm_content text`;
+  await sql`alter table launch_signups add column if not exists utm_term text`;
   await sql`alter table launch_signups alter column email drop not null`;
   await sql`
     update launch_signups
@@ -53,7 +68,14 @@ async function ensureLaunchList(sql: Awaited<ReturnType<typeof getSql>>) {
 
 const payload = z.object({
   company: z.string().max(200).optional(),
-  path: z.enum(["waitlist", "handoff_location"]).optional(),
+  path: z
+    .enum(["waitlist", "handoff_location", "ownership_interest"])
+    .optional(),
+  utmSource: z.string().max(500).optional(),
+  utmMedium: z.string().max(500).optional(),
+  utmCampaign: z.string().max(500).optional(),
+  utmContent: z.string().max(500).optional(),
+  utmTerm: z.string().max(500).optional(),
   email: z.string().max(254).optional(),
   phone: z.string().max(40).optional(),
   intent: z.string().max(20).optional(),
@@ -67,9 +89,16 @@ const payload = z.object({
   parking: z.string().max(160).optional(),
 });
 
-function honeypotMessage(path: "waitlist" | "handoff_location" | undefined, city: string | undefined) {
+function honeypotMessage(
+  path: LaunchPath | undefined,
+  city: string | undefined,
+) {
   const place = (city ?? "").replace(/\s+/g, " ").trim();
-  if (path === "handoff_location") return handoffSuccess(place.length >= 2 && place.length <= 80 ? place : "your city");
+  if (path === "handoff_location")
+    return handoffSuccess(
+      place.length >= 2 && place.length <= 80 ? place : "your city",
+    );
+  if (path === "ownership_interest") return ownershipSuccess();
   return waitlistSuccess(place.length >= 2 ? place : null);
 }
 
@@ -81,9 +110,17 @@ export const joinLaunchList = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     if (data.company && data.company.trim()) {
-      return { ok: true as const, message: honeypotMessage(data.path, data.city) };
+      return {
+        ok: true as const,
+        message: honeypotMessage(data.path, data.city),
+      };
     }
-    const parsed = data.path === "handoff_location" ? parseHandoff(data) : parseWaitlist(data);
+    const parsed =
+      data.path === "handoff_location"
+        ? parseHandoff(data)
+        : data.path === "ownership_interest"
+          ? parseOwnership(data)
+          : parseWaitlist(data);
     if (!parsed.ok) throw new Error(parsed.error);
     const row = parsed.record;
     const sql = await getSql();
@@ -92,11 +129,13 @@ export const joinLaunchList = createServerFn({ method: "POST" })
       insert into launch_signups (
         id, email, phone, path, intent, city, zip,
         business_name, contact_name, store_type, why_us, hours, parking,
-        source, dedupe
+        source, dedupe,
+        utm_source, utm_medium, utm_campaign, utm_content, utm_term
       ) values (
         ${crypto.randomUUID()}, ${row.email}, ${row.phone}, ${row.path}, ${row.intent}, ${row.city}, ${row.zip},
         ${row.businessName}, ${row.contactName}, ${row.storeType}, ${row.whyUs}, ${row.hours}, ${row.parking},
-        ${row.source}, ${row.dedupe}
+        ${row.source}, ${row.dedupe},
+        ${row.utmSource}, ${row.utmMedium}, ${row.utmCampaign}, ${row.utmContent}, ${row.utmTerm}
       )
       on conflict (dedupe) do update set
         email = excluded.email,
@@ -110,7 +149,16 @@ export const joinLaunchList = createServerFn({ method: "POST" })
         why_us = excluded.why_us,
         hours = excluded.hours,
         parking = excluded.parking,
-        source = excluded.source
+        source = case
+          when lower(coalesce(excluded.utm_source, launch_signups.utm_source, '')) = 'meta' then 'meta'
+          when excluded.utm_source is not null then excluded.source
+          else coalesce(launch_signups.source, excluded.source)
+        end,
+        utm_source = coalesce(excluded.utm_source, launch_signups.utm_source),
+        utm_medium = coalesce(excluded.utm_medium, launch_signups.utm_medium),
+        utm_campaign = coalesce(excluded.utm_campaign, launch_signups.utm_campaign),
+        utm_content = coalesce(excluded.utm_content, launch_signups.utm_content),
+        utm_term = coalesce(excluded.utm_term, launch_signups.utm_term)
     `;
     return { ok: true as const, message: parsed.message };
   });
@@ -123,7 +171,8 @@ export const exportLaunchList = createServerFn({ method: "POST" })
       select is_staff, deleted_at from profiles where id = ${context.userId}
     `;
     const me = rows[0];
-    if (!me || me.deleted_at || !me.is_staff) throw new Error("Corporate desk is for operators.");
+    if (!me || me.deleted_at || !me.is_staff)
+      throw new Error("Corporate desk is for operators.");
     await ensureLaunchList(sql);
     const list = await sql<LaunchExportRow>`
       select
@@ -140,9 +189,18 @@ export const exportLaunchList = createServerFn({ method: "POST" })
         why_us,
         hours,
         parking,
-        source
+        source,
+        utm_source,
+        utm_medium,
+        utm_campaign,
+        utm_content,
+        utm_term
       from launch_signups
       order by created_at, id
     `;
-    return { filename: "launch_signups.csv", csv: launchSignupCsv(list), count: list.length };
+    return {
+      filename: "launch_signups.csv",
+      csv: launchSignupCsv(list),
+      count: list.length,
+    };
   });

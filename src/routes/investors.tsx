@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { OwnershipForm } from "@/components/launch-forms";
 import { LegalPage, LegalSection } from "@/components/legal";
 
 const TITLE = "Rummlee for investors — local commerce marketplace and handoff";
@@ -84,9 +87,15 @@ function Investors() {
       <LegalSection title="What is live">
         <p>
           The product is on the web at{" "}
-          <a href="https://rummlee.com/" className="font-medium text-primary-ink underline-offset-4 hover:underline">
+          <a
+            href="https://rummlee.com/"
+            className="font-medium text-primary-ink underline-offset-4 hover:underline"
+          >
             https://rummlee.com
-          </a>{". The company is MKR Unlimited. The founder is Matthew Rau, in Fargo, North Dakota."}
+          </a>
+          {
+            ". The company is MKR Unlimited. The founder is Matthew Rau, in Fargo, North Dakota."
+          }
         </p>
         <p>
           Rummlee is in beta. People pay with test credits. It is not a live
@@ -118,13 +127,58 @@ function Investors() {
             className="font-medium text-primary-ink underline-offset-4 hover:underline"
           >
             matt@mkr-unlimited.com
-          </a>{"."}
+          </a>
+          {"."}
         </p>
         <p>
           The founder builds with AI staff (Grok bots) in short focus blocks.
           The raise is for a real dedicated team.
         </p>
       </LegalSection>
+
+      <OwnershipInterest />
     </LegalPage>
+  );
+}
+
+function OwnershipInterest() {
+  const [done, setDone] = useState<string | null>(null);
+  return (
+    <LegalSection title="Ownership interest">
+      <p>
+        This is for a business that wants to talk about owning part of Rummlee.
+        It is not an Official Handoff Location application, and it is not the
+        consumer waitlist.
+      </p>
+      <p>
+        Email and company are enough. A short note is optional. No street
+        address, no phone, and no payment. Rummlee is in beta. Sending this is
+        not an offer of shares, an allocation, exclusivity, or a date to close.
+        The raise terms above are the only ones stated on this page.
+      </p>
+      {done ? (
+        <p role="status" className="rounded-2xl bg-bg p-4 text-pretty">
+          {done}
+        </p>
+      ) : (
+        <OwnershipForm
+          idPrefix="ownership"
+          onSuccess={(message) => {
+            setDone(message);
+            toast.success(message);
+          }}
+        />
+      )}
+      <p>
+        You can also write to{" "}
+        <a
+          href="mailto:matt@mkr-unlimited.com"
+          className="font-medium text-primary-ink underline-offset-4 hover:underline"
+        >
+          matt@mkr-unlimited.com
+        </a>
+        .
+      </p>
+    </LegalSection>
   );
 }
