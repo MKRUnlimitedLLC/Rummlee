@@ -297,6 +297,20 @@ export function titleFromDocument(html) {
   return match ? unescapeHtml(match[1]).trim() : "";
 }
 
+/** First meta content for a name or property, or "". */
+export function metaContentByKey(html, key) {
+  const wanted = String(key ?? "").toLowerCase();
+  if (!wanted) return "";
+  const tags = String(html ?? "").match(/<meta\b[^>]*>/gi) ?? [];
+  for (const tag of tags) {
+    const named = tag.match(/\b(?:name|property)\s*=\s*["']([^"']+)["']/i);
+    if (!named || named[1].toLowerCase() !== wanted) continue;
+    const content = tag.match(/\bcontent\s*=\s*["']([^"']*)["']/i);
+    if (content) return unescapeHtml(content[1]).trim();
+  }
+  return "";
+}
+
 export function resolveOgTitle(
   site = {},
   appName = DEFAULT_APP_NAME,
@@ -338,20 +352,34 @@ export function grokOgHeadTags({
   appName = DEFAULT_APP_NAME,
   site = {},
   documentTitle = "",
+  documentDescription = "",
+  ogUrl = "",
+  ogType = "",
   cwd = process.cwd(),
 } = {}) {
-  const title = resolveOgTitle(site, appName, host, documentTitle);
+  // A page <title> wins so /investors can differ from the homepage. site.title is the fallback.
+  const title = String(documentTitle ?? "").trim() || resolveOgTitle(site, appName, host, "");
   const publicHost = resolvePublicHost(host);
   const tags = [
     `<meta name="twitter:card" content="summary_large_image">`,
     `<meta property="og:title" content="${escapeHtml(title)}">`,
   ];
-  const description = String(site.description ?? "").trim();
+  const description = String(documentDescription ?? "").trim() || String(site.description ?? "").trim();
   if (description) {
     tags.push(`<meta property="og:description" content="${escapeHtml(description)}">`);
   }
-  if (String(site.type ?? "").toLowerCase() === "x:game") {
+  const siteType = String(site.type ?? "").toLowerCase();
+  if (siteType === "x:game") {
     tags.push(`<meta property="og:type" content="x:game">`);
+  } else {
+    const fromDoc = String(ogType ?? "").trim();
+    const type = fromDoc && fromDoc.toLowerCase() !== "x:game" ? fromDoc : "website";
+    tags.push(`<meta property="og:type" content="${escapeHtml(type)}">`);
+  }
+  const explicitUrl = String(ogUrl ?? "").trim();
+  const url = explicitUrl || (publicHost ? `https://${publicHost}/` : "");
+  if (url) {
+    tags.push(`<meta property="og:url" content="${escapeHtml(url)}">`);
   }
   if (publicHost) {
     const asset = resolveOgCardAsset(site, cwd);
@@ -426,6 +454,9 @@ export function injectGrokPwaHead(html, ctx = {}) {
   if (typeof html !== "string") return html;
   const { site, projectId, creator, creatorId, host, cwd } = normalizeHeadContext(ctx);
   const documentTitle = titleFromDocument(html);
+  const documentDescription = metaContentByKey(html, "description");
+  const ogUrl = metaContentByKey(html, "og:url");
+  const ogType = metaContentByKey(html, "og:type");
   const appName = resolveOgTitle(
     site,
     ctx.appName ?? DEFAULT_APP_NAME,
@@ -444,7 +475,7 @@ export function injectGrokPwaHead(html, ctx = {}) {
 
   next = insertAfterHeadOpen(
     next,
-    grokOgHeadTags({ host, appName, site, documentTitle, cwd }).join(""),
+    grokOgHeadTags({ host, appName, site, documentTitle, documentDescription, ogUrl, ogType, cwd }).join(""),
   );
 
   if (!next.includes("/grok-app-builder/extensions.js")) {
