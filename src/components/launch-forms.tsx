@@ -3,10 +3,24 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { errMessage } from "@/lib/rummlee/errors";
-import { INTENT_OPTIONS, STORE_TYPES, parseHandoff, parseWaitlist } from "@/lib/rummlee/launch-capture";
+import {
+  INTENT_OPTIONS,
+  OWNERSHIP_NOTE_MAX,
+  STORE_TYPES,
+  parseHandoff,
+  parseOwnership,
+  parseWaitlist,
+} from "@/lib/rummlee/launch-capture";
 import { joinLaunchList } from "@/lib/rummlee/launch-list";
+import { capturePageUtm, utmPayload } from "@/lib/rummlee/utm-session";
 
-function Honeypot({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function Honeypot({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <input
       tabIndex={-1}
@@ -19,7 +33,13 @@ function Honeypot({ value, onChange }: { value: string; onChange: (value: string
   );
 }
 
-export function WaitlistForm({ idPrefix, onSuccess }: { idPrefix: string; onSuccess: (message: string) => void }) {
+export function WaitlistForm({
+  idPrefix,
+  onSuccess,
+}: {
+  idPrefix: string;
+  onSuccess: (message: string) => void;
+}) {
   const [email, setEmail] = useState("");
   const [intent, setIntent] = useState("");
   const [city, setCity] = useState("");
@@ -37,7 +57,15 @@ export function WaitlistForm({ idPrefix, onSuccess }: { idPrefix: string; onSucc
     setPending(true);
     try {
       const result = await joinLaunchList({
-        data: { path: "waitlist", email, intent, city, zip, company },
+        data: {
+          path: "waitlist",
+          email,
+          intent,
+          city,
+          zip,
+          company,
+          ...utmPayload(capturePageUtm()),
+        },
       });
       onSuccess(result.message);
     } catch (error) {
@@ -64,10 +92,15 @@ export function WaitlistForm({ idPrefix, onSuccess }: { idPrefix: string; onSucc
         />
       </div>
       <fieldset>
-        <legend className="mb-1.5 text-sm font-medium text-fg">I’m interested as…</legend>
+        <legend className="mb-1.5 text-sm font-medium text-fg">
+          I’m interested as…
+        </legend>
         <div className="space-y-2">
           {INTENT_OPTIONS.map((option) => (
-            <label key={option.value} className="flex cursor-pointer gap-3 rounded-lg bg-bg px-3 py-2.5">
+            <label
+              key={option.value}
+              className="flex cursor-pointer gap-3 rounded-lg bg-bg px-3 py-2.5"
+            >
               <input
                 className="mt-1"
                 type="radio"
@@ -118,7 +151,13 @@ export function WaitlistForm({ idPrefix, onSuccess }: { idPrefix: string; onSucc
   );
 }
 
-export function HandoffForm({ idPrefix, onSuccess }: { idPrefix: string; onSuccess: (message: string) => void }) {
+export function HandoffForm({
+  idPrefix,
+  onSuccess,
+}: {
+  idPrefix: string;
+  onSuccess: (message: string) => void;
+}) {
   const [businessName, setBusinessName] = useState("");
   const [contactName, setContactName] = useState("");
   const [city, setCity] = useState("");
@@ -134,7 +173,18 @@ export function HandoffForm({ idPrefix, onSuccess }: { idPrefix: string; onSucce
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const parsed = parseHandoff({ businessName, contactName, city, zip, storeType, email, phone, whyUs, hours, parking });
+    const parsed = parseHandoff({
+      businessName,
+      contactName,
+      city,
+      zip,
+      storeType,
+      email,
+      phone,
+      whyUs,
+      hours,
+      parking,
+    });
     if (!parsed.ok && !company.trim()) {
       toast.error(parsed.error);
       return;
@@ -155,6 +205,7 @@ export function HandoffForm({ idPrefix, onSuccess }: { idPrefix: string; onSucce
           hours,
           parking,
           company,
+          ...utmPayload(capturePageUtm()),
         },
       });
       onSuccess(result.message);
@@ -254,22 +305,131 @@ export function HandoffForm({ idPrefix, onSuccess }: { idPrefix: string; onSucce
       </div>
       <p className="text-sm text-muted">Email or phone — at least one.</p>
       <div>
-        <Label htmlFor={`${idPrefix}-why`}>Why you’d be a good handoff spot (optional)</Label>
-        <Textarea id={`${idPrefix}-why`} value={whyUs} onChange={(event) => setWhyUs(event.target.value)} maxLength={500} />
+        <Label htmlFor={`${idPrefix}-why`}>
+          Why you’d be a good handoff spot (optional)
+        </Label>
+        <Textarea
+          id={`${idPrefix}-why`}
+          value={whyUs}
+          onChange={(event) => setWhyUs(event.target.value)}
+          maxLength={500}
+        />
       </div>
       <div>
         <Label htmlFor={`${idPrefix}-hours`}>Hours (optional)</Label>
-        <Input id={`${idPrefix}-hours`} value={hours} onChange={(event) => setHours(event.target.value)} maxLength={160} />
+        <Input
+          id={`${idPrefix}-hours`}
+          value={hours}
+          onChange={(event) => setHours(event.target.value)}
+          maxLength={160}
+        />
       </div>
       <div>
         <Label htmlFor={`${idPrefix}-parking`}>Parking notes (optional)</Label>
-        <Input id={`${idPrefix}-parking`} value={parking} onChange={(event) => setParking(event.target.value)} maxLength={160} />
+        <Input
+          id={`${idPrefix}-parking`}
+          value={parking}
+          onChange={(event) => setParking(event.target.value)}
+          maxLength={160}
+        />
       </div>
       <Honeypot value={company} onChange={setCompany} />
       <Button className="w-full" type="submit" disabled={pending}>
         {pending ? "Sending…" : "Send"}
       </Button>
-      <p className="text-sm text-muted">No card. Asking is free. This is not a promise of exclusivity, payment, or a go-live date.</p>
+      <p className="text-sm text-muted">
+        No card. Asking is free. This is not a promise of exclusivity, payment,
+        or a go-live date.
+      </p>
+    </form>
+  );
+}
+
+export function OwnershipForm({
+  idPrefix,
+  onSuccess,
+}: {
+  idPrefix: string;
+  onSuccess: (message: string) => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [whyUs, setWhyUs] = useState("");
+  const [company, setCompany] = useState("");
+  const [pending, setPending] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const parsed = parseOwnership({ email, businessName, whyUs });
+    if (!parsed.ok && !company.trim()) {
+      toast.error(parsed.error);
+      return;
+    }
+    setPending(true);
+    try {
+      const result = await joinLaunchList({
+        data: {
+          path: "ownership_interest",
+          email,
+          businessName,
+          whyUs,
+          company,
+          ...utmPayload(capturePageUtm()),
+        },
+      });
+      onSuccess(result.message);
+    } catch (error) {
+      toast.error(errMessage(error));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form className="relative mt-4 space-y-3" onSubmit={submit}>
+      <input type="hidden" name="path" value="ownership_interest" />
+      <input type="hidden" name="source" value="site" />
+      <div>
+        <Label htmlFor={`${idPrefix}-email`}>Email</Label>
+        <Input
+          id={`${idPrefix}-email`}
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          placeholder="you@company.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor={`${idPrefix}-company`}>Company</Label>
+        <Input
+          id={`${idPrefix}-company`}
+          autoComplete="organization"
+          value={businessName}
+          onChange={(event) => setBusinessName(event.target.value)}
+          maxLength={120}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor={`${idPrefix}-note`}>Brief note (optional)</Label>
+        <Textarea
+          id={`${idPrefix}-note`}
+          value={whyUs}
+          onChange={(event) => setWhyUs(event.target.value)}
+          maxLength={OWNERSHIP_NOTE_MAX}
+        />
+      </div>
+      <Honeypot value={company} onChange={setCompany} />
+      <Button className="w-full" type="submit" disabled={pending}>
+        {pending ? "Sending…" : "Send"}
+      </Button>
+      <p className="text-sm text-muted">
+        No card. No phone. This is not a store application, and it is not a
+        promise of shares, an allocation, or a closing date.
+      </p>
     </form>
   );
 }
