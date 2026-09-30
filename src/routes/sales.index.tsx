@@ -5,8 +5,10 @@ import { bootstrapPublic } from "@/lib/rummlee/server";
 import { liveWindowLine, onlineWindowLine, saleWhen } from "@/lib/rummlee/format";
 import { SALE_KINDS } from "@/lib/rummlee/constants";
 import type { HandoffSpot } from "@/lib/rummlee/types";
+import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/sales/")({
+  head: () => publicHead("/sales", "Neighborhood sales near you", "This weekend’s sales. Hours and the handoff, not a street address."),
   loader: () => bootstrapPublic(),
   component: SalesPage,
 });

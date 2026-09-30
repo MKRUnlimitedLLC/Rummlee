@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage, LegalSection } from "@/components/legal";
+import { publicHead } from "@/lib/rummlee/seo";
 
-export const Route = createFileRoute("/privacy")({ component: Privacy });
+export const Route = createFileRoute("/privacy")({
+  head: () => publicHead("/privacy", "Rummlee privacy", "A handle, not your name. Your home address stays off the listing and out of messages."),
+  component: Privacy,
+});
 
 function Privacy() {
   return (

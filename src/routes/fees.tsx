@@ -10,8 +10,10 @@ import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
 import { feeById, formatFeeValue, sellerFeeCents, type FeeRow } from "@/lib/rummlee/fees";
 import { claimOperator, getFeeTable, saveFee } from "@/lib/rummlee/server";
 import { cn } from "@/lib/utils";
+import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/fees")({
+  head: () => publicHead("/fees", "Rummlee fees", "What you pay to buy, sell, and use a partner store. The total is shown before you check out."),
   loader: () => getFeeTable(),
   component: FeesPage,
 });

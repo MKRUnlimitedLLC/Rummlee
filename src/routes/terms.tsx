@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalPage, LegalSection } from "@/components/legal";
+import { publicHead } from "@/lib/rummlee/seo";
 
-export const Route = createFileRoute("/terms")({ component: Terms });
+export const Route = createFileRoute("/terms")({
+  head: () => publicHead("/terms", "Rummlee terms", "House rules for listing, offering, and pickup. Rummlee never ships."),
+  component: Terms,
+});
 
 function Terms() {
   return (

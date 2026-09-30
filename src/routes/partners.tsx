@@ -1,7 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalPage, LegalSection } from "@/components/legal";
+import { publicHead } from "@/lib/rummlee/seo";
 
-export const Route = createFileRoute("/partners")({ component: Partners });
+export const Route = createFileRoute("/partners")({
+  head: () => publicHead("/partners", "Become a Rummlee handoff store", "A partner store holds a paid item for pickup. No home address is posted on the listing."),
+  component: Partners,
+});
 
 function Partners() {
   return (

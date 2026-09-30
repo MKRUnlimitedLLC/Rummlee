@@ -1,7 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalPage, LegalSection } from "@/components/legal";
+import { publicHead } from "@/lib/rummlee/seo";
 
-export const Route = createFileRoute("/support")({ component: Support });
+export const Route = createFileRoute("/support")({
+  head: () => publicHead("/support", "Rummlee support", "Pickup stuck, a listing looks wrong, or you need the account gone. Start here."),
+  component: Support,
+});
 
 function Support() {
   return (

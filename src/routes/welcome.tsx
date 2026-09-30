@@ -11,8 +11,12 @@ import { errMessage } from "@/lib/rummlee/errors";
 import { cityOf } from "@/lib/rummlee/format";
 import { getMe, updateProfile } from "@/lib/rummlee/server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { publicHead } from "@/lib/rummlee/seo";
 
-export const Route = createFileRoute("/welcome")({ component: Welcome });
+export const Route = createFileRoute("/welcome")({
+  head: () => publicHead("/welcome", "Join Rummlee", "Create a handle. The good stuff, before Saturday. A street address is not part of the listing."),
+  component: Welcome,
+});
 
 function Welcome() {
   const { user, isPending } = useCurrentUserState();

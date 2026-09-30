@@ -10,9 +10,9 @@ import { makeQueryClient } from "@/lib/query-client";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "Rummlee";
-const DEFAULT_TITLE = "Rummlee — local marketplace with store handoffs";
+const DEFAULT_TITLE = "Rummlee — The good stuff, before Saturday";
 const DEFAULT_DESCRIPTION =
-  "Hyperlocal neighborhood resale marketplace. No shipping. Payment held until handoff at an Official store, a public place, or a private handoff. Beta with test credits.";
+  "Neighborhood finds in the city and the suburbs. Offer this week. Pick up at a partner store. No shipping. The street shows after you pay.";
 const SITE_URL = "https://rummlee.com/";
 const OG_IMAGE = "https://rummlee.com/og.jpg";
 
@@ -29,6 +29,8 @@ export const Route = createRootRoute({
   },
   head: ({ matches }) => {
     const bandit = matches.some((match) => match.pathname === "/bandit");
+    const path = matches[matches.length - 1]?.pathname || "/";
+    const canonical = path === "/" ? "https://rummlee.com/" : `https://rummlee.com${path}`;
     return {
       meta: [
         { charSet: "utf-8" },
@@ -53,6 +55,7 @@ export const Route = createRootRoute({
             ]),
       ],
       links: [
+        ...(bandit ? [] : [{ rel: "canonical", href: canonical }]),
         { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
         { rel: "stylesheet", href: appCss },
         ...(bandit
