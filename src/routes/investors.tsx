@@ -94,7 +94,7 @@ function Investors() {
             https://rummlee.com
           </a>
           {
-            ". The company is Rummlee Corp. Three Pillars Holdings LLC owns Rummlee Corp. Patricia Rau owns 51 percent and Matthew Rau owns 49 percent of Three Pillars Holdings LLC and of Rummlee Corp. Matthew Rau, in Fargo, North Dakota, is a founder."
+            ". The company is Rummlee Corp. Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC. MKR-UNLIMITED LLC owns MKR Connect LLC. Patricia Rau owns 51 percent and Matthew Rau owns 49 percent of Three Pillars Holdings LLC. Matthew Rau, in Fargo, North Dakota, is a founder."
           }
         </p>
         <p>
