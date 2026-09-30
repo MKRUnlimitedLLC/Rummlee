@@ -13,7 +13,7 @@ const structuredData = {
   "@graph": [
     {
       "@type": "Organization",
-      name: "MKR Unlimited",
+      name: "Rummlee Corp",
       url: "https://rummlee.com/",
       email: "matt@mkr-unlimited.com",
       founder: {
@@ -42,7 +42,7 @@ const structuredData = {
         "Hyperlocal garage, estate, moving, and cleanout marketplace. Local handoff only. No shipping. Beta, with test credits.",
       provider: {
         "@type": "Organization",
-        name: "MKR Unlimited",
+        name: "Rummlee Corp",
       },
     },
   ],
@@ -69,7 +69,7 @@ function Investors() {
   return (
     <LegalPage
       title="Investors"
-      lede="A plain-English page for investors and automated deal screeners. Only what is true. September 29, 2026."
+      lede="A plain-English page for investors and automated deal screeners. Only what is true. September 30, 2026."
     >
       <LegalSection title="The product">
         <p>
@@ -94,7 +94,7 @@ function Investors() {
             https://rummlee.com
           </a>
           {
-            ". The company is MKR Unlimited. The founder is Matthew Rau, in Fargo, North Dakota."
+            ". The company is Rummlee Corp. Three Pillars Holdings LLC owns Rummlee Corp. Patricia Rau owns 51 percent and Matthew Rau owns 49 percent of Three Pillars Holdings LLC and of Rummlee Corp. Matthew Rau, in Fargo, North Dakota, is a founder."
           }
         </p>
         <p>
@@ -120,7 +120,7 @@ function Investors() {
 
       <LegalSection title="The raise">
         <p>
-          MKR Unlimited is raising $2.5 million at a $12 million pre-money
+          Rummlee Corp is raising $2.5 million at a $12 million pre-money
           valuation. Write to{" "}
           <a
             href="mailto:matt@mkr-unlimited.com"
@@ -131,8 +131,8 @@ function Investors() {
           {"."}
         </p>
         <p>
-          The founder builds with AI staff (Grok bots) in short focus blocks.
-          The raise is for a real dedicated team.
+          A lead check can be larger than the round on this page. Ownership is
+          discussed by email. Nothing on this page is an offer of shares.
         </p>
       </LegalSection>
 
