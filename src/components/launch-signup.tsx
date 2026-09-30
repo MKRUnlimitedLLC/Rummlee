@@ -1,10 +1,8 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { errMessage } from "@/lib/rummlee/errors";
 import { TEST_MODE } from "@/lib/rummlee/constants";
-import { joinLaunchList } from "@/lib/rummlee/launch-list";
+import { HandoffForm, WaitlistForm } from "./launch-forms";
 
 const KEY = "rummlee.launchList.v1";
 const BETA_KEY = "rummlee.betaNotice.v2";
@@ -28,12 +26,11 @@ function betaStillOpen() {
 
 export function LaunchSignup() {
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
-  const [pending, setPending] = useState(false);
+  const [mode, setMode] = useState<"waitlist" | "handoff">("waitlist");
+  const onHandoffPage = useRouterState({ select: (s) => s.location.pathname === "/handoff" });
 
   useEffect(() => {
-    if (!TEST_MODE || remembered()) return;
+    if (!TEST_MODE || remembered() || onHandoffPage) return;
     function show() {
       if (remembered() || betaStillOpen()) return;
       setOpen(true);
@@ -44,7 +41,7 @@ export function LaunchSignup() {
     }
     window.addEventListener("rummlee-beta-dismissed", show);
     return () => window.removeEventListener("rummlee-beta-dismissed", show);
-  }, []);
+  }, [onHandoffPage]);
 
   function close(value: "ok" | "joined") {
     try {
@@ -55,65 +52,55 @@ export function LaunchSignup() {
     setOpen(false);
   }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setPending(true);
-    try {
-      await joinLaunchList({ data: { email, company } });
-      close("joined");
-      toast.success("You’re on the list. We’ll write when it’s live.");
-    } catch (error) {
-      toast.error(errMessage(error));
-    } finally {
-      setPending(false);
-    }
-  }
+  if (!TEST_MODE || !open || onHandoffPage) return null;
 
-  if (!TEST_MODE || !open) return null;
+  const handoff = mode === "handoff";
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-fg/40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center" role="presentation">
+    <div className="fixed inset-0 z-[70] flex items-end justify-center overflow-y-auto bg-fg/40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center" role="presentation">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="launch-title"
         aria-describedby="launch-body"
-        className="w-full max-w-md rounded-[24px] bg-surface p-6 shadow-[var(--shadow-card)]"
+        className="my-auto max-h-[min(40rem,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-[24px] bg-surface p-6 shadow-[var(--shadow-card)]"
       >
-        <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">Going live</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">{handoff ? "Stores" : "Going live"}</p>
         <h2 id="launch-title" className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">
-          Get a note when Rummlee opens
+          {handoff ? "Be an Official Handoff Location" : "Get a note when Rummlee opens"}
         </h2>
         <p id="launch-body" className="mt-3 text-pretty text-[15px] leading-relaxed text-muted">
-          One email when real listings open. Nothing else. We don’t sell the address.
+          {handoff
+            ? "Tell us about the shop. We’ll write if it fits a city we’re opening. No fee to ask, and no promise of exclusivity, payment, or a go-live date."
+            : "We’re in beta. There isn’t live inventory yet. One email when your city opens. We don’t sell the address."}
         </p>
-        <form className="mt-5" onSubmit={submit}>
-          <label className="sr-only" htmlFor="launch-email">
-            Email
-          </label>
-          <Input
-            id="launch-email"
-            type="email"
-            autoComplete="email"
-            inputMode="email"
-            placeholder="you@email.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            autoFocus
-          />
-          <input
-            tabIndex={-1}
-            autoComplete="off"
-            aria-hidden="true"
-            className="absolute h-0 w-0 opacity-0"
-            value={company}
-            onChange={(event) => setCompany(event.target.value)}
-          />
-          <Button className="mt-3 w-full" type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Notify me"}
-          </Button>
-        </form>
+        {handoff ? (
+          <div className="mt-5">
+            <HandoffForm
+              idPrefix="launch-handoff"
+              onSuccess={(message) => {
+                toast.success(message);
+                setMode("waitlist");
+              }}
+            />
+            <button type="button" className="mt-3 w-full text-sm font-medium text-primary-ink" onClick={() => setMode("waitlist")}>
+              Back to the list
+            </button>
+          </div>
+        ) : (
+          <>
+            <WaitlistForm
+              idPrefix="launch"
+              onSuccess={(message) => {
+                close("joined");
+                toast.success(message);
+              }}
+            />
+            <button type="button" className="mt-3 w-full text-sm font-medium text-primary-ink" onClick={() => setMode("handoff")}>
+              Be a handoff location
+            </button>
+          </>
+        )}
         <button type="button" className="mt-3 w-full text-sm font-medium text-muted" onClick={() => close("ok")}>
           Not now
         </button>

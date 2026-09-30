@@ -65,6 +65,11 @@ export function LegalLinks({ className }: { className?: string }) {
           </Link>
         </li>
         <li>
+          <Link to="/handoff" className="underline-offset-4 hover:underline">
+            Handoff location
+          </Link>
+        </li>
+        <li>
           <Link to="/investors" className="underline-offset-4 hover:underline">
             Investors
           </Link>

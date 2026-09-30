@@ -3,39 +3,116 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 
-import { normalizeLaunchEmail } from "./launch-email";
+import { handoffSuccess, launchSignupCsv, parseHandoff, parseWaitlist, waitlistSuccess, type LaunchExportRow } from "./launch-capture";
 
 async function ensureLaunchList(sql: Awaited<ReturnType<typeof getSql>>) {
   await sql`
     create table if not exists launch_signups (
       id text primary key,
-      email text not null unique,
-      created_at timestamptz not null default now()
+      email text,
+      created_at timestamptz not null default now(),
+      path text not null default 'waitlist',
+      phone text,
+      intent text,
+      city text,
+      zip text,
+      business_name text,
+      contact_name text,
+      store_type text,
+      why_us text,
+      hours text,
+      parking text,
+      source text,
+      dedupe text
     )
   `;
+  await sql`alter table launch_signups add column if not exists path text not null default 'waitlist'`;
+  await sql`alter table launch_signups add column if not exists phone text`;
+  await sql`alter table launch_signups add column if not exists intent text`;
+  await sql`alter table launch_signups add column if not exists city text`;
+  await sql`alter table launch_signups add column if not exists zip text`;
+  await sql`alter table launch_signups add column if not exists business_name text`;
+  await sql`alter table launch_signups add column if not exists contact_name text`;
+  await sql`alter table launch_signups add column if not exists store_type text`;
+  await sql`alter table launch_signups add column if not exists why_us text`;
+  await sql`alter table launch_signups add column if not exists hours text`;
+  await sql`alter table launch_signups add column if not exists parking text`;
+  await sql`alter table launch_signups add column if not exists source text`;
+  await sql`alter table launch_signups add column if not exists dedupe text`;
+  await sql`alter table launch_signups alter column email drop not null`;
+  await sql`
+    update launch_signups
+    set dedupe = 'waitlist:' || lower(email)
+    where dedupe is null
+      and email is not null
+      and path = 'waitlist'
+  `;
+  await sql`alter table launch_signups drop constraint if exists launch_signups_email_key`;
+  await sql`create unique index if not exists launch_signups_dedupe_key on launch_signups (dedupe)`;
+}
+
+const payload = z.object({
+  company: z.string().max(200).optional(),
+  path: z.enum(["waitlist", "handoff_location"]).optional(),
+  email: z.string().max(254).optional(),
+  phone: z.string().max(40).optional(),
+  intent: z.string().max(20).optional(),
+  city: z.string().max(80).optional(),
+  zip: z.string().max(12).optional(),
+  businessName: z.string().max(120).optional(),
+  contactName: z.string().max(120).optional(),
+  storeType: z.string().max(40).optional(),
+  whyUs: z.string().max(500).optional(),
+  hours: z.string().max(160).optional(),
+  parking: z.string().max(160).optional(),
+});
+
+function honeypotMessage(path: "waitlist" | "handoff_location" | undefined, city: string | undefined) {
+  const place = (city ?? "").replace(/\s+/g, " ").trim();
+  if (path === "handoff_location") return handoffSuccess(place.length >= 2 && place.length <= 80 ? place : "your city");
+  return waitlistSuccess(place.length >= 2 ? place : null);
 }
 
 export const joinLaunchList = createServerFn({ method: "POST" })
-  .validator((data: unknown) =>
-    z
-      .object({
-        email: z.string().max(254),
-        company: z.string().max(120).optional(),
-      })
-      .parse(data),
-  )
+  .validator((data: unknown) => {
+    const parsed = payload.safeParse(data);
+    if (!parsed.success) throw new Error("Check the form and try again.");
+    return parsed.data;
+  })
   .handler(async ({ data }) => {
-    if (data.company && data.company.trim()) return { ok: true as const };
-    const email = normalizeLaunchEmail(data.email);
-    if (!email) throw new Error("Enter a real email address.");
+    if (data.company && data.company.trim()) {
+      return { ok: true as const, message: honeypotMessage(data.path, data.city) };
+    }
+    const parsed = data.path === "handoff_location" ? parseHandoff(data) : parseWaitlist(data);
+    if (!parsed.ok) throw new Error(parsed.error);
+    const row = parsed.record;
     const sql = await getSql();
     await ensureLaunchList(sql);
     await sql`
-      insert into launch_signups (id, email)
-      values (${crypto.randomUUID()}, ${email})
-      on conflict (email) do nothing
+      insert into launch_signups (
+        id, email, phone, path, intent, city, zip,
+        business_name, contact_name, store_type, why_us, hours, parking,
+        source, dedupe
+      ) values (
+        ${crypto.randomUUID()}, ${row.email}, ${row.phone}, ${row.path}, ${row.intent}, ${row.city}, ${row.zip},
+        ${row.businessName}, ${row.contactName}, ${row.storeType}, ${row.whyUs}, ${row.hours}, ${row.parking},
+        ${row.source}, ${row.dedupe}
+      )
+      on conflict (dedupe) do update set
+        email = excluded.email,
+        phone = excluded.phone,
+        intent = excluded.intent,
+        city = excluded.city,
+        zip = excluded.zip,
+        business_name = excluded.business_name,
+        contact_name = excluded.contact_name,
+        store_type = excluded.store_type,
+        why_us = excluded.why_us,
+        hours = excluded.hours,
+        parking = excluded.parking,
+        source = excluded.source
     `;
-    return { ok: true as const };
+    return { ok: true as const, message: parsed.message };
   });
 
 export const exportLaunchList = createServerFn({ method: "POST" })
@@ -48,9 +125,24 @@ export const exportLaunchList = createServerFn({ method: "POST" })
     const me = rows[0];
     if (!me || me.deleted_at || !me.is_staff) throw new Error("Corporate desk is for operators.");
     await ensureLaunchList(sql);
-    const list = await sql<{ email: string; created_at: string }>`
-      select email, created_at::text from launch_signups order by created_at
+    const list = await sql<LaunchExportRow>`
+      select
+        created_at::text as signed_up_at,
+        path,
+        email,
+        phone,
+        intent,
+        city,
+        zip,
+        business_name,
+        contact_name,
+        store_type,
+        why_us,
+        hours,
+        parking,
+        source
+      from launch_signups
+      order by created_at, id
     `;
-    const lines = ["email,signed_up_at", ...list.map((row) => `${row.email},${row.created_at}`)];
-    return { filename: "launch_signups.csv", csv: `${lines.join("\n")}\n`, count: list.length };
+    return { filename: "launch_signups.csv", csv: launchSignupCsv(list), count: list.length };
   });
