@@ -665,11 +665,13 @@ function LaunchEmails() {
   });
   return (
     <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
-      <h2 className="font-display text-xl">Launch emails</h2>
-      <p className="mt-1 text-sm text-muted">Staff-only CSV of addresses that asked to be told when real listings open.</p>
+      <h2 className="font-display text-xl">Launch list</h2>
+      <p className="mt-1 text-sm text-muted">
+        Staff-only CSV of waitlist notes and Official Handoff Location inquiries. Columns include path, intent, city, ZIP, and source. Older email-only rows stay, with those fields empty and path waitlist.
+      </p>
       <div className="mt-3">
         <Button type="button" size="sm" disabled={launch.isPending} onClick={() => launch.mutate()}>
-          Launch emails
+          Download CSV
         </Button>
       </div>
     </section>

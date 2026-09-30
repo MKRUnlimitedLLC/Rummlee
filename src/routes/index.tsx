@@ -270,6 +270,10 @@ function GuestHero() {
           <Link to="/support" className="underline-offset-4 hover:underline">
             Support
           </Link>
+          <span className="mx-2">·</span>
+          <Link to="/handoff" className="underline-offset-4 hover:underline">
+            Handoff location
+          </Link>
         </p>
       </div>
     </section>
@@ -287,6 +291,11 @@ function SignedHero() {
       <p className="mt-1 text-sm text-muted">Offer now. Always a handoff. The address shows after you pay. Rummlee never ships.</p>
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
         {HOLD_LINE}
+      </p>
+      <p className="mt-3 text-sm">
+        <Link to="/handoff" className="font-medium text-primary-ink">
+          Be a handoff location
+        </Link>
       </p>
     </section>
   );
