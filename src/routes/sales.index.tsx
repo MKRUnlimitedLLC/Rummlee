@@ -8,7 +8,7 @@ import type { HandoffSpot } from "@/lib/rummlee/types";
 import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/sales/")({
-  head: () => publicHead("/sales", "Neighborhood sales near you", "This weekend’s sales. Hours and the handoff, not a street address."),
+  head: () => publicHead("/sales", "Sample neighborhood sales", "Samples only. No store is taking a package. Nothing ships."),
   loader: () => bootstrapPublic(),
   component: SalesPage,
 });
@@ -25,15 +25,19 @@ function SalesPage() {
 
   return (
     <main className="py-6">
-      <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">This weekend</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Sample sales</h1>
       <p className="mt-1 text-muted">
-        Neighborhood sales from Brooklyn to Scottsdale. Offer now — meet at a handoff location, never a home address.{" "}
-        <Link to="/sales/how" className="font-medium text-primary-ink">
-          How to run one in person
+        These are samples. No store is taking a package, and nothing is for sale today. Nothing ships.{" "}
+        <Link to="/" className="font-medium text-primary-ink">
+          Be first to know
         </Link>
         {" · "}
-        <Link to="/corporate" className="font-medium text-primary-ink">
-          Stores: apply
+        <Link to="/handoff" className="font-medium text-primary-ink">
+          Apply as a handoff location
+        </Link>
+        {" · "}
+        <Link to="/sales/how" className="font-medium text-primary-ink">
+          How to run one in person
         </Link>
       </p>
 
