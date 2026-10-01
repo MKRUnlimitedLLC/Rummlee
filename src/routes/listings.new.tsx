@@ -531,7 +531,7 @@ function NewListingPage() {
                 Don’t know what it is? Ask a researcher.
               </Link>
             </p>
-            <p className="text-base font-medium">Add a photo of this item before you continue.</p>
+            {!line.photoUrl ? <p className="text-base font-medium">Add a photo of this item before you continue.</p> : null}
             <div>
               <Label htmlFor={`title-${line.id}`}>What is it?</Label>
               <Input

@@ -7,14 +7,19 @@ let webpOk: boolean | null = null;
 
 /** Shrink a phone photo to WebP, or JPEG when the browser cannot encode WebP. Canvas output drops location data. */
 export async function compressPhoto(file: File): Promise<string> {
-  if (!file.type.startsWith("image/") && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)) {
-    throw new Error("Use a photo.");
-  }
   if (file.size > 20 * 1024 * 1024) throw new Error("That photo is too large. Choose one under 20 MB.");
-  if (/heic|heif/i.test(file.type) || /\.heic$|\.heif$/i.test(file.name)) {
-    throw new Error("Save that phone photo as a JPEG or WebP, then choose it again.");
+  const looksImage =
+    !file.type ||
+    file.type.startsWith("image/") ||
+    /heic|heif/i.test(file.type) ||
+    /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(file.name);
+  if (!looksImage) throw new Error("Use a photo.");
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await decodePhoto(file);
+  } catch {
+    throw new Error("Couldn’t open that photo. Use Take a photo, or pick a JPEG from your library.");
   }
-  const bitmap = await decodePhoto(file);
   try {
     const mime = photoMime();
     let edge = Math.min(MAX_EDGE, Math.max(bitmap.width, bitmap.height));
