@@ -11,6 +11,7 @@ import { ListingCard } from "@/components/listing-card";
 import { LegalLinks } from "@/components/legal";
 import { RateHandoff, ThumbTally, VerifiedBadge } from "@/components/trust";
 import { PlusAlerts } from "@/components/plus-alerts";
+import { ReadingChoice } from "@/components/reading-choice";
 import { NEIGHBORHOODS, CITIES, IDENTITY_ENABLED, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { errMessage } from "@/lib/rummlee/errors";
 import { cityOf, money, saleWindow } from "@/lib/rummlee/format";
@@ -261,6 +262,14 @@ function YouPage() {
         </div>
         <UserButton />
       </div>
+
+      <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
+        <p className="font-medium">Text size</p>
+        <p className="mt-1 text-sm text-muted">Larger text stays on this phone. It does not change your account.</p>
+        <div className="mt-3">
+          <ReadingChoice />
+        </div>
+      </section>
 
       <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <p className="text-sm text-muted">{TEST_MODE ? "Test credits" : "Wallet"}</p>

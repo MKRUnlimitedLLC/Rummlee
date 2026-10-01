@@ -4,6 +4,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
 import { ensureSeed } from "./seed";
 import { ensureProfile, optionalUserId } from "./server";
+import { funnelCounts, type FunnelCounts } from "./funnel";
 import { loadHouseDesk, type HouseDesk } from "./house";
 
 export type Admission = {
@@ -36,6 +37,7 @@ export type CorporateMetrics = {
   plusMembers: number;
   verifiedProfiles: number;
   pendingAdmissions: number;
+  funnel: FunnelCounts;
 };
 
 function bps(part: number, whole: number) {
@@ -236,6 +238,7 @@ async function loadMetrics(sql: Awaited<ReturnType<typeof getSql>>): Promise<Cor
     plusMembers: Number(people[0]?.plus ?? 0),
     verifiedProfiles: Number(people[0]?.verified ?? 0),
     pendingAdmissions: Number(pending[0]?.n ?? 0),
+    funnel: await funnelCounts(),
   };
 }
 

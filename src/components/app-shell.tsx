@@ -6,10 +6,12 @@ import { useEffect, useState } from "react";
 import { Wordmark } from "./logo";
 import { BetaNotice } from "./beta-notice";
 import { LaunchSignup } from "./launch-signup";
+import { ReadingAsk } from "./reading-choice";
 import { cn } from "@/lib/utils";
 import { TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getMe } from "@/lib/rummlee/server";
+import { applyReading, currentReading, paintReading, type Reading } from "@/lib/rummlee/reading";
 
 const SEEN_HANDLE = "rummlee.seenHandle";
 
@@ -25,18 +27,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const bare = pathname === "/bandit" || pathname === "/bandit/";
   const hideNav = pathname.startsWith("/login") || pathname.startsWith("/welcome");
-  const [large, setLarge] = useState(false);
+  const [reading, setReading] = useState<Reading>("full");
   useEffect(() => {
-    const on = localStorage.getItem("rummlee.largeType") === "1";
-    setLarge(on);
-    document.documentElement.classList.toggle("rummlee-large", on);
+    paintReading(currentReading());
+    const sync = () => setReading(currentReading());
+    sync();
+    window.addEventListener("rummlee-reading", sync);
+    return () => window.removeEventListener("rummlee-reading", sync);
   }, []);
-  function toggleLarge() {
-    const next = !large;
-    setLarge(next);
-    localStorage.setItem("rummlee.largeType", next ? "1" : "0");
-    document.documentElement.classList.toggle("rummlee-large", next);
-  }
 
   if (bare) {
     return <div className="fixed inset-0 overflow-auto bg-[#e4dfd6] text-fg">{children}</div>;
@@ -49,8 +47,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/" className="min-h-11 min-w-11 content-center">
             <Wordmark />
           </Link>
-          <button type="button" className="text-sm font-medium text-muted" onClick={toggleLarge}>
-            {large ? "Regular text" : "Large text"}
+          <button
+            type="button"
+            className="min-h-11 px-2 text-sm font-medium text-muted"
+            onClick={() => applyReading(reading === "simple" ? "full" : "simple")}
+          >
+            {reading === "simple" ? "Regular text" : "Larger text"}
           </button>
           <nav className="hidden items-center gap-1 md:flex">
             {TABS.filter((t) => t.to !== "/you").map((tab) => (
@@ -110,6 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
       <BetaNotice />
       <LaunchSignup />
+      <ReadingAsk />
     </div>
   );
 }

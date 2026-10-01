@@ -45,6 +45,11 @@
     font-size: 18px;
   }
 
+  html.rummlee-simple {
+    font-size: 20px;
+    line-height: 1.55;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

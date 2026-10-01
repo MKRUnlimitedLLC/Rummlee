@@ -25,6 +25,7 @@ import {
 } from "@/lib/rummlee/draft";
 import { errMessage } from "@/lib/rummlee/errors";
 import { cityOf, fitsOfficialCounter, money, nextSaturdayIso, splitModes } from "@/lib/rummlee/format";
+import { finishListingAttempt, markFunnelStep, noteListingStep } from "@/lib/rummlee/funnel";
 import { countSaleDays, DEFAULT_FEES, feeById, formatFeeValue, quoteSaleDays } from "@/lib/rummlee/fees";
 import { addListing, bootstrapPublic, createSale, fillFromPhoto, getMe, topUpWallet } from "@/lib/rummlee/server";
 import type { HandoffMode } from "@/lib/rummlee/types";
@@ -103,6 +104,15 @@ function NewListingPage() {
       /* ignore quota */
     }
   }, [draft]);
+
+  useEffect(() => {
+    noteListingStep("started");
+  }, []);
+
+  useEffect(() => {
+    if (draft.lines.some((line) => line.photoUrl)) noteListingStep("photo");
+    if (draft.lines.some((line) => dollarsToCents(line.price) >= MIN_PRICE_CENTS)) noteListingStep("price");
+  }, [draft.lines]);
 
   useEffect(() => {
     if (user) takeAfterLogin();
@@ -222,6 +232,8 @@ function NewListingPage() {
       return { saleId, ids };
     },
     onSuccess: ({ saleId, ids }) => {
+      void markFunnelStep({ data: { step: "published" } });
+      finishListingAttempt();
       setPublishNote(null);
       saveDraft({ ...draft, saleId, lines: [blankLine({ category: draft.lines[0]?.category ?? "furniture", haul: draft.lines[0]?.haul ?? "one" })] });
       void qc.invalidateQueries({ queryKey: ["bootstrap"] });

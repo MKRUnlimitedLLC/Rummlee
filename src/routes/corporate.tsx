@@ -615,6 +615,10 @@ function HouseShelf({ house }: { house: HouseDesk }) {
 
 function Metrics({ metrics }: { metrics: CorporateMetrics }) {
   const cards: { label: string; value: string; hint: string }[] = [
+    { label: "Listing started", value: String(metrics.funnel.started), hint: "Opened Sell in the last 30 days. No name is stored." },
+    { label: "Added a photo", value: String(metrics.funnel.photo), hint: "Reached a photo. No name is stored." },
+    { label: "Set a price", value: String(metrics.funnel.price), hint: "Entered an asking price of at least $5." },
+    { label: "Published", value: String(metrics.funnel.published), hint: "Finished. The gap from started is where people stop." },
     { label: "GMV", value: money(metrics.gmvCents), hint: "Asking paid, last 30 days. Not cancelled." },
     { label: "Net revenue", value: money(metrics.netRevenueCents), hint: "Order fees plus Plus, sale days, and ID checks." },
     { label: "Take rate", value: pct(metrics.takeRateBps), hint: "Order fees ÷ GMV." },
