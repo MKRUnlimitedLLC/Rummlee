@@ -171,10 +171,30 @@ export function splitModes(raw: string | null | undefined): HandoffMode[] {
   return unique.sort((a, b) => MODE_ORDER.indexOf(a) - MODE_ORDER.indexOf(b));
 }
 
+/** Uniform index in 0..limit-1. Rejection sampling, so the modulo is not biased. */
+function secureIndex(limit: number) {
+  if (!Number.isInteger(limit) || limit <= 1) return 0;
+  const span = 0x100000000;
+  const max = span - (span % limit);
+  const buf = new Uint32Array(1);
+  for (;;) {
+    crypto.getRandomValues(buf);
+    if (buf[0] < max) return buf[0] % limit;
+  }
+}
+
+function secureChars(alphabet: string, count: number) {
+  let out = "";
+  for (let i = 0; i < count; i += 1) out += alphabet[secureIndex(alphabet.length)];
+  return out;
+}
+
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
 export function makeHandle() {
-  const a = HANDLE_ADJ[Math.floor(Math.random() * HANDLE_ADJ.length)];
-  const n = HANDLE_NOUN[Math.floor(Math.random() * HANDLE_NOUN.length)];
-  const num = Math.floor(10 + Math.random() * 89);
+  const a = HANDLE_ADJ[secureIndex(HANDLE_ADJ.length)];
+  const n = HANDLE_NOUN[secureIndex(HANDLE_NOUN.length)];
+  const num = 10 + secureIndex(89);
   return `${a}_${n}_${num}`;
 }
 
@@ -213,18 +233,12 @@ export function addDaysIso(iso: string, days: number) {
 }
 
 export function pickupCode() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "";
-  for (let i = 0; i < 6; i += 1) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  const out = secureChars(CODE_ALPHABET, 6);
   return `${out.slice(0, 3)}-${out.slice(3)}`;
 }
 
 export function partyScan(side: "S" | "B") {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = side;
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  for (const b of bytes) out += alphabet[b % alphabet.length];
-  return out;
+  return side + secureChars(CODE_ALPHABET, 16);
 }
 
 export function isSeedUser(id: string) {
