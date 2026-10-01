@@ -1,48 +1,12 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { OwnershipForm } from "@/components/launch-forms";
 import { LegalPage, LegalSection } from "@/components/legal";
 
-const TITLE = "Rummlee for investors — local commerce marketplace and handoff";
+const TITLE = "Rummlee for investors";
 const DESCRIPTION =
-  "Growth equity, software and internet. Rummlee is a local commerce marketplace for neighborhood resale and handoff. Beta. Raising $2.5M at $12M pre-money.";
-
-const structuredData = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      name: "Rummlee Corp",
-      url: "https://rummlee.com/",
-      email: "matt@mkr-unlimited.com",
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: "Fargo",
-        addressRegion: "ND",
-        addressCountry: "US",
-      },
-    },
-    {
-      "@type": "WebSite",
-      name: "Rummlee",
-      url: "https://rummlee.com/",
-    },
-    {
-      "@type": "SoftwareApplication",
-      name: "Rummlee",
-      applicationCategory: "BusinessApplication",
-      operatingSystem: "Web",
-      url: "https://rummlee.com/",
-      description:
-        "Hyperlocal garage, estate, moving, and cleanout marketplace. Local handoff only. No shipping. Beta, with test credits.",
-      provider: {
-        "@type": "Organization",
-        name: "Rummlee Corp",
-      },
-    },
-  ],
-};
+  "Pre-launch local marketplace. Pickup at an official handoff location. Nothing ships. This page is not an offer of stock.";
 
 export const Route = createFileRoute("/investors")({
   head: () => ({
@@ -52,10 +16,7 @@ export const Route = createFileRoute("/investors")({
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
       { property: "og:url", content: "https://rummlee.com/investors" },
-      { property: "og:image", content: "https://rummlee.com/og.jpg" },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { "script:ld+json": structuredData },
     ],
   }),
   component: Investors,
@@ -64,93 +25,87 @@ export const Route = createFileRoute("/investors")({
 function Investors() {
   return (
     <LegalPage
-      title="Investors"
-      lede="A plain-English page for investors and automated deal screeners. Only what is true. September 30, 2026."
+      title="A local marketplace. The package changes hands at a store."
+      lede="Rummlee is not open. This page is for people who invest in marketplaces, local retail, or consumer apps. It is not an offer to sell stock, not a solicitation, and not a commitment to take money. October 1, 2026."
     >
+      <LegalSection title="The company">
+        <p>
+          Neighbors sell used household items to other neighbors. The buyer pays in the app. Pickup is at an official
+          handoff location first. A public place is the backup. A private handoff is optional, and only after payment.
+          Nothing ships. The home address stays off the public card. People deal by a handle, not a legal name.
+        </p>
+        <p>
+          The company is Rummlee Corp. Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC. MKR-UNLIMITED
+          LLC owns MKR Connect LLC. A founder is in Fargo, North Dakota.
+        </p>
+      </LegalSection>
+      <LegalSection title="The problem">
+        <p>
+          A driveway sale depends on weather, a Saturday, and strangers at the door. Local online listings often publish
+          a home address, or they push the conversation out of the app. Shipping marketplaces add a carrier and a fee
+          that does not fit a couch or a closet clean-out.
+        </p>
+      </LegalSection>
       <LegalSection title="The product">
+        <p>Official handoff location first. The store holds the package. It is not the buyer or the seller.</p>
+        <p>Money is meant to stay held until both sides confirm pickup. That hold is simulated while the product is in test.</p>
+        <p>The seller sets an asking price and a private floor. The buyer can pay the ask or make one offer path.</p>
+        <p>A U.S. provisional patent application has been filed on the handoff method. It is not an issued patent.</p>
+      </LegalSection>
+      <LegalSection title="How the company expects to make money">
         <p>
-          Rummlee is a hyperlocal marketplace for garage sales, estate sales,
-          moving sales, and home cleanouts. It is local only. Rummlee never
-          ships. There is no carrier, no postage, and no delivery.
-        </p>
-        <p>
-          A neighbor pays in the app. The money is held until both people
-          confirm the handoff. The handoff is one of three kinds: an Official
-          partner store, a public place, or a private handoff.
+          On a live transaction: a seller fee, a buyer fee, and a fee for each sale date. Memberships change what those
+          fees are and what is included. The public rate card is on{" "}
+          <Link to="/fees" className="font-medium text-primary-ink">
+            Fees
+          </Link>
+          . Rates can change. This page is not a quote, and test activity is not revenue.
         </p>
       </LegalSection>
-
-      <LegalSection title="What is live">
+      <LegalSection title="Where it stands">
+        <p>Pre-launch. The product is in test. It is not an open marketplace. No card is charged. People use test credits.</p>
+        <p>No official handoff location is signed. A store can apply. An application is not a signed location.</p>
+        <p>This page does not state a user count, a revenue figure, a round size, or a valuation.</p>
         <p>
-          The product is on the web at{" "}
-          <a
-            href="https://rummlee.com/"
-            className="font-medium text-primary-ink underline-offset-4 hover:underline"
-          >
-            https://rummlee.com
-          </a>
-          {
-            ". The company is Rummlee Corp. Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC. MKR-UNLIMITED LLC owns MKR Connect LLC. A founder is in Fargo, North Dakota."
-          }
-        </p>
-        <p>
-          Rummlee is in beta. People pay with test credits. It is not a live
-          marketplace with reported sales, a user count, or a take-rate history.
-          No Official Handoff store is live in production. GameStop is not a
-          signed partner.
+          Neighbors can{" "}
+          <Link to="/" className="font-medium text-primary-ink">
+            sign up for updates and the launch
+          </Link>
+          . A store can{" "}
+          <Link to="/handoff" className="font-medium text-primary-ink">
+            apply to be an official handoff location
+          </Link>
+          .
         </p>
       </LegalSection>
-
-      <LegalSection title="The thesis">
+      <LegalSection title="Risks">
+        <p>There is no operating history and no revenue on this page to show. A private investment can be a total loss.</p>
+        <p>The model needs a store, buyers, and sellers in the same city. None of those is guaranteed.</p>
+        <p>Real card payments are not on. A payments company is planned to hold funds. It is not live.</p>
+        <p>Sales-tax and marketplace rules differ by state. They are not finished on this page.</p>
+        <p>There is no public market for the shares. Any later round, price, or percent is not stated here.</p>
+      </LegalSection>
+      <Request />
+      <LegalSection title="Important notice">
         <p>
-          The missing piece in local resale is finishing the deal without a
-          stranger on the porch. Official Handoff Locations are that piece: a
-          counter that is not either person’s home.
-        </p>
-        <p>
-          The retail thesis is a partner store that already has a counter and
-          hours. GameStop is the first retail fit we are aiming at. That is an
-          aspirational fit, not a signed deal.
+          This page is general information as of October 1, 2026. It is not an offer to sell, or a solicitation of an
+          offer to buy, any security. Nothing here is a commitment to raise money or to accept an investor. It is not
+          investment, legal, or tax advice. Forward-looking statements are plans, not promises. Any real discussion
+          would use confidential materials and would have to fit the securities laws that apply. Do not rely on this
+          page to make an investment decision.
         </p>
       </LegalSection>
-
-      <LegalSection title="The raise">
-        <p>
-          Rummlee Corp is raising $2.5 million at a $12 million pre-money
-          valuation. Write to{" "}
-          <a
-            href="mailto:matt@mkr-unlimited.com"
-            className="font-medium text-primary-ink underline-offset-4 hover:underline"
-          >
-            matt@mkr-unlimited.com
-          </a>
-          {"."}
-        </p>
-        <p>
-          A lead check can be larger than the round on this page. Ownership is
-          discussed by email. Nothing on this page is an offer of shares.
-        </p>
-      </LegalSection>
-
-      <OwnershipInterest />
     </LegalPage>
   );
 }
 
-function OwnershipInterest() {
+function Request() {
   const [done, setDone] = useState<string | null>(null);
   return (
-    <LegalSection title="Ownership interest">
+    <LegalSection title="Request information">
       <p>
-        This is for a business that wants to talk about owning part of Rummlee.
-        It is not an Official Handoff Location application, and it is not the
-        consumer waitlist.
-      </p>
-      <p>
-        Email and company are enough. A short note is optional. No street
-        address, no phone, and no payment. Rummlee is in beta. Sending this is
-        not an offer of shares, an allocation, exclusivity, or a date to close.
-        The raise terms above are the only ones stated on this page.
+        Leave an email if you want to hear more, if there is something to say. A firm name is optional. We do not sell
+        the address. Writing you is not an offer of stock.
       </p>
       {done ? (
         <p role="status" className="rounded-2xl bg-bg p-4 text-pretty">
@@ -158,23 +113,13 @@ function OwnershipInterest() {
         </p>
       ) : (
         <OwnershipForm
-          idPrefix="ownership"
+          idPrefix="investor"
           onSuccess={(message) => {
             setDone(message);
             toast.success(message);
           }}
         />
       )}
-      <p>
-        You can also write to{" "}
-        <a
-          href="mailto:matt@mkr-unlimited.com"
-          className="font-medium text-primary-ink underline-offset-4 hover:underline"
-        >
-          matt@mkr-unlimited.com
-        </a>
-        .
-      </p>
     </LegalSection>
   );
 }

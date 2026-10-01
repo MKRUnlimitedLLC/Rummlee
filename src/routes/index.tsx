@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, EyeOff, Store } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
-import { Button } from "@/components/ui/button";
+import { WaitlistForm } from "@/components/launch-forms";
 import { Input } from "@/components/ui/input";
 import { bootstrapPublic } from "@/lib/rummlee/server";
 import { CATEGORIES, CITIES, HAULS, HOLD_LINE } from "@/lib/rummlee/constants";
@@ -174,8 +174,8 @@ function Home() {
       <section id="finds" className="mt-6 scroll-mt-20">
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
-            <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">This weekend</h2>
-            <p className="text-sm text-muted">Same listings as Browse — this weekend first.</p>
+            <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Sample listings</h2>
+            <p className="text-sm text-muted">Not for sale. Nothing is live until a handoff location is open.</p>
           </div>
           <Link to="/sales" className="shrink-0 text-sm font-medium text-primary-ink">
             All sales
@@ -215,47 +215,38 @@ function Home() {
 }
 
 function GuestHero() {
+  const [joined, setJoined] = useState<string | null>(null);
   return (
     <section className="overflow-hidden rounded-2xl bg-surface shadow-[var(--shadow-card)] sm:rounded-[28px]">
       <div className="relative aspect-[16/9] max-h-56 w-full overflow-hidden sm:max-h-72">
         <img src="/listings/hero-sale.jpg" alt="Neighbors browsing a weekend sale" className="size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-fg/80 via-fg/20 to-transparent" />
-        <p className="absolute bottom-3 left-4 right-4 font-display text-2xl font-semibold leading-tight tracking-[-0.04em] text-primary-fg sm:text-3xl">
+        <h1 className="absolute bottom-3 left-4 right-4 font-display text-2xl font-semibold leading-tight tracking-[-0.04em] text-primary-fg sm:text-3xl">
           The good stuff, before Saturday.
-        </p>
+        </h1>
       </div>
       <div className="space-y-4 p-5">
         <p className="text-pretty text-muted">
-          Furniture, kitchen, closet, and kids — from neighbors in the city and the suburbs. Offer this week. Meet at a
-          handoff location. The street shows after you pay. Until then, a rough distance. Rummlee never ships.
+          Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Pickup will be at an
+          official handoff location, not a stranger’s house. Nothing ships.
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Perk icon={CalendarDays} title="Offers before Saturday" body="Browse while the closet is still being edited. Lock it in before the weekend." />
-          <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors see @linen_lark. Email, legal name, and home stay off the listing." />
-          <Perk icon={Store} title="Handoff locations" body="Official partner store, public handoff location, or private handoff. The address shows after you pay. Until then, a rough distance." />
+          <Perk icon={CalendarDays} title="First to know" body="Updates and the launch. One email. We don’t sell the address." />
+          <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors see a handle. Email, legal name, and home stay off the listing." />
+          <Perk icon={Store} title="Official handoff location" body="A store holds the package. A public place is the backup. Private handoff only if you both want it." />
         </div>
-        <p className="inline-flex rounded-full bg-primary-soft px-3 py-1.5 text-sm font-medium text-primary-ink">
-          {HOLD_LINE}
-        </p>
-        <Button asChild className="w-full">
-          <a href="#finds">Browse this weekend</a>
-        </Button>
+        <div id="waitlist" className="scroll-mt-20 rounded-2xl bg-bg p-4">
+          <p className="text-sm font-medium text-fg">Be first to know</p>
+          <p className="mt-1 text-sm text-muted">Updates and the launch. Nothing is for sale yet.</p>
+          {joined ? (
+            <p className="mt-3 rounded-2xl bg-primary-soft px-4 py-3 text-sm text-primary-ink">{joined}</p>
+          ) : (
+            <WaitlistForm idPrefix="home" onSuccess={setJoined} />
+          )}
+        </div>
         <p className="text-center text-sm text-muted">
-          <Link to="/listings/new" className="font-medium text-primary-ink">
-            Sell
-          </Link>
-          <span className="mx-2">·</span>
-          <Link to="/sales" className="font-medium text-fg">
-            This weekend
-          </Link>
-          <span className="mx-2">·</span>
-          <Link to="/login" className="font-medium text-fg">
-            Sign in
-          </Link>
-        </p>
-        <p className="text-center text-sm text-muted">
-          <Link to="/fees" className="font-medium text-primary-ink">
-            Fees
+          <Link to="/handoff" className="font-medium text-primary-ink">
+            Apply to be an official handoff location
           </Link>
         </p>
         <p className="text-center text-xs text-subtle">
@@ -271,8 +262,12 @@ function GuestHero() {
             Support
           </Link>
           <span className="mx-2">·</span>
-          <Link to="/handoff" className="underline-offset-4 hover:underline">
-            Handoff location
+          <Link to="/fees" className="underline-offset-4 hover:underline">
+            Fees
+          </Link>
+          <span className="mx-2">·</span>
+          <Link to="/investors" className="underline-offset-4 hover:underline">
+            Investors
           </Link>
         </p>
       </div>
@@ -285,10 +280,10 @@ function SignedHero() {
     <section className="rounded-2xl bg-primary-soft px-5 py-4">
       <p className="flex items-center gap-1.5 text-sm font-medium text-primary-ink">
         <CalendarDays className="size-4" strokeWidth={1.8} />
-        This weekend nearby
+        Samples only
       </p>
-      <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">The good stuff is already listed</h1>
-      <p className="mt-1 text-sm text-muted">Offer now. Always a handoff. The address shows after you pay. Rummlee never ships.</p>
+      <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">Nothing is for sale yet</h1>
+      <p className="mt-1 text-sm text-muted">These listings are samples. Pickup will be at a handoff location. Nothing ships.</p>
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
         {HOLD_LINE}
       </p>

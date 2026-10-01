@@ -1,6 +1,6 @@
 # Rummlee
 
-Neighborhood finds for women in the city and the suburbs. Offer this week. Meet at a partner store, never a home address.
+Neighborhood finds. Not open yet. Sign up for updates and the launch. Pickup at an official handoff location, never a home address. Nothing ships.
 
 **The good stuff, before Saturday.**
 

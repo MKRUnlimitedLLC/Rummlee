@@ -47,7 +47,7 @@ export function GuestGate({
           </Link>
           <span className="mx-2">·</span>
           <Link to="/sales" className="font-medium text-fg">
-            This weekend
+            Sample sales
           </Link>
         </p>
       </div>

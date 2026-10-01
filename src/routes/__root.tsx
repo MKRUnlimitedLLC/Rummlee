@@ -12,7 +12,7 @@ import appCss from "../styles.css?url";
 const APP_NAME = "Rummlee";
 const DEFAULT_TITLE = "Rummlee — The good stuff, before Saturday";
 const DEFAULT_DESCRIPTION =
-  "Neighborhood finds in the city and the suburbs. Offer this week. Pick up at a partner store. No shipping. The street shows after you pay.";
+  "Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Pickup will be at an official handoff location. Nothing ships.";
 const SITE_URL = "https://rummlee.com/";
 const OG_IMAGE = "https://rummlee.com/og.jpg";
 
