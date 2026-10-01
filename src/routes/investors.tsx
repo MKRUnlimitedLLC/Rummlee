@@ -16,10 +16,6 @@ const structuredData = {
       name: "Rummlee Corp",
       url: "https://rummlee.com/",
       email: "matt@mkr-unlimited.com",
-      founder: {
-        "@type": "Person",
-        name: "Matthew Rau",
-      },
       address: {
         "@type": "PostalAddress",
         addressLocality: "Fargo",
@@ -94,7 +90,7 @@ function Investors() {
             https://rummlee.com
           </a>
           {
-            ". The company is Rummlee Corp. Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC. MKR-UNLIMITED LLC owns MKR Connect LLC. Matthew Rau, in Fargo, North Dakota, is a founder."
+            ". The company is Rummlee Corp. Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC. MKR-UNLIMITED LLC owns MKR Connect LLC. A founder is in Fargo, North Dakota."
           }
         </p>
         <p>
