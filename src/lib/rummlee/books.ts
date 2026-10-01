@@ -105,12 +105,40 @@ export async function expireOfficialHolds(sql: Sql) {
   return closed;
 }
 
+export async function parkEndedUnsold(sql: Sql, sellerId?: string) {
+  const rows = await sql<{ id: string }>`
+    update listings l
+    set status = ${"stashed"}, overtime_cents = null
+    from sales s
+    where l.sale_id = s.id
+      and l.status = ${"live"}
+      and coalesce(l.charity_split, false) = false
+      and coalesce(s.always_on, false) = false
+      and s.ends_on < current_date
+      and l.overtime_cents is null
+      and (${!sellerId} or l.seller_id = ${sellerId ?? ""})
+      and not exists (
+        select 1 from orders o where o.listing_id = l.id and o.status = ${"escrow"}
+      )
+    returning l.id
+  `;
+  for (const row of rows) {
+    await sql`
+      update offers
+      set status = ${"declined"}, declined_by = ${"seller"}, updated_at = now()
+      where listing_id = ${row.id} and status in (${"pending"}, ${"countered"})
+    `;
+  }
+  return rows.length;
+}
+
 export async function runNightly(sql: Sql) {
   const released = await releaseDuePayouts(sql);
   const holdsClosed = await expireOfficialHolds(sql);
+  const parked = await parkEndedUnsold(sql);
   const { flushPlusDigests } = await import("./alerts");
   const digests = await flushPlusDigests(sql);
-  return { released, holdsClosed, digests };
+  return { released, holdsClosed, parked, digests };
 }
 
 export async function chargeSeller(

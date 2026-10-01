@@ -27,7 +27,7 @@ import { errMessage } from "@/lib/rummlee/errors";
 import { cityOf, fitsOfficialCounter, looksLikeAccountLabel, money, nextSaturdayIso, splitModes } from "@/lib/rummlee/format";
 import { finishListingAttempt, markFunnelStep, noteListingStep } from "@/lib/rummlee/funnel";
 import { countSaleDays, DEFAULT_FEES, feeById, formatFeeValue, quoteSaleDays } from "@/lib/rummlee/fees";
-import { addListing, bootstrapPublic, createSale, fillFromPhoto, getMe, topUpWallet } from "@/lib/rummlee/server";
+import { addListing, bootstrapPublic, createSale, fillFromPhoto, getMe, restockListing, topUpWallet } from "@/lib/rummlee/server";
 import type { HandoffMode } from "@/lib/rummlee/types";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +81,7 @@ function NewListingPage() {
   const [saved, setSaved] = useState(false);
   const [step, setStep] = useState(1);
   const [publishNote, setPublishNote] = useState<string | null>(null);
+  const [bringIds, setBringIds] = useState<string[]>([]);
 
   useEffect(() => {
     const savedDraft = loadDraft();
@@ -162,7 +163,7 @@ function NewListingPage() {
         throw new Error("Sign in again, then publish. The listing has to be yours.");
       }
       const ready = draft.lines.filter((line) => line.title.trim() && line.photoUrl && dollarsToCents(line.price) >= MIN_PRICE_CENTS);
-      if (!ready.length) throw new Error("Each item needs a photo of that item and an asking price of at least $5.");
+      if (!ready.length && bringIds.length === 0) throw new Error("Each item needs a photo of that item and an asking price of at least $5.");
       if (ready.some((line) => line.photoUrl.startsWith("/listings/"))) {
         throw new Error("Use your own photo. Sample listing pictures can’t be reused.");
       }
@@ -228,12 +229,17 @@ function NewListingPage() {
         linked = true;
         ids.push(created.id);
       }
+      for (const listingId of bringIds) {
+        await restockListing({ data: { listingId, saleId } });
+        ids.push(listingId);
+      }
       if (researchId) sessionStorage.removeItem("rummlee-research");
       return { saleId, ids };
     },
     onSuccess: ({ saleId, ids }) => {
       void markFunnelStep({ data: { step: "published" } });
       finishListingAttempt();
+      setBringIds([]);
       setPublishNote(null);
       saveDraft({ ...draft, saleId, lines: [blankLine({ category: draft.lines[0]?.category ?? "furniture", haul: draft.lines[0]?.haul ?? "one" })] });
       void qc.invalidateQueries({ queryKey: ["bootstrap"] });
@@ -360,9 +366,12 @@ function NewListingPage() {
           if (step < 3) {
             if (step === 1) {
               const active = draft.lines.filter((line) => line.title.trim() || line.price.trim() || line.photoUrl);
-              const rows = active.length ? active : draft.lines.slice(0, 1);
-              if (rows.some((line) => !line.photoUrl)) {
+              if (active.some((line) => !line.photoUrl)) {
                 toast.error("Add a photo of this item before you continue.");
+                return;
+              }
+              if (!active.length && bringIds.length === 0) {
+                toast.error("Add a photo, or pick an item from your inventory.");
                 return;
               }
             }
@@ -514,6 +523,36 @@ function NewListingPage() {
           }}
         />
         </div>
+
+        {step === 1 && (meQ.data?.inventory.length ?? 0) > 0 ? (
+          <fieldset className="space-y-2 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
+            <legend className="px-1 text-sm font-medium">From your inventory</legend>
+            <p className="text-sm text-muted">Items nobody bought. Check the ones to put on this sale.</p>
+            <ul className="space-y-2">
+              {meQ.data?.inventory.map((item) => (
+                <li key={item.id}>
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="size-4"
+                      checked={bringIds.includes(item.id)}
+                      onChange={(event) =>
+                        setBringIds((current) =>
+                          event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id),
+                        )
+                      }
+                    />
+                    <img src={item.photoUrl} alt="" className="size-12 rounded-lg object-cover" />
+                    <span>
+                      {item.title}
+                      <span className="block text-muted">{money(item.priceCents)}</span>
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+        ) : null}
 
         {draft.lines.map((line, index) => (
           <fieldset key={line.id} className="space-y-3 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
@@ -756,7 +795,7 @@ function NewListingPage() {
             <Button
               type="submit"
               className="flex-1"
-              disabled={step === 1 && draft.lines.every((line) => !line.photoUrl)}
+              disabled={step === 1 && draft.lines.every((line) => !line.photoUrl) && bringIds.length === 0}
             >
               Next
             </Button>

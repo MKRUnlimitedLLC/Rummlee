@@ -13,7 +13,7 @@ import { beginIdentity, finishIdentity } from "./identity";
 import { suggestFromPhoto } from "./photo-fill";
 import { childIds, holdBundleChildren, releaseBundleChildren, soldBundleChildren, useBundleOffers, voidBuyerBundlesContaining } from "./bundles";
 import { overallThumb, type Thumb } from "./trust";
-import { PAYOUT_HOLD_HOURS, chargeSeller, releaseDuePayouts, writeLedger, writeNotice, refundEscrow } from "./books";
+import { PAYOUT_HOLD_HOURS, chargeSeller, parkEndedUnsold, releaseDuePayouts, writeLedger, writeNotice, refundEscrow } from "./books";
 import { claimHouseShelf, houseForSpot, releaseHouseClaim } from "./house";
 import { awardCleanRun, grantRep } from "./rep";
 import { ensureApproach } from "./approach";
@@ -1051,6 +1051,7 @@ export const getMe = createServerFn({ method: "GET" })
     const sql = await getSql();
     await ensureSeed(sql);
     await releaseDuePayouts(sql);
+    await parkEndedUnsold(sql, context.userId);
     const me = await ensureProfile(sql, context.userId);
     const txs = await sql<{
       id: string;
@@ -1840,11 +1841,19 @@ export const restockListing = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     const me = await ensureProfile(sql, context.userId);
-    const rows = await sql<{ id: string; status: string }>`
-      select id, status from listings where id = ${data.listingId} and seller_id = ${context.userId}
+    const rows = await sql<{ id: string; status: string; sale_ended: boolean }>`
+      select l.id, l.status,
+        (coalesce(s.always_on, false) = false and s.ends_on < current_date) as sale_ended
+      from listings l
+      join sales s on s.id = l.sale_id
+      where l.id = ${data.listingId} and l.seller_id = ${context.userId}
+        and coalesce(l.charity_split, false) = false
     `;
     const item = rows[0];
-    if (!item || item.status !== "stashed") throw new Error("Stash it first, then put it on a sale.");
+    const reusable = item && (item.status === "stashed" || (item.status === "live" && item.sale_ended));
+    if (!item || !reusable) throw new Error("That item isn’t in your inventory.");
+    const open = await sql<{ id: string }>`select id from orders where listing_id = ${item.id} and status = ${"escrow"} limit 1`;
+    if (open[0]) throw new Error("This one is held. Finish the handoff first.");
     const sales = await sql<{ id: string; neighborhood: string; ends_on: string; always_on: boolean | null }>`
       select id, neighborhood, ends_on::text, always_on from sales
       where id = ${data.saleId} and seller_id = ${context.userId} and status = ${"live"}
@@ -1862,6 +1871,7 @@ export const restockListing = createServerFn({ method: "POST" })
         throw new Error(`A sale holds ${SALE_ITEM_CAP} items. Rummlee +++ has no item cap.`);
       }
     }
+    await closeOpenOffers(sql, item.id);
     await sql`
       update listings
       set status = ${"live"}, sale_id = ${sale.id}, neighborhood = ${sale.neighborhood}, overtime_cents = null

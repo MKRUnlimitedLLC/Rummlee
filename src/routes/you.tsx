@@ -672,7 +672,7 @@ function SellerInventory({
     <section className="mt-8">
       <h2 className="font-display text-xl">Your inventory</h2>
       <p className="mt-1 text-sm text-muted">
-        Unsold items stay here after a sale. Stash one to sell it later. Remove one if you’re done with it.
+        When a sale ends, items nobody bought move here. Put one on your next sale, or remove it.
       </p>
       {items.length === 0 ? (
         <p className="mt-2 text-sm text-muted">Nothing waiting. Items still on a sale stay with that sale.</p>
@@ -686,17 +686,14 @@ function SellerInventory({
                   {item.title}
                 </Link>
                 <p className="text-sm text-muted">
-                  {money(item.priceCents)} · {item.status === "stashed" ? "Stashed" : `Unsold · ${item.saleName}`}
+                  {money(item.priceCents)} · {item.status === "stashed" ? "Ready for your next sale" : `Still on ${item.saleName}`}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {item.status === "unsold" ? (
-                    <Button size="sm" variant="secondary" disabled={stash.isPending} onClick={() => stash.mutate(item.id)}>
-                      Stash
-                    </Button>
-                  ) : openSales.length ? (
+                  {openSales.length ? (
                     <select
                       className="rounded-xl border border-border bg-bg px-2 py-1 text-sm"
                       defaultValue=""
+                      aria-label={`Put ${item.title} on a sale`}
                       onChange={(e) => {
                         if (!e.target.value) return;
                         restock.mutate({ listingId: item.id, saleId: e.target.value });
@@ -713,6 +710,11 @@ function SellerInventory({
                   ) : (
                     <p className="text-sm text-muted">Start a sale, then put this on it.</p>
                   )}
+                  {item.status === "unsold" ? (
+                    <Button size="sm" variant="secondary" disabled={stash.isPending} onClick={() => stash.mutate(item.id)}>
+                      Save for later
+                    </Button>
+                  ) : null}
                   <Button size="sm" variant="ghost" disabled={remove.isPending} onClick={() => remove.mutate(item.id)}>
                     Remove
                   </Button>
