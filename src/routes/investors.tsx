@@ -34,6 +34,10 @@ function Investors() {
           handoff location first. A public place is the backup. A private handoff is optional, and only after payment.
           Nothing ships. The home address stays off the public card. People deal by a handle, not a legal name.
         </p>
+        <p>
+          The company is Rummlee Corp. Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC. MKR-UNLIMITED
+          LLC owns MKR Connect LLC. A founder is in Fargo, North Dakota.
+        </p>
       </LegalSection>
       <LegalSection title="The problem">
         <p>
