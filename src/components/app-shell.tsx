@@ -12,6 +12,7 @@ import { TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getMe } from "@/lib/rummlee/server";
 import { applyReading, currentReading, paintReading, type Reading } from "@/lib/rummlee/reading";
+import { looksLikeAccountLabel } from "@/lib/rummlee/format";
 
 const SEEN_HANDLE = "rummlee.seenHandle";
 
@@ -132,7 +133,7 @@ function AuthChip() {
   if (signedIn) {
     return (
       <Link to="/you" className="inline-flex h-9 max-w-40 items-center truncate rounded-full bg-bg-warm px-3.5 text-sm font-medium text-fg">
-        {handle ? `@${handle}` : "You"}
+        {handle && !looksLikeAccountLabel(handle) ? `@${handle}` : "You"}
       </Link>
     );
   }

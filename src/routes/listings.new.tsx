@@ -24,7 +24,7 @@ import {
   type ListingDraft,
 } from "@/lib/rummlee/draft";
 import { errMessage } from "@/lib/rummlee/errors";
-import { cityOf, fitsOfficialCounter, money, nextSaturdayIso, splitModes } from "@/lib/rummlee/format";
+import { cityOf, fitsOfficialCounter, looksLikeAccountLabel, money, nextSaturdayIso, splitModes } from "@/lib/rummlee/format";
 import { finishListingAttempt, markFunnelStep, noteListingStep } from "@/lib/rummlee/funnel";
 import { countSaleDays, DEFAULT_FEES, feeById, formatFeeValue, quoteSaleDays } from "@/lib/rummlee/fees";
 import { addListing, bootstrapPublic, createSale, fillFromPhoto, getMe, topUpWallet } from "@/lib/rummlee/server";
@@ -766,7 +766,11 @@ function NewListingPage() {
             </Button>
           ) : user ? (
             <Button type="submit" className="flex-1" disabled={publish.isPending || meQ.isPending || saleShort}>
-              {publish.isPending ? "Publishing…" : meQ.data?.me.handle ? `Publish as @${meQ.data.me.handle}` : "Publish"}
+              {publish.isPending
+                ? "Publishing…"
+                : meQ.data?.me.handle && !looksLikeAccountLabel(meQ.data.me.handle)
+                  ? `Publish as @${meQ.data.me.handle}`
+                  : "Publish"}
             </Button>
           ) : (
             <Button type="submit" className="flex-1">
