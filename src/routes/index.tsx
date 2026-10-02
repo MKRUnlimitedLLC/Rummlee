@@ -87,6 +87,7 @@ function Home() {
   return (
     <main className="pt-5">
       {signedIn ? <SignedHero /> : <GuestHero />}
+      <LaunchChoices />
 
       <div className="mt-6 space-y-3">
         <Input
@@ -215,7 +216,6 @@ function Home() {
 }
 
 function GuestHero() {
-  const [joined, setJoined] = useState<string | null>(null);
   return (
     <section className="overflow-hidden rounded-2xl bg-surface shadow-[var(--shadow-card)] sm:rounded-[28px]">
       <div className="relative aspect-[16/9] max-h-56 w-full overflow-hidden sm:max-h-72">
@@ -235,20 +235,6 @@ function GuestHero() {
           <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors see a handle. Email, legal name, and home stay off the listing." />
           <Perk icon={Store} title="Official handoff location" body="A store holds the package. A public place is the backup. Private handoff only if you both want it." />
         </div>
-        <div id="waitlist" className="scroll-mt-20 rounded-2xl bg-bg p-4">
-          <p className="text-sm font-medium text-fg">Be first to know</p>
-          <p className="mt-1 text-sm text-muted">Updates and the launch. Nothing is for sale yet.</p>
-          {joined ? (
-            <p className="mt-3 rounded-2xl bg-primary-soft px-4 py-3 text-sm text-primary-ink">{joined}</p>
-          ) : (
-            <WaitlistForm idPrefix="home" onSuccess={setJoined} />
-          )}
-        </div>
-        <p className="text-center text-sm text-muted">
-          <Link to="/handoff" className="font-medium text-primary-ink">
-            Apply to be an official handoff location
-          </Link>
-        </p>
         <p className="text-center text-xs text-subtle">
           <Link to="/privacy" className="underline-offset-4 hover:underline">
             Privacy
@@ -287,11 +273,37 @@ function SignedHero() {
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
         {HOLD_LINE}
       </p>
-      <p className="mt-3 text-sm">
-        <Link to="/handoff" className="font-medium text-primary-ink">
-          Be a handoff location
+    </section>
+  );
+}
+
+function LaunchChoices() {
+  const [joined, setJoined] = useState<string | null>(null);
+  return (
+    <section id="waitlist" className="mt-6 grid scroll-mt-24 gap-4 sm:grid-cols-2">
+      <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)]">
+        <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">When real items launch</h2>
+        <p className="mt-1 text-sm text-muted">
+          Leave an email. We’ll write when a city opens for real listings. Nothing is for sale yet. We don’t sell the address.
+        </p>
+        {joined ? (
+          <p className="mt-3 rounded-2xl bg-primary-soft px-4 py-3 text-sm text-primary-ink">{joined}</p>
+        ) : (
+          <WaitlistForm idPrefix="home" onSuccess={setJoined} />
+        )}
+      </div>
+      <div className="flex flex-col rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)]">
+        <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Be a handoff location</h2>
+        <p className="mt-1 text-sm text-muted">
+          A shop that can hold a paid item for pickup. The application is a short form. Asking is free. It is not a signed store.
+        </p>
+        <Link
+          to="/handoff"
+          className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-fg"
+        >
+          Apply to be a handoff location
         </Link>
-      </p>
+      </div>
     </section>
   );
 }

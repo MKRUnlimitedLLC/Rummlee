@@ -78,6 +78,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             {TEST_PAY_NOTE}
           </p>
         ) : null}
+        <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-border/60 px-4 py-2 text-center text-sm">
+          <Link to="/" hash="waitlist" className="font-medium text-primary-ink">
+            Get launch updates
+          </Link>
+          <Link to="/handoff" className="font-medium text-primary-ink">
+            Apply to be a handoff location
+          </Link>
+        </p>
       </header>
       <div className={cn("mx-auto w-full max-w-5xl px-4", hideNav ? "pb-8" : "pb-28 md:pb-10")}>{children}</div>
       {hideNav ? null : (
