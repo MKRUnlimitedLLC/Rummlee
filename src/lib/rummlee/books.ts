@@ -105,16 +105,39 @@ export async function expireOfficialHolds(sql: Sql) {
   return closed;
 }
 
+/** Move items nobody bought into the seller's inventory after the sale's last Chicago day. */
 export async function parkEndedUnsold(sql: Sql, sellerId?: string) {
+  await sql`
+    update listings
+    set status = ${"live"}
+    where status = ${"stashed"} and seller_id like ${"seed-%"}
+  `;
+  await sql`
+    update listings l
+    set status = ${"live"}
+    from sales s
+    where l.sale_id = s.id
+      and l.status = ${"stashed"}
+      and l.seller_id not like ${"seed-%"}
+      and coalesce(l.charity_split, false) = false
+      and coalesce(s.always_on, false) = false
+      and s.ends_on >= cast(timezone('America/Chicago', now()) as date)
+      and s.ends_on < cast(timezone('UTC', now()) as date)
+      and (${!sellerId} or l.seller_id = ${sellerId ?? ""})
+      and not exists (
+        select 1 from orders o where o.listing_id = l.id and o.status = ${"escrow"}
+      )
+  `;
   const rows = await sql<{ id: string }>`
     update listings l
     set status = ${"stashed"}, overtime_cents = null
     from sales s
     where l.sale_id = s.id
       and l.status = ${"live"}
+      and l.seller_id not like ${"seed-%"}
       and coalesce(l.charity_split, false) = false
       and coalesce(s.always_on, false) = false
-      and s.ends_on < current_date
+      and s.ends_on < cast(timezone('America/Chicago', now()) as date)
       and l.overtime_cents is null
       and (${!sellerId} or l.seller_id = ${sellerId ?? ""})
       and not exists (

@@ -57,14 +57,23 @@ export function saleWhen(startsOn: string, endsOn: string, alwaysOn?: boolean) {
   return saleWindow(startsOn, endsOn);
 }
 
+export function chicagoTodayIso(now = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
 export function saleHasEnded(endsOn: string, alwaysOn?: boolean) {
   if (alwaysOn) return false;
-  return endsOn.slice(0, 10) < new Date().toISOString().slice(0, 10);
+  return endsOn.slice(0, 10) < chicagoTodayIso();
 }
 
 export function saleIsUpcoming(startsOn: string, alwaysOn?: boolean) {
   if (alwaysOn) return false;
-  return startsOn.slice(0, 10) > new Date().toISOString().slice(0, 10);
+  return startsOn.slice(0, 10) > chicagoTodayIso();
 }
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;

@@ -14,7 +14,7 @@ import { PlusAlerts } from "@/components/plus-alerts";
 import { ReadingChoice } from "@/components/reading-choice";
 import { NEIGHBORHOODS, CITIES, IDENTITY_ENABLED, TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { errMessage } from "@/lib/rummlee/errors";
-import { cityOf, money, saleWindow } from "@/lib/rummlee/format";
+import { cityOf, money, saleWindow, chicagoTodayIso } from "@/lib/rummlee/format";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
 import { getMe, togglePremium, topUpWallet, updateProfile, deleteMyAccount, exportMyData, verifyId, finishIdentityCheck, challengeRating, releaseIdentity, setHandle, stashListing, removeListing, restockListing } from "@/lib/rummlee/server";
 import { getMyRep } from "@/lib/rummlee/rep";
@@ -638,7 +638,7 @@ function SellerInventory({
   sales: { id: string; name: string; endsOn: string; alwaysOn?: boolean; status: string }[];
 }) {
   const qc = useQueryClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = chicagoTodayIso();
   const openSales = sales.filter((sale) => sale.status === "live" && (sale.alwaysOn || sale.endsOn.slice(0, 10) >= today));
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["me"] });

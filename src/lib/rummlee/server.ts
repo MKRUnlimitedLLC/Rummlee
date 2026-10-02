@@ -5,7 +5,7 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { ensureFees, ensureSeed } from "./seed";
 import { storePhoto } from "./photo-store";
-import { feeOn, fitsOfficialCounter, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf, saleIsUpcoming } from "./format";
+import { feeOn, fitsOfficialCounter, isSeedUser, looksLikeAccountLabel, makeHandle, normalizeHandle, parseSpotKind, payBaseCents, pickupCode, partyScan, splitModes, canonicalizeMode, cityOf, saleIsUpcoming, chicagoTodayIso } from "./format";
 import { checkoutQuote, countSaleDays, feeById, mapFeeRow, minAskingCents, priceCoversSellerFee, premiumStillOn, quoteSaleDays, assertTestMembershipPurchase, BELOW_SELLER_FEE, type FeeRow } from "./fees";
 import { assertStaysInApp } from "./message-guard";
 import { CITIES, IDENTITY_CAP, IDENTITY_ENABLED, MAX_SALE_DAYS, MIN_PRICE_CENTS, NEIGHBORHOODS, PHOTO_FILL_ENABLED, SALE_ITEM_CAP, TEST_MODE, TEST_STARTER_CENTS, resolveListingId, saleDayAllowance } from "./constants";
@@ -687,15 +687,15 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
   const buyerPremium = tier != null;
   const overtime =
     tier === "trio"
-      ? " or (l.overtime_cents is not null and s.ends_on < current_date and coalesce(s.always_on, false) = false)"
+      ? " or (l.overtime_cents is not null and s.ends_on < cast(timezone('America/Chicago', now()) as date) and coalesce(s.always_on, false) = false)"
       : "";
   const upcoming =
     tier === "trio"
-      ? " or (s.starts_on > current_date and s.ends_on >= current_date and coalesce(s.always_on, false) = false)"
+      ? " or (s.starts_on > cast(timezone('America/Chicago', now()) as date) and s.ends_on >= cast(timezone('America/Chicago', now()) as date) and coalesce(s.always_on, false) = false)"
       : "";
   const rows = await sql.query<ListingRow>(
     listingSelect +
-      ` where l.status = 'live' and ((s.always_on = true or (s.starts_on <= current_date and s.ends_on >= current_date))${upcoming}${overtime}) order by ((l.featured_until is not null and l.featured_until > now()) or (s.featured_until is not null and s.featured_until > now())) desc, l.created_at desc`,
+      ` where l.status = 'live' and ((s.always_on = true or (s.starts_on <= cast(timezone('America/Chicago', now()) as date) and s.ends_on >= cast(timezone('America/Chicago', now()) as date)))${upcoming}${overtime}) order by ((l.featured_until is not null and l.featured_until > now()) or (s.featured_until is not null and s.featured_until > now())) desc, l.created_at desc`,
   );
   let saved = new Set<string>();
   if (userId) {
@@ -711,7 +711,7 @@ export const bootstrapPublic = createServerFn({ method: "GET" }).handler(async (
             (s.featured_until is not null and s.featured_until > now()) as featured,
             (select count(*)::int from listings l where l.sale_id = s.id and l.status = 'live') as item_count
      from sales s join profiles p on p.id = s.seller_id
-     where s.status = 'live' and (s.always_on = true or s.ends_on >= current_date)
+     where s.status = 'live' and (s.always_on = true or s.ends_on >= cast(timezone('America/Chicago', now()) as date))
      order by (s.featured_until is not null and s.featured_until > now()) desc, s.starts_on, s.name`,
   );
   const spots = await sql<HandoffSpot>`
@@ -743,7 +743,7 @@ export const getListing = createServerFn({ method: "GET" })
     if (row.status === "stashed" && userId !== row.seller_id) return null;
     const buyerTier = await viewerTier(sql, userId);
     const buyerPremium = buyerTier != null;
-    const ended = !row.always_on && String(row.ends_on).slice(0, 10) < new Date().toISOString().slice(0, 10);
+    const ended = !row.always_on && String(row.ends_on).slice(0, 10) < isoToday();
     const upcoming = saleIsUpcoming(String(row.starts_on), Boolean(row.always_on));
     if (upcoming && userId !== row.seller_id && buyerTier !== "trio") return null;
     const overtimeOn = ended && row.overtime_cents != null;
@@ -1094,7 +1094,7 @@ export const getMe = createServerFn({ method: "GET" })
         and coalesce(l.charity_split, false) = false
         and (
           l.status = ${"stashed"}
-          or (l.status = ${"live"} and coalesce(s.always_on, false) = false and s.ends_on < current_date)
+          or (l.status = ${"live"} and coalesce(s.always_on, false) = false and s.ends_on < cast(timezone('America/Chicago', now()) as date))
         )
       order by l.status desc, l.title
     `;
@@ -1142,7 +1142,7 @@ export const getMe = createServerFn({ method: "GET" })
         photoUrl: row.photo_url,
         status: row.status === "stashed" ? ("stashed" as const) : ("unsold" as const),
         saleName: row.sale_name,
-        saleEnded: String(row.ends_on).slice(0, 10) < new Date().toISOString().slice(0, 10),
+        saleEnded: String(row.ends_on).slice(0, 10) < isoToday(),
       })),
       receivedDowns: receivedDowns.map(
         (r): ReceivedDown => ({
@@ -1473,7 +1473,7 @@ export const createSale = createServerFn({ method: "POST" })
   });
 
 function isoToday() {
-  return new Date().toISOString().slice(0, 10);
+  return chicagoTodayIso();
 }
 
 function addIso(iso: string, days: number) {
@@ -1772,7 +1772,7 @@ export const setOvertime = createServerFn({ method: "POST" })
     if (!item || item.seller_id !== context.userId) throw new Error("That isn’t your item.");
     if (item.always_on || item.charity_split) throw new Error("Shelf items don’t go to overtime.");
     if (item.status !== "live") throw new Error("Only an unsold item can go to overtime.");
-    if (String(item.ends_on).slice(0, 10) >= new Date().toISOString().slice(0, 10)) {
+    if (String(item.ends_on).slice(0, 10) >= isoToday()) {
       throw new Error("Overtime starts after the sale ends.");
     }
     if (data.cents == null) {
@@ -1843,7 +1843,7 @@ export const restockListing = createServerFn({ method: "POST" })
     const me = await ensureProfile(sql, context.userId);
     const rows = await sql<{ id: string; status: string; sale_ended: boolean }>`
       select l.id, l.status,
-        (coalesce(s.always_on, false) = false and s.ends_on < current_date) as sale_ended
+        (coalesce(s.always_on, false) = false and s.ends_on < cast(timezone('America/Chicago', now()) as date)) as sale_ended
       from listings l
       join sales s on s.id = l.sale_id
       where l.id = ${data.listingId} and l.seller_id = ${context.userId}
@@ -1860,7 +1860,7 @@ export const restockListing = createServerFn({ method: "POST" })
     `;
     const sale = sales[0];
     if (!sale) throw new Error("Sale not found.");
-    if (!sale.always_on && String(sale.ends_on).slice(0, 10) < new Date().toISOString().slice(0, 10)) {
+    if (!sale.always_on && String(sale.ends_on).slice(0, 10) < isoToday()) {
       throw new Error("That sale has ended. Pick one that’s still on, or start a new sale.");
     }
     if (me.plusTier !== "trio") {
@@ -1921,7 +1921,7 @@ export const sendOffer = createServerFn({ method: "POST" })
     if (saleIsUpcoming(String(item.starts_on), Boolean(item.always_on))) {
       throw new Error("This sale hasn’t started. The price isn’t up yet.");
     }
-    const ended = !item.always_on && String(item.ends_on).slice(0, 10) < new Date().toISOString().slice(0, 10);
+    const ended = !item.always_on && String(item.ends_on).slice(0, 10) < isoToday();
     const overtime = ended && item.overtime_cents != null;
     if (ended && !overtime) throw new Error("This sale has ended.");
     if (overtime && offerer.plusTier !== "trio") throw new Error("Overtime offers are for +++.");
@@ -2207,7 +2207,7 @@ export const buyNow = createServerFn({ method: "POST" })
     if (saleIsUpcoming(String(item.starts_on), Boolean(item.always_on))) {
       throw new Error("This sale hasn’t started. The price isn’t up yet.");
     }
-    const ended = !item.always_on && String(item.ends_on).slice(0, 10) < new Date().toISOString().slice(0, 10);
+    const ended = !item.always_on && String(item.ends_on).slice(0, 10) < isoToday();
     const clearance = ended ? Number(item.overtime_cents ?? 0) : 0;
     if (ended && clearance <= 0) throw new Error("This sale has ended.");
     if (ended && me.plusTier !== "trio") throw new Error("Overtime is for +++.");
@@ -3119,7 +3119,7 @@ export const exportMyData = createServerFn({ method: "GET" })
     const notices = await sql`
       select id, kind, title, body, created_at from notices where user_id = ${uid} order by created_at
     `;
-    const day = new Date().toISOString().slice(0, 10);
+    const day = isoToday();
     const json = JSON.stringify(
       {
         exportedAt: new Date().toISOString(),
