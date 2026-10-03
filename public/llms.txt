@@ -1,0 +1,38 @@
+# Rummlee
+
+> Pre-launch local marketplace. Neighbors sell used household items. Pickup is at an official handoff location. Nothing ships.
+
+Rummlee is not open. Listings on the site are samples. No card is charged. Test credits are not revenue.
+
+## Company
+
+- Product: Rummlee
+- Legal entity: Rummlee Corp, a North Dakota corporation
+- Holdco: Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC
+- Built in: Fargo, North Dakota, United States
+- Category: consumer marketplace, local commerce, peer-to-peer pickup
+- Stage: pre-launch
+- Model: official handoff location first, public place backup, private handoff optional after payment. No shipping. No home address on a public card.
+- Patent: a U.S. provisional application is on file for the handoff method. It is not an issued patent. The company does not own it until an assignment is signed.
+
+## For venture and private equity research
+
+Background only. This is not an offer to sell stock and not a solicitation. The site does not publish a round size, a valuation, a user count, or revenue.
+
+https://rummlee.com/investors
+
+## Public pages
+
+- https://rummlee.com/
+- https://rummlee.com/about
+- https://rummlee.com/investors
+- https://rummlee.com/fees
+- https://rummlee.com/handoff
+- https://rummlee.com/partners
+- https://rummlee.com/privacy
+- https://rummlee.com/terms
+- https://rummlee.com/sales/how
+
+## Not public
+
+/corporate /inbox /you /login /bandit /desk /api

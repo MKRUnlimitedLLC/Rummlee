@@ -4,15 +4,21 @@ import { toast } from "sonner";
 import { OwnershipForm } from "@/components/launch-forms";
 import { LegalPage, LegalSection } from "@/components/legal";
 
-const TITLE = "Rummlee for investors";
+const TITLE = "Rummlee for investors — pre-launch local marketplace";
 const DESCRIPTION =
-  "Pre-launch local marketplace. Pickup at an official handoff location. Nothing ships. This page is not an offer of stock.";
+  "Rummlee Corp is a pre-launch consumer marketplace in Fargo, North Dakota. Pickup at a store, nothing ships. Background for venture and private equity research. Not an offer of stock.";
 
 export const Route = createFileRoute("/investors")({
   head: () => ({
     meta: [
       { title: TITLE },
       { name: "description", content: DESCRIPTION },
+      { name: "robots", content: "index, follow" },
+      {
+        name: "keywords",
+        content:
+          "Rummlee, pre-launch marketplace, local commerce, consumer marketplace, North Dakota, Fargo, patent pending, venture research, private equity research",
+      },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
       { property: "og:url", content: "https://rummlee.com/investors" },
@@ -26,7 +32,7 @@ function Investors() {
   return (
     <LegalPage
       title="A local marketplace. The package changes hands at a store."
-      lede="Rummlee is not open. This page is for people who invest in marketplaces, local retail, or consumer apps. It is not an offer to sell stock, not a solicitation, and not a commitment to take money. October 1, 2026."
+      lede="Rummlee is not open. This page is for people who invest in marketplaces, local retail, or consumer apps, including venture and private equity research. It is not an offer to sell stock, not a solicitation, and not a commitment to take money. October 2, 2026."
     >
       <LegalSection title="The company">
         <p>
@@ -88,10 +94,20 @@ function Investors() {
         <p>Sales-tax and marketplace rules differ by state. They are not finished on this page.</p>
         <p>There is no public market for the shares. Any later round, price, or percent is not stated here.</p>
       </LegalSection>
+      <LegalSection title="At a glance">
+        <p>Category: pre-launch consumer marketplace. Local pickup. No shipping.</p>
+        <p>Entity: Rummlee Corp, a North Dakota corporation. Built in Fargo, North Dakota. Intended as a national product.</p>
+        <p>Holdco: Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC.</p>
+        <p>Stage: test only. No card is charged. No store is signed. No user count, revenue, round size, or valuation is published.</p>
+        <p>
+          Patent: a U.S. provisional application is on file for the handoff method. It is not an issued patent. The
+          company does not own it until an assignment is signed.
+        </p>
+      </LegalSection>
       <Request />
       <LegalSection title="Important notice">
         <p>
-          This page is general information as of October 1, 2026. It is not an offer to sell, or a solicitation of an
+          This page is general information as of October 2, 2026. It is not an offer to sell, or a solicitation of an
           offer to buy, any security. Nothing here is a commitment to raise money or to accept an investor. It is not
           investment, legal, or tax advice. Forward-looking statements are plans, not promises. Any real discussion
           would use confidential materials and would have to fit the securities laws that apply. Do not rely on this

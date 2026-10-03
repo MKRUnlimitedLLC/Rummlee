@@ -3,6 +3,16 @@ import { LegalSection } from "@/components/legal";
 import { PatentPending } from "@/components/patent-pending";
 
 export const Route = createFileRoute("/about")({
+  head: () => ({
+    meta: [
+      { title: "About Rummlee" },
+      {
+        name: "description",
+        content:
+          "Pre-launch local marketplace from Fargo, North Dakota. Pickup at an official handoff location. Nothing ships. Handoff method patent pending.",
+      },
+    ],
+  }),
   component: About,
 });
 

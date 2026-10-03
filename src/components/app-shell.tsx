@@ -9,6 +9,7 @@ import { CookieConsent } from "./cookie-consent";
 import { LaunchSignup } from "./launch-signup";
 import { ReadingAsk } from "./reading-choice";
 import { ThemeToggle } from "./theme-toggle";
+import { JsonLd } from "./json-ld";
 import { cn } from "@/lib/utils";
 import { TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -45,6 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
+      <JsonLd />
       <header className="sticky top-0 z-30 border-b border-border/80 bg-bg/90 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
           <Link to="/" className="min-h-11 min-w-11 content-center">
