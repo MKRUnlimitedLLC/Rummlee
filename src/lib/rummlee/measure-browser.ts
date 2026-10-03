@@ -78,17 +78,19 @@ function metaPixelEnv(): string | undefined {
 
 function ensureFbq(): MetaFbq {
   if (window.fbq) return window.fbq;
-  const fbq = function (...args: unknown[]) {
-    if (fbq.callMethod) fbq.callMethod.apply(fbq, args);
-    else fbq.queue.push(args);
+  const queue: unknown[][] = [];
+  const stub = function (...args: unknown[]) {
+    const current = window.fbq;
+    if (current?.callMethod) current.callMethod(...args);
+    else queue.push(args);
   } as MetaFbq;
-  fbq.queue = [];
-  fbq.loaded = true;
-  fbq.version = "2.0";
-  fbq.push = fbq;
-  window.fbq = fbq;
-  if (!window._fbq) window._fbq = fbq;
-  return fbq;
+  stub.queue = queue;
+  stub.loaded = true;
+  stub.version = "2.0";
+  stub.push = stub;
+  window.fbq = stub;
+  if (!window._fbq) window._fbq = stub;
+  return stub;
 }
 
 /** Standard base pixel. No advanced matching, and no automatic form scraping. */
