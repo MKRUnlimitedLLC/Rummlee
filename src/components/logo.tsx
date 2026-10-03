@@ -7,10 +7,12 @@ export function LogoMark({ className }: { className?: string }) {
 }
 
 export function Wordmark({ className }: { className?: string }) {
+  const larger = className?.includes("justify-center");
   return (
-    <span className={cn("flex items-center gap-2", className)}>
-      <LogoMark className="size-8" />
-      <span className="font-display text-xl font-semibold tracking-[-0.04em] text-fg">Rummlee</span>
-    </span>
+    <img
+      src="/brand/leaping.jpg"
+      alt="Rummlee"
+      className={cn("w-auto object-contain", larger ? "h-16" : "h-11", className)}
+    />
   );
 }
