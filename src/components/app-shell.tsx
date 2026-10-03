@@ -50,29 +50,31 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/" className="min-h-11 min-w-11 content-center">
             <Wordmark />
           </Link>
-          <ThemeToggle />
-          <button
-            type="button"
-            className="min-h-11 px-2 text-sm font-medium text-muted"
-            onClick={() => applyReading(reading === "simple" ? "full" : "simple")}
-          >
-            {reading === "simple" ? "Regular text" : "Larger text"}
-          </button>
-          <nav className="hidden items-center gap-1 md:flex">
-            {TABS.filter((t) => t.to !== "/you").map((tab) => (
-              <Link
-                key={tab.to}
-                to={tab.to}
-                className={cn(
-                  "inline-flex h-9 items-center rounded-full px-3 text-sm font-medium",
-                  tab.match(pathname) ? "bg-fg text-primary-fg" : "text-muted hover:bg-bg-warm",
-                )}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </nav>
-          <AuthChip />
+          <div className="flex items-center gap-1">
+            <nav className="hidden items-center gap-1 md:flex">
+              {TABS.filter((t) => t.to !== "/you").map((tab) => (
+                <Link
+                  key={tab.to}
+                  to={tab.to}
+                  className={cn(
+                    "inline-flex h-9 items-center rounded-full px-3 text-sm font-medium",
+                    tab.match(pathname) ? "bg-fg text-primary-fg" : "text-muted hover:bg-bg-warm",
+                  )}
+                >
+                  {tab.label}
+                </Link>
+              ))}
+            </nav>
+            <button
+              type="button"
+              className="min-h-11 px-2 text-sm font-medium text-muted"
+              onClick={() => applyReading(reading === "simple" ? "full" : "simple")}
+            >
+              {reading === "simple" ? "Regular text" : "Larger text"}
+            </button>
+            <ThemeToggle />
+            <AuthChip />
+          </div>
         </div>
         <SessionDrift />
         <OnboardingGate pathname={pathname} />

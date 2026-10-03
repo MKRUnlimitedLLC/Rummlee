@@ -223,10 +223,10 @@ function GuestHero() {
         <img src="/listings/hero-sale.jpg" alt="Neighbors browsing a weekend sale" className="size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-fg/80 via-fg/20 to-transparent" />
         <div className="absolute bottom-3 left-4 right-4">
-          <h1 className="font-display text-2xl font-semibold leading-tight tracking-[-0.04em] text-primary-fg sm:text-3xl">
+          <h1 className="font-display text-2xl font-semibold leading-tight tracking-[-0.04em] text-white sm:text-3xl">
             The good stuff, before Saturday.
           </h1>
-          <p className="mt-1 text-sm font-medium text-primary-fg">Patent pending</p>
+          <p className="mt-1 text-sm font-medium text-white">Patent pending</p>
         </div>
       </div>
       <div className="space-y-4 p-5">
@@ -386,7 +386,7 @@ function Chip({
       onClick={onClick}
       className={cn(
         "h-9 shrink-0 rounded-full px-3.5 text-sm font-medium transition-colors duration-150",
-        active ? "bg-fg text-primary-fg" : "bg-surface text-muted shadow-[0_0_0_1px_rgba(22,20,18,0.08)]",
+        active ? "bg-fg text-primary-fg" : "bg-surface text-muted shadow-[0_0_0_1px_var(--color-border)]",
       )}
     >
       {children}

@@ -114,4 +114,15 @@ html.rummlee-dark {
   --color-danger: #f0a8a0;
   --color-success: #b7d7b0;
   --color-warn: #e6c48a;
+  --shadow-card: 0 0 0 1px rgba(246, 241, 235, 0.1);
+  --shadow-card-hover: 0 0 0 1px rgba(246, 241, 235, 0.16);
+}
+
+html.rummlee-dark img {
+  outline-color: rgba(246, 241, 235, 0.12);
+}
+
+html,
+body {
+  transition: background-color 160ms ease, color 160ms ease;
 }

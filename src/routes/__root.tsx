@@ -84,7 +84,7 @@ function Root() {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{if(localStorage.getItem('rummlee.theme.v1')==='dark')document.documentElement.classList.add('rummlee-dark');}catch(e){}})();",
+              "(function(){try{var s=localStorage.getItem('rummlee.theme.v1');var dark=s==='dark'||(s!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(dark)document.documentElement.classList.add('rummlee-dark');}catch(e){}})();",
           }}
         />
         <HeadContent />
