@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getMe } from "@/lib/rummlee/server";
+import { armMeasurement, trackPage } from "@/lib/rummlee/measure-browser";
 import { applyReading, currentReading, paintReading, type Reading } from "@/lib/rummlee/reading";
 import { looksLikeAccountLabel } from "@/lib/rummlee/format";
 
@@ -39,6 +40,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     window.addEventListener("rummlee-reading", sync);
     return () => window.removeEventListener("rummlee-reading", sync);
   }, []);
+  useEffect(() => {
+    armMeasurement();
+    trackPage();
+  }, [pathname]);
 
   if (bare) {
     return <div className="fixed inset-0 overflow-auto bg-[#e4dfd6] text-fg">{children}</div>;

@@ -9,7 +9,7 @@ export const Route = createFileRoute("/privacy")({
 
 function Privacy() {
   return (
-    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated October 2, 2026.">
+    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated October 3, 2026.">
       <LegalSection title="The short version">
         <p>
           Neighbors see a handle, a neighborhood you pick, and the listing. They do not see your legal name, email, or
@@ -108,10 +108,12 @@ function Privacy() {
 
       <LegalSection title="Cookies">
         <p>
-          We use one session cookie, or a short-lived sign-in token in preview, so you stay signed in. We do not use
-          advertising cookies, and we do not let other companies set cookies on this app to follow you around the web.
-          The cookie ends when you sign out, or when it expires. A notice at the bottom of the page asks you to
-          confirm that. The choice is stored on this device. It is not sent to an ad network.
+          Essential cookies keep you signed in, and one cookie on this device remembers whether you allowed
+          measurement. Those are not advertising. If you choose Allow measurement, we count the page and a signup,
+          including the short ad tags on the link you clicked. We do not send your email. Google’s tag loads only
+          after that choice, and only when a measurement id is configured. Ads personalization stays off. Essential
+          only means that tag is not loaded. The choice lasts 180 days. Measurement is not used to advertise to you
+          on other sites.
         </p>
       </LegalSection>
 
@@ -119,7 +121,8 @@ function Privacy() {
         <p>
           The company that hosts the app stores the account, the listings, and the photos so the product can run. A
           backup kept by that host can hold a copy until the backup ages out. During beta we do not send card numbers
-          to a payments company. We do not send your legal name to a store counter. Photo fill and ID verification are
+          to a payments company. If you allow measurement, the count stays on our server. A Google tag, when an id is set,
+          receives the page and the event, not your name or email. We do not send your legal name to a store counter. Photo fill and ID verification are
           off. If either one, or real card payments, is turned on, this page will name that company before we send it
           anything.
         </p>

@@ -12,6 +12,7 @@ import {
   parseWaitlist,
 } from "@/lib/rummlee/launch-capture";
 import { joinLaunchList } from "@/lib/rummlee/launch-list";
+import { track } from "@/lib/rummlee/measure-browser";
 import { capturePageUtm, utmPayload } from "@/lib/rummlee/utm-session";
 
 function Honeypot({
@@ -68,6 +69,7 @@ export function WaitlistForm({
         },
       });
       onSuccess(result.message);
+      track("launch_signup");
     } catch (error) {
       toast.error(errMessage(error));
     } finally {
@@ -209,6 +211,7 @@ export function HandoffForm({
         },
       });
       onSuccess(result.message);
+      track("handoff_apply");
     } catch (error) {
       toast.error(errMessage(error));
     } finally {
@@ -378,6 +381,7 @@ export function OwnershipForm({
         },
       });
       onSuccess(result.message);
+      track("investor_signup");
     } catch (error) {
       toast.error(errMessage(error));
     } finally {

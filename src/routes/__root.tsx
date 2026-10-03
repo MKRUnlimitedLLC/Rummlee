@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { AppShell } from "@/components/app-shell";
 import { makeQueryClient } from "@/lib/query-client";
+import { CONSENT_BOOT } from "@/lib/rummlee/measure";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "Rummlee";
@@ -81,6 +82,7 @@ function Root() {
   return (
     <html lang="en" className="antialiased">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: CONSENT_BOOT }} />
         <script
           dangerouslySetInnerHTML={{
             __html:

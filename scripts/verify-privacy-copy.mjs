@@ -43,7 +43,8 @@ mustContain(
 );
 mustNotContain("terms.tsx", "Addresses are not posted.");
 
-mustContain("privacy.tsx", "Updated September 28, 2026.");
+mustContain("privacy.tsx", "Updated October 3, 2026.");
+mustContain("privacy.tsx", "Allow measurement");
 mustContain("privacy.tsx", "in a note or in a message.");
 
 for (const name of Object.keys(files)) {
