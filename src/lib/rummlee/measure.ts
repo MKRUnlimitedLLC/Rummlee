@@ -35,6 +35,40 @@ export function adsSendTo(raw: string | undefined): string | null {
   return value && SEND_TO.test(value) ? value : null;
 }
 
+/** Meta pixel ids are 15 or 16 digits. Empty or anything else leaves the pixel off. */
+const META_PIXEL_ID = /^\d{15,16}$/;
+
+export const META_PIXEL_SRC = "https://connect.facebook.net/en_US/fbevents.js";
+export const META_PAGE_VIEW = "PageView";
+export const META_LEAD = "Lead";
+/** Official Handoff Location is an application, not a completed account signup. */
+export const META_HANDOFF_APPLY = "HandoffApply";
+
+export function metaPixelId(raw: string | undefined): string | null {
+  const value = raw?.trim();
+  return value && META_PIXEL_ID.test(value) ? value : null;
+}
+
+/** Script URL only after measurement consent and a usable id. Never the noscript beacon. */
+export function planMetaLoad(
+  consent: ConsentChoice | null,
+  rawId: string | undefined,
+): { id: string; src: string } | null {
+  if (consent !== "all") return null;
+  const id = metaPixelId(rawId);
+  if (!id) return null;
+  return { id, src: META_PIXEL_SRC };
+}
+
+export type MetaCall = { method: "track"; name: typeof META_LEAD } | { method: "trackCustom"; name: typeof META_HANDOFF_APPLY };
+
+/** PageView is sent once when the pixel loads. Other events stay on our own counter. */
+export function metaEventFor(event: MeasureEvent): MetaCall | null {
+  if (event === "launch_signup") return { method: "track", name: META_LEAD };
+  if (event === "handoff_apply") return { method: "trackCustom", name: META_HANDOFF_APPLY };
+  return null;
+}
+
 export function consentSetCookie(choice: ConsentChoice, secure: boolean): string {
   return `${CONSENT_COOKIE}=${choice}; Path=/; Max-Age=${CONSENT_MAX_AGE}; SameSite=Lax${secure ? "; Secure" : ""}`;
 }

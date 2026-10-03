@@ -5,16 +5,33 @@ import {
   consentSetCookie,
   googleIds,
   gtagScriptUrl,
+  META_PAGE_VIEW,
+  metaEventFor,
+  planMetaLoad,
   readConsent,
   type MeasureEvent,
 } from "./measure";
 
 const LOCAL = "rummlee.cookies.v2";
 
+type MetaFbq = {
+  (...args: unknown[]): void;
+  callMethod?: (...args: unknown[]) => void;
+  queue: unknown[][];
+  push: MetaFbq;
+  loaded: boolean;
+  version: string;
+};
+
 declare global {
+  interface ImportMetaEnv {
+    readonly VITE_META_PIXEL_ID?: string;
+  }
   interface Window {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
+    fbq?: MetaFbq;
+    _fbq?: MetaFbq;
   }
 }
 
@@ -54,10 +71,54 @@ function loadGoogle() {
   }
 }
 
+function metaPixelEnv(): string | undefined {
+  const value = import.meta.env.VITE_META_PIXEL_ID;
+  return typeof value === "string" ? value : undefined;
+}
+
+function ensureFbq(): MetaFbq {
+  if (window.fbq) return window.fbq;
+  const fbq = function (...args: unknown[]) {
+    if (fbq.callMethod) fbq.callMethod.apply(fbq, args);
+    else fbq.queue.push(args);
+  } as MetaFbq;
+  fbq.queue = [];
+  fbq.loaded = true;
+  fbq.version = "2.0";
+  fbq.push = fbq;
+  window.fbq = fbq;
+  if (!window._fbq) window._fbq = fbq;
+  return fbq;
+}
+
+/** Standard base pixel. No advanced matching, and no automatic form scraping. */
+function loadMeta() {
+  const plan = planMetaLoad(currentConsent(), metaPixelEnv());
+  if (!plan || document.querySelector("script[data-rummlee-meta]")) return;
+  const fbq = ensureFbq();
+  const script = document.createElement("script");
+  script.async = true;
+  script.dataset.rummleeMeta = "1";
+  script.src = plan.src;
+  const first = document.getElementsByTagName("script")[0];
+  if (first?.parentNode) first.parentNode.insertBefore(script, first);
+  else document.head.appendChild(script);
+  fbq("set", "autoConfig", false, plan.id);
+  fbq("init", plan.id);
+  fbq("track", META_PAGE_VIEW);
+}
+
+function sendMeta(event: MeasureEvent) {
+  const call = metaEventFor(event);
+  if (!call || typeof window.fbq !== "function") return;
+  window.fbq(call.method, call.name);
+}
+
 export function armMeasurement() {
   if (armed || currentConsent() !== "all") return;
   armed = true;
   loadGoogle();
+  loadMeta();
 }
 
 export function chooseConsent(choice: "essential" | "all") {
@@ -82,6 +143,7 @@ export function track(event: MeasureEvent) {
   void recordMeasure({ data: row }).catch(() => {
     /* a failed count must not block the signup */
   });
+  sendMeta(event);
   if (typeof window.gtag !== "function") return;
   const sendTo =
     event === "launch_signup"
