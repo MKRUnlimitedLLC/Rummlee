@@ -35,6 +35,33 @@ export function adsSendTo(raw: string | undefined): string | null {
   return value && SEND_TO.test(value) ? value : null;
 }
 
+export type GoogleEventCall =
+  | { name: "conversion"; params: { send_to: string } }
+  | { name: Exclude<MeasureEvent, "page_view">; params?: { send_to: string } };
+
+/**
+ * Hits for one consented event. A valid ads label still sends that conversion.
+ * The same launch or handoff success also sends the named event to GA4 when that id is valid.
+ * With no ads label, page views stay on the tag config and every other event is the named event only.
+ */
+export function googleEventCalls(
+  event: MeasureEvent,
+  gaMeasurementId: string | undefined,
+  signupSendTo: string | undefined,
+  handoffSendTo: string | undefined,
+): GoogleEventCall[] {
+  const destination =
+    event === "launch_signup" ? adsSendTo(signupSendTo) : event === "handoff_apply" ? adsSendTo(handoffSendTo) : null;
+  if (!destination) {
+    if (event === "page_view") return [];
+    return [{ name: event }];
+  }
+  const calls: GoogleEventCall[] = [{ name: "conversion", params: { send_to: destination } }];
+  const measurement = googleIds(gaMeasurementId, undefined)[0];
+  if (measurement && event !== "page_view") calls.push({ name: event, params: { send_to: measurement } });
+  return calls;
+}
+
 /** Meta pixel ids are 15 or 16 digits. Empty or anything else leaves the pixel off. */
 const META_PIXEL_ID = /^\d{15,16}$/;
 

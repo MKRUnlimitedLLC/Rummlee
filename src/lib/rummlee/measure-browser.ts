@@ -1,8 +1,8 @@
 import { recordMeasure } from "./measure-log";
 import {
-  adsSendTo,
   buildMeasureRow,
   consentSetCookie,
+  googleEventCalls,
   googleIds,
   gtagScriptUrl,
   META_PAGE_VIEW,
@@ -147,14 +147,15 @@ export function track(event: MeasureEvent) {
   });
   sendMeta(event);
   if (typeof window.gtag !== "function") return;
-  const sendTo =
-    event === "launch_signup"
-      ? adsSendTo(import.meta.env.VITE_GOOGLE_ADS_SIGNUP_SEND_TO)
-      : event === "handoff_apply"
-        ? adsSendTo(import.meta.env.VITE_GOOGLE_ADS_HANDOFF_SEND_TO)
-        : null;
-  if (sendTo) window.gtag("event", "conversion", { send_to: sendTo });
-  else if (event !== "page_view") window.gtag("event", event);
+  for (const call of googleEventCalls(
+    event,
+    import.meta.env.VITE_GA_MEASUREMENT_ID,
+    import.meta.env.VITE_GOOGLE_ADS_SIGNUP_SEND_TO,
+    import.meta.env.VITE_GOOGLE_ADS_HANDOFF_SEND_TO,
+  )) {
+    if (call.params) window.gtag("event", call.name, call.params);
+    else window.gtag("event", call.name);
+  }
 }
 
 export function trackPage() {

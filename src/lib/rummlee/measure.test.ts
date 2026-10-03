@@ -10,6 +10,7 @@ import {
   adsSendTo,
   buildMeasureRow,
   consentSetCookie,
+  googleEventCalls,
   googleIds,
   gtagScriptUrl,
   metaEventFor,
@@ -87,6 +88,50 @@ test("meta does not request facebook before measurement consent", () => {
   assert.equal(forms.includes("fbq"), false);
   assert.equal(browser.includes("VITE_META_PIXEL_ID"), true);
   assert.equal(/\d{15,16}/.test(browser), false);
+});
+
+test("launch and handoff successes reach GA4 and the ads conversion", () => {
+  const ga = "G-ABC123";
+  const signup = "AW-123456789/signup1";
+  const handoff = "AW-123456789/handoff1";
+  assert.deepEqual(googleEventCalls("launch_signup", ` ${ga} `, ` ${signup} `, handoff), [
+    { name: "conversion", params: { send_to: signup } },
+    { name: "launch_signup", params: { send_to: ga } },
+  ]);
+  assert.deepEqual(googleEventCalls("handoff_apply", ga, signup, handoff), [
+    { name: "conversion", params: { send_to: handoff } },
+    { name: "handoff_apply", params: { send_to: ga } },
+  ]);
+  assert.deepEqual(googleEventCalls("launch_signup", ga, undefined, handoff), [{ name: "launch_signup" }]);
+  assert.deepEqual(googleEventCalls("launch_signup", ga, "signup", handoff), [{ name: "launch_signup" }]);
+  assert.deepEqual(googleEventCalls("handoff_apply", ga, signup, ""), [{ name: "handoff_apply" }]);
+  assert.deepEqual(googleEventCalls("launch_signup", undefined, signup, handoff), [
+    { name: "conversion", params: { send_to: signup } },
+  ]);
+  assert.deepEqual(googleEventCalls("handoff_apply", "not-an-id", signup, handoff), [
+    { name: "conversion", params: { send_to: handoff } },
+  ]);
+  assert.deepEqual(googleEventCalls("investor_signup", ga, signup, handoff), [{ name: "investor_signup" }]);
+  assert.deepEqual(googleEventCalls("page_view", ga, signup, handoff), []);
+  const forwarded = JSON.stringify(googleEventCalls("handoff_apply", ga, signup, handoff));
+  for (const field of ["email", "phone", "street", "city", "zip"]) {
+    assert.equal(forwarded.includes(field), false);
+  }
+  assert.deepEqual(Object.keys(JSON.parse(forwarded)[1]), ["name", "params"]);
+  assert.deepEqual(Object.keys(JSON.parse(forwarded)[1].params), ["send_to"]);
+});
+
+test("the browser sends both google hits and no personal fields", () => {
+  const browser = readFileSync("src/lib/rummlee/measure-browser.ts", "utf8");
+  assert.match(browser, /if \(currentConsent\(\) !== "all"\) return;/);
+  assert.match(browser, /googleEventCalls\(/);
+  assert.equal(browser.includes('else if (event !== "page_view")'), false);
+  assert.equal(browser.includes("ttq("), false);
+  assert.equal(browser.includes("gtm.js"), false);
+  assert.equal(browser.includes("tiktok"), false);
+  for (const field of ["email", "phone", "street", "city", "zip"]) {
+    assert.equal(browser.includes(field), false);
+  }
 });
 
 test("google ids must look real or the pixel stays off", () => {
