@@ -12,7 +12,7 @@ import appCss from "../styles.css?url";
 const APP_NAME = "Rummlee";
 const DEFAULT_TITLE = "Rummlee — The good stuff, before Saturday";
 const DEFAULT_DESCRIPTION =
-  "Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Pickup will be at an official handoff location. Nothing ships.";
+  "Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Pickup will be at an official handoff location. Nothing ships. Handoff method patent pending.";
 const SITE_URL = "https://rummlee.com/";
 const OG_IMAGE = "https://rummlee.com/og.jpg";
 
@@ -81,6 +81,12 @@ function Root() {
   return (
     <html lang="en" className="antialiased">
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{if(localStorage.getItem('rummlee.theme.v1')==='dark')document.documentElement.classList.add('rummlee-dark');}catch(e){}})();",
+          }}
+        />
         <HeadContent />
       </head>
       <body className="font-sans">

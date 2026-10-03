@@ -11,7 +11,7 @@ function Partners() {
   return (
     <LegalPage
       title="Official store handoff"
-      lede="The one-page deal for a store that wants a Rummlee counter. A lawyer should read it before anyone signs. Updated September 22, 2026."
+      lede="The one-page deal for a store that wants a Rummlee counter. A lawyer should read it before anyone signs. Handoff method patent pending. A U.S. provisional application is on file. It is not an issued patent. Updated October 2, 2026."
     >
       <LegalSection title="What this is">
         <p>

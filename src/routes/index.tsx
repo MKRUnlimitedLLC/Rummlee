@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, EyeOff, Store } from "lucide-react";
 import { ListingCard } from "@/components/listing-card";
+import { PatentPending } from "@/components/patent-pending";
 import { WaitlistForm } from "@/components/launch-forms";
 import { Input } from "@/components/ui/input";
 import { bootstrapPublic } from "@/lib/rummlee/server";
@@ -221,15 +222,19 @@ function GuestHero() {
       <div className="relative aspect-[16/9] max-h-56 w-full overflow-hidden sm:max-h-72">
         <img src="/listings/hero-sale.jpg" alt="Neighbors browsing a weekend sale" className="size-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-fg/80 via-fg/20 to-transparent" />
-        <h1 className="absolute bottom-3 left-4 right-4 font-display text-2xl font-semibold leading-tight tracking-[-0.04em] text-primary-fg sm:text-3xl">
-          The good stuff, before Saturday.
-        </h1>
+        <div className="absolute bottom-3 left-4 right-4">
+          <h1 className="font-display text-2xl font-semibold leading-tight tracking-[-0.04em] text-primary-fg sm:text-3xl">
+            The good stuff, before Saturday.
+          </h1>
+          <p className="mt-1 text-sm font-medium text-primary-fg">Patent pending</p>
+        </div>
       </div>
       <div className="space-y-4 p-5">
         <p className="text-pretty text-muted">
           Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Pickup will be at an
           official handoff location, not a stranger’s house. Nothing ships.
         </p>
+        <PatentPending className="text-sm text-muted" />
         <div className="grid gap-3 sm:grid-cols-3">
           <Perk icon={CalendarDays} title="First to know" body="Updates and the launch. One email. We don’t sell the address." />
           <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors see a handle. Email, legal name, and home stay off the listing." />
@@ -255,6 +260,10 @@ function GuestHero() {
           <Link to="/investors" className="underline-offset-4 hover:underline">
             Investors
           </Link>
+          <span className="mx-2">·</span>
+          <Link to="/about" className="underline-offset-4 hover:underline">
+            About
+          </Link>
         </p>
       </div>
     </section>
@@ -269,6 +278,7 @@ function SignedHero() {
         Samples only
       </p>
       <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">Nothing is for sale yet</h1>
+      <p className="mt-1 text-sm font-medium text-primary-ink">Patent pending</p>
       <p className="mt-1 text-sm text-muted">These listings are samples. Pickup will be at a handoff location. Nothing ships.</p>
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
         {HOLD_LINE}

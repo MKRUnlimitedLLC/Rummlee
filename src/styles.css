@@ -96,3 +96,22 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+html.rummlee-dark {
+  color-scheme: dark;
+  --color-bg: #1c1917;
+  --color-bg-warm: #292421;
+  --color-surface: #262220;
+  --color-fg: #f6f1eb;
+  --color-muted: #d2cbc3;
+  --color-subtle: #b7afa6;
+  --color-primary: #c46474;
+  --color-primary-fg: #1c1917;
+  --color-primary-soft: #3a2428;
+  --color-primary-ink: #f3c9d1;
+  --color-border: #443e39;
+  --color-chip: #3a2428;
+  --color-danger: #f0a8a0;
+  --color-success: #b7d7b0;
+  --color-warn: #e6c48a;
+}

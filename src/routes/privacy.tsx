@@ -9,7 +9,7 @@ export const Route = createFileRoute("/privacy")({
 
 function Privacy() {
   return (
-    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated September 28, 2026.">
+    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated October 2, 2026.">
       <LegalSection title="The short version">
         <p>
           Neighbors see a handle, a neighborhood you pick, and the listing. They do not see your legal name, email, or
@@ -96,6 +96,57 @@ function Privacy() {
           JSON file of your account, listings, offers, messages, and orders, including your own lowest prices. Other
           people are handles only. To close the login, open You → Delete account. The sale record is not erased. Email
           support to reopen a closed login.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Who operates this">
+        <p>
+          Rummlee Corp, a North Dakota corporation, operates the app. This page does not publish a street address.
+          Privacy questions go to Support. We do not put a home address, a legal name, or an email on a public listing.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Cookies">
+        <p>
+          We use one session cookie, or a short-lived sign-in token in preview, so you stay signed in. We do not use
+          advertising cookies, and we do not let other companies set cookies on this app to follow you around the web.
+          The cookie ends when you sign out, or when it expires. A notice at the bottom of the page asks you to
+          confirm that. The choice is stored on this device. It is not sent to an ad network.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Companies that process it for us">
+        <p>
+          The company that hosts the app stores the account, the listings, and the photos so the product can run. A
+          backup kept by that host can hold a copy until the backup ages out. During beta we do not send card numbers
+          to a payments company. We do not send your legal name to a store counter. Photo fill and ID verification are
+          off. If either one, or real card payments, is turned on, this page will name that company before we send it
+          anything.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Security">
+        <p>
+          Pickup codes are not a name. The counter is not sent one. No method of storage is perfect. If we learn that
+          account data was taken, we will say so on Support and, where the law requires a notice, write to the email
+          on the account.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="State privacy rights">
+        <p>
+          You can download your data and delete the account from You, in any state. You can correct your neighborhood,
+          alerts, and listings while the account is open. We do not sell personal information. We do not share it for
+          cross-context advertising. Orders, fees, tax, and payout lines still stay for 7 years after the sale, under a
+          closed id, as the retention section says. The product is for people in the United States. If you write from
+          somewhere else, the same choices on this page still apply.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Changes">
+        <p>
+          If this page changes, the date at the top changes. If we start collecting something we do not list here, the
+          page will say so before we collect it.
         </p>
       </LegalSection>
 

@@ -5,8 +5,10 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Wordmark } from "./logo";
 import { BetaNotice } from "./beta-notice";
+import { CookieConsent } from "./cookie-consent";
 import { LaunchSignup } from "./launch-signup";
 import { ReadingAsk } from "./reading-choice";
+import { ThemeToggle } from "./theme-toggle";
 import { cn } from "@/lib/utils";
 import { TEST_MODE, TEST_PAY_NOTE } from "@/lib/rummlee/constants";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -48,6 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link to="/" className="min-h-11 min-w-11 content-center">
             <Wordmark />
           </Link>
+          <ThemeToggle />
           <button
             type="button"
             className="min-h-11 px-2 text-sm font-medium text-muted"
@@ -120,6 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
       )}
       <BetaNotice />
+      <CookieConsent />
       <LaunchSignup />
       <ReadingAsk />
     </div>

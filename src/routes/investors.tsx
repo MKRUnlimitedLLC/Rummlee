@@ -50,7 +50,10 @@ function Investors() {
         <p>Official handoff location first. The store holds the package. It is not the buyer or the seller.</p>
         <p>Money is meant to stay held until both sides confirm pickup. That hold is simulated while the product is in test.</p>
         <p>The seller sets an asking price and a private floor. The buyer can pay the ask or make one offer path.</p>
-        <p>A U.S. provisional patent application has been filed on the handoff method. It is not an issued patent.</p>
+        <p>
+          Patent pending. A U.S. provisional application has been filed on the handoff method. It is not an issued
+          patent. The company does not own it until an assignment is signed.
+        </p>
       </LegalSection>
       <LegalSection title="How the company expects to make money">
         <p>

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as BanditRouteImport } from './routes/bandit'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as BundleRouteImport } from './routes/bundle'
@@ -42,6 +43,11 @@ import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe/webhoo
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BanditRoute = BanditRouteImport.update({
@@ -187,6 +193,7 @@ const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/bandit': typeof BanditRoute
   '/browse': typeof BrowseRoute
   '/bundle': typeof BundleRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/bandit': typeof BanditRoute
   '/browse': typeof BrowseRoute
   '/bundle': typeof BundleRoute
@@ -250,6 +258,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/bandit': typeof BanditRoute
   '/browse': typeof BrowseRoute
   '/bundle': typeof BundleRoute
@@ -283,6 +292,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/bandit'
     | '/browse'
     | '/bundle'
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/bandit'
     | '/browse'
     | '/bundle'
@@ -345,6 +356,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/bandit'
     | '/browse'
     | '/bundle'
@@ -377,6 +389,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   BanditRoute: typeof BanditRoute
   BrowseRoute: typeof BrowseRoute
   BundleRoute: typeof BundleRoute
@@ -414,6 +427,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bandit': {
@@ -617,6 +637,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   BanditRoute: BanditRoute,
   BrowseRoute: BrowseRoute,
   BundleRoute: BundleRoute,

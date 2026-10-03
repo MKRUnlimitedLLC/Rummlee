@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { PatentPending } from "@/components/patent-pending";
 
 export const Route = createFileRoute("/sales/how")({
   component: InPersonHowTo,
@@ -17,6 +18,7 @@ function InPersonHowTo() {
         One sale can be online during the week and in person for a few hours. Neighbors see the neighborhood and the
         hours. They never see a home address.
       </p>
+      <PatentPending className="mt-3 max-w-2xl text-xs text-subtle" />
 
       <ol className="mt-8 max-w-2xl space-y-6">
         <Step n="1" title="Set the dates">
