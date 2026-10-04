@@ -234,6 +234,11 @@ function GuestHero() {
           Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Pickup will be at an
           official handoff location, not a stranger’s house. Nothing ships.
         </p>
+        <p className="text-sm">
+          <Link to="/films" className="font-medium text-primary-ink underline-offset-4 hover:underline">
+            Six short films
+          </Link>
+        </p>
         <PatentPending className="text-sm text-muted" />
         <div className="grid gap-3 sm:grid-cols-3">
           <Perk icon={CalendarDays} title="First to know" body="Updates and the launch. One email. We don’t sell the address." />
@@ -264,6 +269,10 @@ function GuestHero() {
           <Link to="/about" className="underline-offset-4 hover:underline">
             About
           </Link>
+          <span className="mx-2">·</span>
+          <Link to="/films" className="underline-offset-4 hover:underline">
+            Films
+          </Link>
         </p>
       </div>
     </section>
@@ -282,6 +291,11 @@ function SignedHero() {
       <p className="mt-1 text-sm text-muted">These listings are samples. Pickup will be at a handoff location. Nothing ships.</p>
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
         {HOLD_LINE}
+      </p>
+      <p className="mt-3 text-sm">
+        <Link to="/films" className="font-medium text-primary-ink underline-offset-4 hover:underline">
+          Six short films
+        </Link>
       </p>
     </section>
   );

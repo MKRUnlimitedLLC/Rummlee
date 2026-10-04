@@ -17,6 +17,7 @@ import { Route as BundleRouteImport } from './routes/bundle'
 import { Route as CorporateRouteImport } from './routes/corporate'
 import { Route as DeskRouteImport } from './routes/desk'
 import { Route as FeesRouteImport } from './routes/fees'
+import { Route as FilmsRouteImport } from './routes/films'
 import { Route as HandoffRouteImport } from './routes/handoff'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as InvestorsRouteImport } from './routes/investors'
@@ -78,6 +79,11 @@ const DeskRoute = DeskRouteImport.update({
 const FeesRoute = FeesRouteImport.update({
   id: '/fees',
   path: '/fees',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FilmsRoute = FilmsRouteImport.update({
+  id: '/films',
+  path: '/films',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HandoffRoute = HandoffRouteImport.update({
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/corporate': typeof CorporateRoute
   '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
+  '/films': typeof FilmsRoute
   '/handoff': typeof HandoffRoute
   '/inbox': typeof InboxRoute
   '/investors': typeof InvestorsRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/corporate': typeof CorporateRoute
   '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
+  '/films': typeof FilmsRoute
   '/handoff': typeof HandoffRoute
   '/inbox': typeof InboxRoute
   '/investors': typeof InvestorsRoute
@@ -265,6 +273,7 @@ export interface FileRoutesById {
   '/corporate': typeof CorporateRoute
   '/desk': typeof DeskRoute
   '/fees': typeof FeesRoute
+  '/films': typeof FilmsRoute
   '/handoff': typeof HandoffRoute
   '/inbox': typeof InboxRoute
   '/investors': typeof InvestorsRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/corporate'
     | '/desk'
     | '/fees'
+    | '/films'
     | '/handoff'
     | '/inbox'
     | '/investors'
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/corporate'
     | '/desk'
     | '/fees'
+    | '/films'
     | '/handoff'
     | '/inbox'
     | '/investors'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/corporate'
     | '/desk'
     | '/fees'
+    | '/films'
     | '/handoff'
     | '/inbox'
     | '/investors'
@@ -476,6 +488,13 @@ declare module '@tanstack/react-router' {
       path: '/fees'
       fullPath: '/fees'
       preLoaderRoute: typeof FeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/films': {
+      id: '/films'
+      path: '/films'
+      fullPath: '/films'
+      preLoaderRoute: typeof FilmsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/handoff': {
@@ -644,6 +663,7 @@ const rootRouteChildren: RootRouteChildren = {
   CorporateRoute: CorporateRoute,
   DeskRoute: DeskRoute,
   FeesRoute: FeesRoute,
+  FilmsRoute: FilmsRoute,
   HandoffRoute: HandoffRoute,
   InboxRoute: InboxRoute,
   InvestorsRoute: InvestorsRoute,
