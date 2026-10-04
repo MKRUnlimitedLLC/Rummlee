@@ -5,6 +5,7 @@ import { bootstrapPublic } from "@/lib/rummlee/server";
 import { liveWindowLine, onlineWindowLine, saleWhen } from "@/lib/rummlee/format";
 import { SALE_KINDS } from "@/lib/rummlee/constants";
 import type { HandoffSpot } from "@/lib/rummlee/types";
+import { isSamplePartnerSpot, publicSpotHint, sampleStoreEyebrow } from "@/lib/rummlee/sample-store";
 import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/sales/")({
@@ -21,6 +22,8 @@ function SalesPage() {
     initialData: initial,
   });
   const partners = data.spots.filter((s) => s.kind === "partner");
+  const signedPartners = partners.filter((s) => !isSamplePartnerSpot(s.id));
+  const samplePartners = partners.filter((s) => isSamplePartnerSpot(s.id));
   const publicSpots = data.spots.filter((s) => s.kind === "public");
 
   return (
@@ -74,13 +77,29 @@ function SalesPage() {
         })}
       </ul>
 
-      <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Official store handoff</h2>
-      <p className="mt-1 text-sm text-muted">An official store handoff. Locker or pickup desk. Store hours, lit lot. Your address stays off the listing.</p>
-      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-        {partners.map((sp) => (
-          <SpotCard key={sp.id} spot={sp} featured />
-        ))}
-      </ul>
+      {signedPartners.length > 0 ? (
+        <>
+          <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Official store handoff</h2>
+          <p className="mt-1 text-sm text-muted">An official store handoff. Locker or pickup desk. Store hours, lit lot. Your address stays off the listing.</p>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {signedPartners.map((sp) => (
+              <SpotCard key={sp.id} spot={sp} featured />
+            ))}
+          </ul>
+        </>
+      ) : null}
+
+      {samplePartners.length > 0 ? (
+        <>
+          <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Sample stores</h2>
+          <p className="mt-1 text-sm text-muted">These names are samples. No store has signed. A shop is not holding a package.</p>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {samplePartners.map((sp) => (
+              <SpotCard key={sp.id} spot={sp} sample />
+            ))}
+          </ul>
+        </>
+      ) : null}
 
       <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Public place handoff</h2>
       <p className="mt-1 text-sm text-muted">Park, library, or civic lot — if the seller offers it.</p>
@@ -98,20 +117,21 @@ function SalesPage() {
   );
 }
 
-function SpotCard({ spot, featured }: { spot: HandoffSpot; featured?: boolean }) {
+function SpotCard({ spot, featured, sample }: { spot: HandoffSpot; featured?: boolean; sample?: boolean }) {
   return (
-    <li className={featured ? "rounded-2xl bg-primary-soft p-4" : "rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]"}>
-      {featured ? (
+    <li className={featured || sample ? "rounded-2xl bg-primary-soft p-4" : "rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]"}>
+      {featured || sample ? (
         <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-primary-ink">
           <Store className="size-3.5" />
-          Official store handoff
+          {sample ? sampleStoreEyebrow(spot.id) : "Official store handoff"}
         </p>
       ) : (
         <p className="text-xs font-medium uppercase tracking-wider text-subtle">Public place handoff</p>
       )}
       <p className="mt-1 font-medium">{spot.name}</p>
       <p className="text-sm text-muted">{spot.area}</p>
-      <p className="mt-1 text-sm text-subtle">{spot.hint}</p>
+      {sample ? <p className="mt-1 text-sm font-medium text-fg">Not a signed store.</p> : null}
+      <p className="mt-1 text-sm text-subtle">{publicSpotHint(spot.id, spot.hint)}</p>
     </li>
   );
 }

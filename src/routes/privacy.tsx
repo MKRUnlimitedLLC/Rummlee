@@ -9,7 +9,7 @@ export const Route = createFileRoute("/privacy")({
 
 function Privacy() {
   return (
-    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated October 3, 2026.">
+    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated October 4, 2026.">
       <LegalSection title="The short version">
         <p>
           Neighbors see a handle, a neighborhood you pick, and the listing. They do not see your legal name, email, or
@@ -109,11 +109,17 @@ function Privacy() {
       <LegalSection title="Cookies">
         <p>
           Essential cookies keep you signed in, and one cookie on this device remembers whether you allowed
-          measurement. Those are not advertising. If you choose Allow measurement, we count the page and a signup,
-          including the short ad tags on the link you clicked. We do not send your email. Google’s tag loads only
-          after that choice, and only when a measurement id is configured. Ads personalization stays off. Essential
-          only means that tag is not loaded. The choice lasts 180 days. Measurement is not used to advertise to you
-          on other sites.
+          measurement. Those are not advertising. If you choose Allow measurement, we count the page and a signup
+          or handoff application, including the short ad tags on the link you clicked. We do not send your email
+          or your phone. After that choice, and only when an id is set, the page loads Google Analytics, a Google
+          Ads tag, and a Meta pixel. Essential only means those tags are not loaded. Nothing is measured before
+          you choose. The choice lasts 180 days.
+        </p>
+        <p>
+          Google Analytics receives the page and the event. Google Ads can receive a conversion for a waitlist
+          signup or a handoff application. Ads personalization stays off, and we do not send user data to Google
+          for advertising. The Meta pixel receives a page view, and a lead or handoff event, with no email and no
+          phone. Google and Meta can use those events to measure advertising on their own sites and apps.
         </p>
       </LegalSection>
 
@@ -121,8 +127,9 @@ function Privacy() {
         <p>
           The company that hosts the app stores the account, the listings, and the photos so the product can run. A
           backup kept by that host can hold a copy until the backup ages out. During beta we do not send card numbers
-          to a payments company. If you allow measurement, the count stays on our server. A Google tag, when an id is set,
-          receives the page and the event, not your name or email. We do not send your legal name to a store counter. Photo fill and ID verification are
+          to a payments company. If you allow measurement, a count also stays on our server. When the ids are set,
+          Google Analytics, Google Ads, and Meta receive the page and the event described above. They do not receive
+          your name, email, or phone. We do not send your legal name to a store counter. Photo fill and ID verification are
           off. If either one, or real card payments, is turned on, this page will name that company before we send it
           anything.
         </p>
@@ -130,7 +137,9 @@ function Privacy() {
 
       <LegalSection title="Security">
         <p>
-          Pickup codes are not a name. The counter is not sent one. No method of storage is perfect. If we learn that
+          Pickup codes are not a name. The counter is not sent one. Public waitlist and handoff forms keep a
+          short-lived hash of the network address, for up to two days, so one network cannot flood the list. That
+          hash is not your email or phone, and it is not sent to Google or Meta. No method of storage is perfect. If we learn that
           account data was taken, we will say so on Support and, where the law requires a notice, write to the email
           on the account.
         </p>
@@ -139,8 +148,9 @@ function Privacy() {
       <LegalSection title="State privacy rights">
         <p>
           You can download your data and delete the account from You, in any state. You can correct your neighborhood,
-          alerts, and listings while the account is open. We do not sell personal information. We do not share it for
-          cross-context advertising. Orders, fees, tax, and payout lines still stay for 7 years after the sale, under a
+          alerts, and listings while the account is open. We do not sell personal information. If you allow
+          measurement, the page and event data described above is shared with Google and Meta so they can measure
+          advertising. Essential only means that data is not sent. Orders, fees, tax, and payout lines still stay for 7 years after the sale, under a
           closed id, as the retention section says. The product is for people in the United States. If you write from
           somewhere else, the same choices on this page still apply.
         </p>

@@ -9,11 +9,17 @@ import { HOLD_LINE } from "@/lib/rummlee/constants";
 import { loadSavedIds, toggleLocalSaved } from "@/lib/rummlee/draft";
 import { checkoutQuote, DEFAULT_FEES } from "@/lib/rummlee/fees";
 import { fitsOfficialCounter, liveWindowLine, money, onlineWindowLine, packLabel, placeName, saleWhen, spotKindLabel } from "@/lib/rummlee/format";
+import { isSampleStoreCard } from "@/lib/rummlee/sample-store";
 import { toggleSaved } from "@/lib/rummlee/server";
 import { cn } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing; premium?: boolean }) {
   const partner = listing.handoffModes.includes("official") && listing.handoffSpotKind === "partner";
+  const sampleStore = isSampleStoreCard({
+    handoffSpotId: listing.handoffSpotId,
+    sellerId: listing.sellerId,
+    partner,
+  });
   const counter = fitsOfficialCounter(listing);
   const shown = listing.priceHidden ? null : (listing.overtimeCents ?? listing.priceCents);
   const youPay = shown == null ? 0 : checkoutQuote(DEFAULT_FEES, shown, false, counter ? "official" : "person").youPayCents;
@@ -65,7 +71,7 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         ) : null}
         {partner ? (
           <span className="absolute bottom-2.5 left-2.5 rounded-md bg-primary px-2 py-1 text-sm font-medium text-primary-fg">
-            Official store
+            {sampleStore ? "Sample · not signed" : "Official store"}
           </span>
         ) : null}
       </div>
@@ -81,7 +87,11 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         </p>
         {listing.overtimeCents && !listing.priceHidden ? <p className="text-base text-muted">Get rid of it · was {money(listing.priceCents)}</p> : null}
         {listing.sellerId.startsWith("seed-") ? (
-          <p className="text-base font-medium text-primary-ink">Sample. Not a real item.</p>
+          <p className="text-base font-medium text-primary-ink">
+            Sample. Not a real item.{sampleStore ? " Not a signed store." : ""}
+          </p>
+        ) : sampleStore ? (
+          <p className="text-base font-medium text-primary-ink">Sample store. Not signed.</p>
         ) : null}
         {listing.status === "held" ? (
           <p className="text-base font-medium text-fg">Held by someone else. Pick another.</p>
@@ -104,7 +114,7 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
           {listing.distanceLabel ?? listing.handoffSpotName ?? placeName(listing.neighborhood)}
         </p>
         <p className="text-base text-subtle">
-          {listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : "Handoff location"}
+          {sampleStore ? "Sample store · no shop has signed" : listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : "Handoff location"}
           {" · "}@{listing.sellerHandle}
           {listing.sellerVerified ? (
             <>

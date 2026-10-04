@@ -89,6 +89,7 @@ export type Listing = {
   weightLbs: number | null;
   neighborhood: string;
   handoffModes: HandoffMode[];
+  handoffSpotId: string | null;
   handoffSpotName: string | null;
   handoffSpotArea: string | null;
   handoffSpotHint: string | null;

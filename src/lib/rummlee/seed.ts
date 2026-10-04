@@ -4,6 +4,7 @@ import { DEFAULT_FEES } from "./fees";
 import { ensureHouse } from "./house";
 import { ensurePlusAlerts } from "./alerts";
 import { SPOT_ADDRESS } from "./distance";
+import { isSamplePartnerSpot, publicSpotHint } from "./sample-store";
 
 const SEED_VERSION = "v14-counter";
 
@@ -99,6 +100,25 @@ async function ensureOvertime(sql: Sql) {
   await sql`alter table offers add column if not exists phase text not null default 'sale'`;
 }
 
+async function normalizeSampleSpotHints(sql: Sql) {
+  await sql`alter table handoff_spots add column if not exists kind text not null default 'public'`;
+  const rows = await sql<{ id: string; hint: string }>`
+    select id, hint from handoff_spots where kind = ${"partner"}
+  `;
+  for (const row of rows) {
+    if (!isSamplePartnerSpot(row.id) || !row.hint) continue;
+    const next = publicSpotHint(row.id, row.hint);
+    if (next === row.hint) continue;
+    await sql`update handoff_spots set hint = ${next} where id = ${row.id}`;
+  }
+  await sql`
+    update listings
+    set description = replace(description, ${"Official store"}, ${"Sample store"})
+    where seller_id like ${"seed-%"}
+      and description like ${"%Official store%"}
+  `;
+}
+
 async function ensurePlaces(sql: Sql) {
   await sql`alter table handoff_spots add column if not exists address text`;
   for (const [id, address] of Object.entries(SPOT_ADDRESS)) {
@@ -113,6 +133,7 @@ async function runSeed(sql: Sql) {
   await ensurePlusAlerts(sql);
   await ensureOvertime(sql);
   await ensurePlaces(sql);
+  await normalizeSampleSpotHints(sql);
   const existing = await sql<{ value: string }>`select value from app_meta where key = ${"seeded"}`;
   if (existing[0]?.value === SEED_VERSION) return;
 
@@ -190,6 +211,7 @@ async function runSeed(sql: Sql) {
       on conflict (id) do nothing
     `;
   }
+  await normalizeSampleSpotHints(sql);
 
   const sales = [
     {

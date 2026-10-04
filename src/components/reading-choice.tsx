@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { applyReading, currentReading, readingWasAsked, paintReading, type Reading } from "@/lib/rummlee/reading";
 import { cn } from "@/lib/utils";
 
-export function ReadingAsk() {
+export function ReadingAsk({ placement = "overlay" }: { placement?: "overlay" | "flow" }) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     paintReading(currentReading());
@@ -15,7 +15,11 @@ export function ReadingAsk() {
   }
   return (
     <div
-      className="fixed inset-x-0 bottom-24 z-50 mx-auto w-full max-w-lg px-4 md:bottom-6"
+      className={
+        placement === "flow"
+          ? "relative z-0 mb-4 w-full max-w-lg"
+          : "fixed inset-x-0 bottom-24 z-50 mx-auto w-full max-w-lg px-4 md:bottom-6"
+      }
       role="dialog"
       aria-labelledby="reading-title"
     >

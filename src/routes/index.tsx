@@ -10,6 +10,7 @@ import { bootstrapPublic } from "@/lib/rummlee/server";
 import { CATEGORIES, CITIES, HAULS, HOLD_LINE } from "@/lib/rummlee/constants";
 import { lastCity, rememberCity } from "@/lib/rummlee/draft";
 import { cityOf } from "@/lib/rummlee/format";
+import { isSamplePartnerSpot, publicSpotHint, sampleStoreEyebrow } from "@/lib/rummlee/sample-store";
 import type { HandoffSpot } from "@/lib/rummlee/types";
 import { cn } from "@/lib/utils";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -186,9 +187,9 @@ function Home() {
         {listings.length === 0 ? (
           <div className="rounded-2xl bg-surface px-4 py-10 text-center shadow-[var(--shadow-card)]">
             <p className="text-muted">
-              {city === "all" ? "Nothing matched those filters." : `Nothing in ${city} this weekend.`}
+              {!city || city === "all" ? "Nothing matched those filters." : `Nothing in ${city} this weekend.`}
             </p>
-            {city !== "all" ? (
+            {city && city !== "all" ? (
               <button
                 type="button"
                 className="mt-3 text-sm font-medium text-primary-ink"
@@ -327,27 +328,37 @@ function HandoffStrip({
 }) {
   const partners = spots.filter((s) => s.kind === "partner" && (city === "all" || s.area.includes(city))).slice(0, 8);
   if (partners.length === 0) return null;
+  const allSamples = partners.every((sp) => isSamplePartnerSpot(sp.id));
   return (
     <section className="mt-6">
       <div className="mb-3 flex items-end justify-between">
-        <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Handoff locations</h2>
+        <div>
+          <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Handoff locations</h2>
+          {allSamples ? (
+            <p className="text-sm text-muted">Sample names. No store has signed.</p>
+          ) : null}
+        </div>
         <Link to="/sales" className="text-sm font-medium text-primary-ink">
           All sales
         </Link>
       </div>
       <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
-        {partners.map((sp) => (
-          <Link
-            key={sp.id}
-            to="/sales"
-            className="w-56 shrink-0 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]"
-          >
-            <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">Official store handoff</p>
-            <p className="mt-1 font-medium leading-snug">{sp.name}</p>
-            <p className="mt-1 text-xs text-muted">{sp.area}</p>
-            <p className="mt-1 text-xs text-subtle">{sp.hint}</p>
-          </Link>
-        ))}
+        {partners.map((sp) => {
+          const sample = isSamplePartnerSpot(sp.id);
+          return (
+            <Link
+              key={sp.id}
+              to="/sales"
+              className="w-56 shrink-0 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]"
+            >
+              <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">{sampleStoreEyebrow(sp.id)}</p>
+              <p className="mt-1 font-medium leading-snug">{sp.name}</p>
+              <p className="mt-1 text-xs text-muted">{sp.area}</p>
+              {sample ? <p className="mt-1 text-xs font-medium text-fg">Not a signed store.</p> : null}
+              <p className="mt-1 text-xs text-subtle">{publicSpotHint(sp.id, sp.hint)}</p>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
