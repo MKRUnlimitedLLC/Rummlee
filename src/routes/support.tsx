@@ -42,17 +42,21 @@ function Support() {
         </p>
       </LegalSection>
 
-      <LegalSection title="Install on iPhone">
+      <LegalSection title="Contact">
         <p>
-          After you publish Rummlee, open it in Safari, tap Share, then Add to Home Screen. That uses your live app —
-          no TestFlight needed. The App Store listing is a separate step that uses your Apple Developer account.
-        </p>
-      </LegalSection>
-
-      <LegalSection title="App Store listing">
-        <p>
-          Seller: your Apple Developer team. Category: Shopping. Age: 12+ (user-generated listings and in-app credits).
-          Privacy and terms URLs are this app’s /privacy and /terms pages. Support URL is this page.
+          Account, pickup, and safety questions:{" "}
+          <a className="font-medium text-primary-ink" href="mailto:support@rummlee.com">
+            support@rummlee.com
+          </a>
+          . Privacy questions:{" "}
+          <a className="font-medium text-primary-ink" href="mailto:privacy@rummlee.com">
+            privacy@rummlee.com
+          </a>
+          . A store that wants to hold packages:{" "}
+          <a className="font-medium text-primary-ink" href="mailto:stores@rummlee.com">
+            stores@rummlee.com
+          </a>
+          .
         </p>
       </LegalSection>
     </LegalPage>

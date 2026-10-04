@@ -6,7 +6,7 @@ import { LegalPage, LegalSection } from "@/components/legal";
 
 const TITLE = "Rummlee for investors — pre-launch local marketplace";
 const DESCRIPTION =
-  "Rummlee Corp is a pre-launch consumer marketplace in Fargo, North Dakota. Pickup at a store, nothing ships. Background for venture and private equity research. Not an offer of stock.";
+  "Rummlee Corp is a pre-launch consumer marketplace. Pickup at a store, nothing ships. Background for venture and private equity research. Not an offer of stock.";
 
 export const Route = createFileRoute("/investors")({
   head: () => ({
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/investors")({
       {
         name: "keywords",
         content:
-          "Rummlee, pre-launch marketplace, local commerce, consumer marketplace, North Dakota, Fargo, patent pending, venture research, private equity research",
+          "Rummlee, pre-launch marketplace, local commerce, consumer marketplace, North Dakota, patent pending, venture research, private equity research",
       },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
@@ -41,8 +41,11 @@ function Investors() {
           Nothing ships. The home address stays off the public card. People deal by a handle, not a legal name.
         </p>
         <p>
-          The company is Rummlee Corp. Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC. MKR-UNLIMITED
-          LLC owns MKR Connect LLC. A founder is in Fargo, North Dakota.
+          The company is Rummlee Corp, a North Dakota corporation. Questions about this page go to{" "}
+          <a className="font-medium text-primary-ink" href="mailto:investors@rummlee.com">
+            investors@rummlee.com
+          </a>
+          . Writing that address is not an offer of stock.
         </p>
       </LegalSection>
       <LegalSection title="The problem">
@@ -96,8 +99,7 @@ function Investors() {
       </LegalSection>
       <LegalSection title="At a glance">
         <p>Category: pre-launch consumer marketplace. Local pickup. No shipping.</p>
-        <p>Entity: Rummlee Corp, a North Dakota corporation. Built in Fargo, North Dakota. Intended as a national product.</p>
-        <p>Holdco: Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC.</p>
+        <p>Entity: Rummlee Corp, a North Dakota corporation. Intended as a national product.</p>
         <p>Stage: test only. No card is charged. No store is signed. No user count, revenue, round size, or valuation is published.</p>
         <p>
           Patent: a U.S. provisional application is on file for the handoff method. It is not an issued patent. The

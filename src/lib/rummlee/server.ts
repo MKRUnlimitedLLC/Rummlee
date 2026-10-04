@@ -313,7 +313,7 @@ export async function ensureProfile(sql: Awaited<ReturnType<typeof getSql>>, use
     deleted_at: string | null;
   }>`select id, handle, neighborhood, zip, city, legal_first_name, legal_last_name, phone, is_premium, plus_plan, plus_tier, plus_until, is_staff, wallet_cents, verified_at, thumbs_up, thumbs_down, rep, deleted_at from profiles where id = ${userId}`;
   if (existing[0]?.deleted_at) {
-    throw new Error("This account is closed. Sale records stay on file. Email support to reopen.");
+    throw new Error("This account is closed. Sale records stay on file. Email support@rummlee.com to reopen.");
   }
   if (existing[0]) {
     const p = existing[0];
@@ -588,7 +588,7 @@ async function assertIdAvailable(sql: Awaited<ReturnType<typeof getSql>>, userId
     const lock = rows[0];
     if (lock?.active && lock.profile_id !== userId) {
       throw new Error(
-        "This ID already has a live account. One account at a time. Email support to reset — ratings stay with the ID.",
+        "This ID already has a live account. One account at a time. Email support@rummlee.com to reset — ratings stay with the ID.",
       );
     }
   }
@@ -2815,7 +2815,7 @@ export async function completeIdentitySession(profileId: string, sessionId?: str
     `;
     if (taken[0]?.active && taken[0].profile_id !== me.id) {
       await sql`update identity_checks set status = ${"id_in_use"} where session_id = ${result.sessionId} and status = ${"started"}`;
-      throw new Error("This ID already has a live account. One account at a time. Email support to reset — ratings stay with the ID.");
+      throw new Error("This ID already has a live account. One account at a time. Email support@rummlee.com to reset — ratings stay with the ID.");
     }
   }
   const fees = await loadFees(sql);

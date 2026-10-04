@@ -19,6 +19,14 @@ const GRAPH = {
         },
       },
       areaServed: "US",
+      email: "support@rummlee.com",
+      contactPoint: {
+        "@type": "ContactPoint",
+        email: "support@rummlee.com",
+        contactType: "customer support",
+        areaServed: "US",
+        availableLanguage: "English",
+      },
       knowsAbout: ["local marketplace", "neighborhood sale", "peer-to-peer pickup"],
     },
     {

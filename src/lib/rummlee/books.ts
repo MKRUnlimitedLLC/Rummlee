@@ -18,7 +18,7 @@ async function requireProfile(sql: Sql, userId: string) {
   `;
   const me = rows[0];
   if (!me) throw new Error("No profile.");
-  if (me.deleted_at) throw new Error("This account is closed. Sale records stay on file. Email support to reopen.");
+  if (me.deleted_at) throw new Error("This account is closed. Sale records stay on file. Email support@rummlee.com to reopen.");
   return me;
 }
 

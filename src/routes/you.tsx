@@ -582,7 +582,7 @@ function YouPage() {
         <h2 className="font-display text-xl">Account</h2>
         <p className="mt-2 text-sm text-muted">
           Closing the account hides your handle and takes live listings down. Orders, fees, and tax records stay. Test
-          credits are not paid out. Thumbs stay with your ID. Email support if you need the login back.
+          credits are not paid out. Thumbs stay with your ID. Email support@rummlee.com if you need the login back.
         </p>
         <Button
           variant="secondary"

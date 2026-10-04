@@ -95,14 +95,18 @@ function Privacy() {
           You can edit neighborhood on You and sign out at any time. Download my data, on that same page, gives you a
           JSON file of your account, listings, offers, messages, and orders, including your own lowest prices. Other
           people are handles only. To close the login, open You → Delete account. The sale record is not erased. Email
-          support to reopen a closed login.
+          support@rummlee.com to reopen a closed login.
         </p>
       </LegalSection>
 
       <LegalSection title="Who operates this">
         <p>
-          Rummlee Corp, a North Dakota corporation, operates the app. This page does not publish a street address.
-          Privacy questions go to Support. We do not put a home address, a legal name, or an email on a public listing.
+          Rummlee Corp, a North Dakota corporation, operates the app. This page does not publish a street address, a
+          legal name, or a personal mailbox. Privacy questions go to{" "}
+          <a className="font-medium text-primary-ink" href="mailto:privacy@rummlee.com">
+            privacy@rummlee.com
+          </a>
+          .
         </p>
       </LegalSection>
 
@@ -159,7 +163,11 @@ function Privacy() {
 
       <LegalSection title="Questions">
         <p>
-          Privacy questions belong on Support. Beta pay is test credits only. If we add real card payments or a new
+          Privacy questions go to{" "}
+          <a className="font-medium text-primary-ink" href="mailto:privacy@rummlee.com">
+            privacy@rummlee.com
+          </a>
+          . Beta pay is test credits only. If we add real card payments or a new
           sign-in method later, this page will say so before we collect anything extra.
         </p>
       </LegalSection>
