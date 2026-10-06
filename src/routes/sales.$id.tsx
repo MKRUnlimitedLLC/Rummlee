@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { bootstrapPublic, extendSale, featureSale, getSale, setOvertime, stashListing, removeListing } from "@/lib/rummlee/server";
 import { liveWindowLine, money, onlineWindowLine, saleHasEnded, saleWhen } from "@/lib/rummlee/format";
+import { isSamplePartnerSpot, publicSpotHint, sampleStoreEyebrow } from "@/lib/rummlee/sample-store";
 import { MAX_SALE_DAYS, SALE_KINDS } from "@/lib/rummlee/constants";
 import { DEFAULT_FEES, feeById, formatFeeValue } from "@/lib/rummlee/fees";
 import { errMessage } from "@/lib/rummlee/errors";
@@ -61,7 +62,7 @@ function SaleDetail() {
       {data.sale.featured ? <p className="mt-1 text-sm font-medium text-primary-ink">Featured</p> : null}
       {data.sale.alwaysOn ? (
         <p className="mt-2 text-sm text-fg">
-          Always on at the Fargo official store. These are items someone left. Half of what Rummlee receives is set
+          Always on at the Fargo shelf. No store has signed to hold these. Half of what Rummlee receives is set
           aside for charity. Rummlee never ships.
         </p>
       ) : onlineWindowLine(data.sale) ? (
@@ -89,10 +90,11 @@ function SaleDetail() {
       {spot ? (
         <div className="mt-4 rounded-2xl bg-primary-soft px-4 py-3">
           <p className="text-xs font-medium uppercase tracking-wider text-primary-ink">
-            {spot.kind === "partner" ? "Official store handoff" : "Public place handoff"}
+            {spot.kind === "partner" ? sampleStoreEyebrow(spot.id) : "Public place handoff"}
           </p>
           <p className="mt-1 font-medium">{spot.name}</p>
-          <p className="text-sm text-muted">{spot.hint}</p>
+          {isSamplePartnerSpot(spot.id) ? <p className="text-sm font-medium text-fg">Not a signed store.</p> : null}
+          <p className="text-sm text-muted">{publicSpotHint(spot.id, spot.hint)}</p>
         </div>
       ) : null}
       <div className="mt-6 grid gap-4 sm:grid-cols-2">

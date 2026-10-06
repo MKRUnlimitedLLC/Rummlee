@@ -176,4 +176,15 @@ test("the banner and the page boot are wired", () => {
   assert.match(root, /CONSENT_BOOT/);
   assert.match(privacy, /Allow measurement/);
   assert.equal(privacy.includes("We do not use\n          advertising cookies"), false);
+  assert.match(privacy, /Google Analytics/);
+  assert.match(privacy, /Google Ads/);
+  assert.match(privacy, /Meta pixel/);
+  assert.match(privacy, /We do not send your email/);
+  assert.match(privacy, /or your phone/);
+  assert.equal(privacy.includes("Measurement is not used to advertise"), false);
+  assert.equal(privacy.includes("We do not share it for"), false);
+  assert.match(banner, /Google Analytics, Google Ads, and Meta/);
+  assert.equal(banner.includes("We do not follow you on other sites"), false);
+  assert.match(banner, /Essential only/);
+  assert.match(banner, /Allow measurement/);
 });

@@ -55,6 +55,7 @@ type ListingRow = {
   weight_lbs: number | null;
   neighborhood: string;
   handoff_modes: string;
+  handoff_spot_id: string | null;
   handoff_spot_name: string | null;
   handoff_spot_area: string | null;
   handoff_spot_hint: string | null;
@@ -109,6 +110,7 @@ function mapListing(row: ListingRow, saved = false): Listing {
     })
       ? splitModes(row.handoff_modes)
       : ["person"],
+    handoffSpotId: row.handoff_spot_id,
     handoffSpotName: row.handoff_spot_name,
     handoffSpotArea: row.handoff_spot_area,
     handoffSpotHint: row.handoff_spot_hint,
@@ -667,7 +669,7 @@ const listingSelect = `
          (l.featured_until is not null and l.featured_until > now()) as featured,
          (s.featured_until is not null and s.featured_until > now()) as sale_featured,
          s.online_start_dow, s.online_end_dow, s.live_on, s.live_start_dow, s.live_end_dow, s.live_open, s.live_close, s.always_on,
-         hs.name as handoff_spot_name, hs.area as handoff_spot_area, hs.hint as handoff_spot_hint,
+         hs.id as handoff_spot_id, hs.name as handoff_spot_name, hs.area as handoff_spot_area, hs.hint as handoff_spot_hint,
          hs.kind as handoff_spot_kind,
          (p.verified_at is not null) as seller_verified,
          coalesce(p.thumbs_up, 0) as seller_thumbs_up,

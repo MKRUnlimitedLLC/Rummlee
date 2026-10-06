@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql } from "@/lib/db";
+import { clientKeyFromHeaders, launchRateAllows } from "./launch-rate";
 
 import {
   handoffSuccess,
@@ -64,6 +66,39 @@ async function ensureLaunchList(sql: Awaited<ReturnType<typeof getSql>>) {
   `;
   await sql`alter table launch_signups drop constraint if exists launch_signups_email_key`;
   await sql`create unique index if not exists launch_signups_dedupe_key on launch_signups (dedupe)`;
+  await sql`
+    create table if not exists launch_rate_hits (
+      id text primary key,
+      client_key text not null,
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`create index if not exists launch_rate_hits_client_created on launch_rate_hits (client_key, created_at)`;
+}
+
+async function requestClientKey() {
+  try {
+    return await clientKeyFromHeaders(getRequest().headers);
+  } catch {
+    return null;
+  }
+}
+
+async function assertLaunchRate(sql: Awaited<ReturnType<typeof getSql>>, key: string) {
+  await sql`delete from launch_rate_hits where created_at < now() - interval '2 days'`;
+  const counts = await sql<{ hour_n: number; day_n: number }>`
+    select
+      count(*) filter (where created_at > now() - interval '1 hour')::int as hour_n,
+      count(*) filter (where created_at > now() - interval '1 day')::int as day_n
+    from launch_rate_hits
+    where client_key = ${key}
+  `;
+  const hour = Number(counts[0]?.hour_n ?? 0);
+  const day = Number(counts[0]?.day_n ?? 0);
+  if (!launchRateAllows(hour, day)) {
+    throw new Error("Too many submissions from this network. Wait about an hour and try again.");
+  }
+  await sql`insert into launch_rate_hits (id, client_key) values (${crypto.randomUUID()}, ${key})`;
 }
 
 const payload = z.object({
@@ -125,6 +160,8 @@ export const joinLaunchList = createServerFn({ method: "POST" })
     const row = parsed.record;
     const sql = await getSql();
     await ensureLaunchList(sql);
+    const clientKey = await requestClientKey();
+    if (clientKey) await assertLaunchRate(sql, clientKey);
     await sql`
       insert into launch_signups (
         id, email, phone, path, intent, city, zip,

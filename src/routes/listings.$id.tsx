@@ -16,6 +16,7 @@ import { TEST_MODE } from "@/lib/rummlee/constants";
 import { lastCity, loadSavedIds, rememberAfterLogin, toggleLocalSaved } from "@/lib/rummlee/draft";
 import { errMessage, isUnauthorized } from "@/lib/rummlee/errors";
 import { categoryLabel, cityOf, fitsOfficialCounter, haulLabel, liveWindowLine, money, onlineWindowLine, packLabel, payBaseCents, PERSON_ONLY_LINE, saleHasEnded, saleWhen } from "@/lib/rummlee/format";
+import { isSampleStoreCard } from "@/lib/rummlee/sample-store";
 import { buyNow, featureListing, getListing, markSoldOutside, respondOffer, sendMessage, sendOffer, setOvertime, toggleSaved, topUpWallet, stashListing, removeListing } from "@/lib/rummlee/server";
 import { DEFAULT_FEES, checkoutQuote, feeById, formatFeeValue } from "@/lib/rummlee/fees";
 import { dissolveBundle } from "@/lib/rummlee/bundles";
@@ -69,6 +70,11 @@ function ListingPage() {
   const sellerTier = data.sellerTier === "trio" || data.sellerTier === "plus" ? data.sellerTier : null;
   const sides = { buyer: premium, sellerTier };
   const officialOk = listing.handoffModes.includes("official");
+  const sampleStore = isSampleStoreCard({
+    handoffSpotId: listing.handoffSpotId,
+    sellerId: listing.sellerId,
+    partner: listing.handoffSpotKind === "partner",
+  });
   const personOk = listing.handoffModes.includes("person");
   const publicOk = listing.handoffModes.includes("public") && Boolean(data.publicSpot);
   const publicSpot = data.publicSpot;
@@ -85,7 +91,7 @@ function ListingPage() {
   const meetChoices = [
     {
       id: "partner" as const,
-      label: "Official partner store",
+      label: sampleStore ? "Sample store (not signed)" : "Official partner store",
       hint: listing.distanceLabel ?? "Rough distance until you pay.",
       enabled: officialOk,
     },
@@ -347,7 +353,9 @@ function ListingPage() {
           ) : null}
           {listing.charitySplit ? (
             <p className="rounded-xl bg-primary-soft px-3 py-2 text-base text-fg">
-              Left at an official store. Rummlee is reselling it. Pay asking. Half of what Rummlee receives goes to charity.
+              {sampleStore
+                ? "Left at a sample counter. No store has signed. Rummlee is reselling it. Pay asking. Half of what Rummlee receives goes to charity."
+                : "Left at an official store. Rummlee is reselling it. Pay asking. Half of what Rummlee receives goes to charity."}
             </p>
           ) : null}
           <p className="text-pretty text-base leading-relaxed text-fg">{listing.description}</p>
@@ -398,7 +406,7 @@ function ListingPage() {
           </Link>
           <p className="text-sm text-subtle">
             Neighbors see @{listing.sellerHandle} — never a real name or home address.
-            {listing.handoffSpotKind === "partner" ? " Official store handoff." : listing.handoffSpotKind === "public" ? " Public place handoff." : ""}
+            {sampleStore ? " Sample store. No shop has signed." : listing.handoffSpotKind === "partner" ? " Official store handoff." : listing.handoffSpotKind === "public" ? " Public place handoff." : ""}
           </p>
         </div>
       </div>
@@ -544,7 +552,9 @@ function ListingPage() {
             </div>
           ) : selected === "partner" && listing.handoffSpotName ? (
             <div className="rounded-xl bg-bg px-3.5 py-3">
-              <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">Official partner store</p>
+              <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">
+                {sampleStore ? "Sample store · not signed" : "Official partner store"}
+              </p>
               <p className="mt-1 font-medium">{listing.handoffSpotName}</p>
               <p className="text-sm text-muted">{listing.distanceLabel ?? listing.handoffSpotArea}</p>
             </div>

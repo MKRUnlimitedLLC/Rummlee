@@ -32,6 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const bare = pathname === "/bandit" || pathname === "/bandit/";
   const hideNav = pathname.startsWith("/login") || pathname.startsWith("/welcome");
+  const handoffPage = pathname === "/handoff";
   const [reading, setReading] = useState<Reading>("full");
   useEffect(() => {
     paintReading(currentReading());
@@ -99,7 +100,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </p>
       </header>
-      <div className={cn("mx-auto w-full max-w-5xl px-4", hideNav ? "pb-8" : "pb-28 md:pb-10")}>{children}</div>
+      <div className={cn("mx-auto w-full max-w-5xl px-4", hideNav ? "pb-8" : handoffPage ? "pb-80 md:pb-10" : "pb-28 md:pb-10")}>
+        {handoffPage ? <ReadingAsk placement="flow" /> : null}
+        {children}
+      </div>
       {hideNav ? null : (
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
           <ul className="mx-auto grid max-w-lg grid-cols-5 px-2 pt-1">
@@ -134,7 +138,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <BetaNotice />
       <CookieConsent />
       <LaunchSignup />
-      <ReadingAsk />
+      {handoffPage ? null : <ReadingAsk />}
     </div>
   );
 }
