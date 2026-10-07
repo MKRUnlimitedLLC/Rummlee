@@ -185,14 +185,23 @@ export async function chargeSeller(
   `;
   const wallet = await sql<{ wallet_cents: number }>`select wallet_cents from profiles where id = ${userId}`;
   const have = Math.max(0, Number(wallet[0]?.wallet_cents ?? 0));
-  const fromWallet = Math.min(have, cents);
-  const fromPayout = cents - fromWallet;
+  let fromWallet = Math.min(have, cents);
+  let fromPayout = cents - fromWallet;
   if (fromWallet > 0) {
-    await sql`update profiles set wallet_cents = wallet_cents - ${fromWallet} where id = ${userId}`;
-    await sql`
-      insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
-      values (${crypto.randomUUID()}, ${userId}, ${"upsell"}, ${-fromWallet}, ${refId}, ${note})
+    const took = await sql<{ id: string }>`
+      update profiles set wallet_cents = wallet_cents - ${fromWallet}
+      where id = ${userId} and wallet_cents >= ${fromWallet}
+      returning id
     `;
+    if (!took[0]) {
+      fromPayout += fromWallet;
+      fromWallet = 0;
+    } else {
+      await sql`
+        insert into wallet_tx (id, user_id, kind, amount_cents, ref_id, note)
+        values (${crypto.randomUUID()}, ${userId}, ${"upsell"}, ${-fromWallet}, ${refId}, ${note})
+      `;
+    }
   }
   if (fromPayout > 0) {
     await sql`
@@ -464,13 +473,16 @@ export const cancelHold = createServerFn({ method: "POST" })
     `;
     const order = rows[0];
     if (!order) throw new Error("Handoff not found.");
-    if (order.buyer_id !== context.userId && order.seller_id !== context.userId) throw new Error("Not your handoff.");
+    if (order.buyer_id !== context.userId) {
+      throw new Error("The buyer already paid. You can’t cancel the hold. If you miss the window, they are refunded.");
+    }
     if (order.status !== "escrow") throw new Error("This handoff is already closed.");
     if (order.checked_in_at) {
       throw new Error("The counter already has this package. The buyer can refuse it there, or the clerk can.");
     }
-    const refunded = await refundEscrow(sql, order.id, "Hold cancelled before check-in");
+    const refunded = await refundEscrow(sql, order.id, "Buyer cancelled before the handoff");
     if (!refunded) throw new Error("Could not cancel this hold.");
+    await grantRep(sql, order.buyer_id, "buyer_cancel", -3, order.id);
     await writeNotice(sql, {
       userId: order.buyer_id,
       kind: "refund",
@@ -484,7 +496,7 @@ export const cancelHold = createServerFn({ method: "POST" })
       userId: order.seller_id,
       kind: "refund",
       title: "Hold cancelled",
-      body: "The handoff was cancelled before the counter took the package. The listing is live again.",
+      body: "The buyer cancelled before the handoff. The listing is live again. You are not paid.",
       refId: order.id,
     });
     return { ok: true as const };

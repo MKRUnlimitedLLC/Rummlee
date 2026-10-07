@@ -1694,6 +1694,7 @@ export const addListing = createServerFn({ method: "POST" })
     if (data.floorCents < min) {
       throw new Error(`Lowest price has to be at least $${(min / 100).toFixed(min % 100 === 0 ? 0 : 2)}.`);
     }
+    assertStaysInApp([data.title, data.description, data.sizeLabel].filter(Boolean).join("\n"));
     const listFee = fees.find((row) => row.id === "list");
     if (listFee?.enabled && listFee.amountCents > 0) {
       await debitWallet(sql, context.userId, listFee.amountCents);
@@ -1951,6 +1952,7 @@ export const sendOffer = createServerFn({ method: "POST" })
       `;
       if (usedUp[0]) throw new Error("You already used your one offer on this item. You can still pay asking.");
     }
+    if (data.note?.trim()) assertStaysInApp(data.note);
     const ask = overtime ? Number(item.overtime_cents) : Number(item.price_cents);
     const floor = overtime ? 0 : Number(item.floor_cents ?? item.price_cents);
     if (data.amountCents >= ask) {
@@ -2229,6 +2231,9 @@ export const buyNow = createServerFn({ method: "POST" })
       : null;
     const payAsking = Boolean(data.payAsking) || !offerState || offerState.status === "pending" || offerState.status === "declined";
     const base = payAsking ? asking : payBaseCents(asking, offerState);
+    if (data.amountCents < base) {
+      throw new Error("That price doesn’t match. Refresh the listing and try again.");
+    }
     const fees = await loadFees(sql);
     const sellerTier = await viewerTier(sql, item.seller_id);
     const quote = checkoutQuote(
@@ -3269,7 +3274,7 @@ export const getFeeTable = createServerFn({ method: "GET" }).handler(async () =>
     const me = await ensureProfile(sql, userId);
     isStaff = me.isStaff;
     const staff = await sql<{ n: number }>`select count(*)::int as n from profiles where is_staff = true`;
-    canClaim = !isStaff && Number(staff[0]?.n ?? 0) === 0;
+    canClaim = !isStaff && Number(staff[0]?.n ?? 0) === 0 && process.env.RUMMLEE_ALLOW_OPERATOR_CLAIM === "1";
   }
   return { fees, isStaff, canClaim, signedIn: Boolean(userId) };
 });
@@ -3282,6 +3287,9 @@ export const claimOperator = createServerFn({ method: "POST" })
     const staff = await sql<{ n: number }>`select count(*)::int as n from profiles where is_staff = true`;
     if (Number(staff[0]?.n ?? 0) > 0) {
       throw new Error("An operator account is already set.");
+    }
+    if (process.env.RUMMLEE_ALLOW_OPERATOR_CLAIM !== "1") {
+      throw new Error("Operator claim is locked. Set the operator in the database. This button does not grant it.");
     }
     await ensureProfile(sql, context.userId);
     const claimed = await sql<{ id: string }>`

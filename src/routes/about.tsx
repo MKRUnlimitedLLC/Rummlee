@@ -29,7 +29,7 @@ function About() {
         <PatentPending className="text-sm text-fg" />
         <LegalSection title="How a sale works">
           <p>
-            The seller sets an asking price. The buyer pays that price, or makes one offer. Each side gets one
+            The seller sets an asking price. The buyer pays that price, or makes one offer. The seller may send one
             counteroffer. A decline ends it.
           </p>
           <p>

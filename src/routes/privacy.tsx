@@ -71,7 +71,7 @@ function Privacy() {
         <p>
           Other people see your handle, the neighborhood you chose, your listings, and messages you send them. They do
           not see your email, legal name, or wallet. Listings show an official partner store or a public place, not a home address.
-          An in-person meetup note is shown only after you pay or an offer is accepted. Pickup codes are only for the
+          An in-person meetup note is shown only after you pay. Accepting an offer does not show it. Pickup codes are only for the
           two people on that order. The store counter sees a package number, not a name. If you leave a rejected package, the resale does not
           show your handle. A listing note is public once other neighbors
           mark it helpful. Don’t put a name, phone, or address in a note or in a message. A missing detail shows, with the neighbor’s

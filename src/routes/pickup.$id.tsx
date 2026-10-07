@@ -177,12 +177,12 @@ function PickupPage() {
           <p className="text-sm text-muted">The store counter closes this when it scans the buyer code. You don’t confirm it yourself.</p>
           <OnTheWayButton orderId={order.id} store />
           <CloseButton orderId={order.id} />
-          {!order.checkedIn ? (
+          {iAmBuyer && !order.checkedIn ? (
             <Button variant="secondary" className="w-full" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
               Cancel this hold
             </Button>
-          ) : (
-            <p className="text-sm text-muted">The counter has the package. A clerk can refuse it. You can’t cancel from here.</p>
+          ) : iAmBuyer ? null : (
+            <p className="text-sm text-muted">The buyer already paid. You can’t cancel this hold.</p>
           )}
         </div>
       ) : (
@@ -208,9 +208,13 @@ function PickupPage() {
           <p className="text-center text-xs text-subtle">
             Buyer confirmed: {order.buyerConfirmed ? "yes" : "not yet"} · Seller: {order.sellerConfirmed ? "yes" : "not yet"}
           </p>
-          <Button type="button" variant="secondary" className="w-full" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
-            Cancel this hold
-          </Button>
+          {iAmBuyer ? (
+            <Button type="button" variant="secondary" className="w-full" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
+              Cancel this hold
+            </Button>
+          ) : (
+            <p className="text-center text-sm text-muted">The buyer already paid. You can’t cancel this hold.</p>
+          )}
         </form>
       )}
     </main>

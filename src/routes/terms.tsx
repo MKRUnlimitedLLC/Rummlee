@@ -11,7 +11,7 @@ function Terms() {
   return (
     <LegalPage
       title="Terms"
-      lede="The house rules for listing, offering, and picking up on Rummlee. Updated September 28, 2026."
+      lede="The house rules for listing, offering, and picking up on Rummlee. Updated October 6, 2026."
     >
       <LegalSection title="The short version">
         <p>
@@ -23,7 +23,7 @@ function Terms() {
       <LegalSection title="Accounts">
         <p>
           You need an account to offer, message, list, or pay. You must be 18. Peeking is free. Keep your login to yourself.
-          One person, one account. A new account does not reset ratings. You may delete the account from You at any
+          One person, one account. Ratings follow the email and the sign-in. A different email starts over. You may delete the account from You at any
           time. An ID-verified badge is off during this beta. When it is on, a verification company checks that the
           name matches the ID. We do not keep the ID image.
         </p>
@@ -33,13 +33,13 @@ function Terms() {
         <p>
           List only items you have the right to sell. No stolen goods, weapons, explosives, drugs, or anything illegal
           to transfer where you live. Photos should match the item. You set an asking price and a lowest price. The
-          lowest price is not on the public listing. A buyer can pay asking or make one offer. Each side gets one
-          counteroffer. A decline ends it. There is no back-and-forth after that.
+          lowest price is not on the public listing. A buyer can pay asking or make one offer. The seller may send one
+          counteroffer. The buyer pays that price or declines. A decline from either side ends it. There is no second round.
         </p>
         <p>
           A sale can be online on some days and in person on others. The public card shows the hours, not a street
-          address. If you offer an in-person handoff, the meetup note is shown only after the buyer pays or an offer
-          is accepted. An item over 50 pounds, or not in an outer box, is in person only. It does not go to an official
+          address. If you offer an in-person handoff, the meetup note is shown only after the buyer pays. Accepting an
+          offer does not show it. An item over 50 pounds, or not in an outer box, is in person only. It does not go to an official
           store. The seller says whether a boxed item is packed as-is or in an outer box.
         </p>
         <p>
