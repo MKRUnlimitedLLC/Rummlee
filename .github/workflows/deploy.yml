@@ -17,7 +17,7 @@ jobs:
           deadline=$((SECONDS + 240))
           while true; do
             body=$(curl -fsS https://rummlee.com/terms || true)
-            if printf '%s' "$body" | grep -Fq "Updated September 28, 2026" \
+            if printf '%s' "$body" | grep -Fq "Updated October 6, 2026" \
               && printf '%s' "$body" | grep -Fq "Do not put a home address in a message."; then
               echo "live terms confirmed"
               exit 0

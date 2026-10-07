@@ -36,14 +36,14 @@ mustContain(
 mustContain("inbox.tsx", "Public place, or the handoff already offered. Not a home address.");
 mustNotContain("inbox.tsx", "unless you both want that.");
 
-mustContain("terms.tsx", "Updated September 28, 2026.");
+mustContain("terms.tsx", "Updated October 6, 2026.");
 mustContain(
   "terms.tsx",
   "A street address is not posted on a listing. A private meetup note, if the seller writes one, is shown only after someone pays. Do not put a home address in a message.",
 );
 mustNotContain("terms.tsx", "Addresses are not posted.");
 
-mustContain("privacy.tsx", "Updated October 3, 2026.");
+mustContain("privacy.tsx", "Updated October 4, 2026.");
 mustContain("privacy.tsx", "Allow measurement");
 mustContain("privacy.tsx", "in a note or in a message.");
 
