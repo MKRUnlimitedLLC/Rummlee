@@ -119,6 +119,40 @@ async function normalizeSampleSpotHints(sql: Sql) {
   `;
 }
 
+// handoff-copy-lint: off (old text below is only matched in stored rows, never shown)
+/** Rows seeded before the one handoff vocabulary (#25). Text only: fee amounts and seller-written listings are untouched. */
+const FEE_WORDING: Array<[id: string, from: string, to: string]> = [
+  [
+    "official_handoff_seller",
+    "Not charged. The seller fee does not change with the handoff location. Left at $0 so it can be turned back on without a code change.",
+    "Not charged. The seller fee does not change with the handoff. Left at $0 so it can be turned back on without a code change.",
+  ],
+  ["public_handoff", "Added at checkout when the buyer picks a public place handoff location.", "Added at checkout when the buyer picks a public place handoff."],
+  ["person_handoff", "Added at checkout when the buyer picks an in person handoff location.", "Added at checkout when the buyer picks a person-to-person handoff."],
+];
+
+const SEED_LISTING_WORDING: Array<[from: string, to: string]> = [
+  ["One-person carry from the partner store.", "One-person carry from the official store."],
+  ["Clark Street Market — official partner, store hours.", "Clark Street Market — official store, store hours."],
+  ["Rummlee never ships.", "Nothing ships."],
+];
+
+// handoff-copy-lint: on
+
+async function normalizeHandoffWording(sql: Sql) {
+  for (const [id, from, to] of FEE_WORDING) {
+    await sql`update rummlee_fees set description = ${to} where id = ${id} and description = ${from}`;
+  }
+  for (const [from, to] of SEED_LISTING_WORDING) {
+    await sql`
+      update listings
+      set description = replace(description, ${from}, ${to})
+      where seller_id like ${"seed-%"}
+        and position(${from} in description) > 0
+    `;
+  }
+}
+
 async function ensurePlaces(sql: Sql) {
   await sql`alter table handoff_spots add column if not exists address text`;
   for (const [id, address] of Object.entries(SPOT_ADDRESS)) {
@@ -133,6 +167,7 @@ async function runSeed(sql: Sql) {
   await ensurePlusAlerts(sql);
   await ensureOvertime(sql);
   await ensurePlaces(sql);
+  await normalizeHandoffWording(sql);
   await normalizeSampleSpotHints(sql);
   const existing = await sql<{ value: string }>`select value from app_meta where key = ${"seeded"}`;
   if (existing[0]?.value === SEED_VERSION) return;

@@ -22,8 +22,8 @@ function About() {
       <p className="text-sm font-medium text-primary-ink">Rummlee</p>
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">About</h1>
       <p className="mt-2 max-w-2xl text-pretty text-muted">
-        The good stuff, before Saturday. Neighbors sell what they already own. Pickup is at an official handoff
-        location. Nothing ships.
+        The good stuff, before Saturday. Neighbors sell what they already own. Official store handoff first. A
+        public place is the backup. Nothing ships.
       </p>
       <div className="mt-8 max-w-2xl space-y-6 text-sm leading-relaxed text-fg">
         <PatentPending className="text-sm text-fg" />

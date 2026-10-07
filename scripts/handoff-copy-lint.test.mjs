@@ -23,6 +23,19 @@ test("every retired handoff variant is caught", () => {
   for (const line of retired) assert.equal(lintText(line, "x").length > 0, true, line);
 });
 
+test("a phrase wrapped across two source lines is caught", () => {
+  const hits = lintText("Pickup is at an official handoff\n        location. Nothing ships.", "x");
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].line, 1);
+});
+
+test("an explicit off/on block is skipped, and only that block", () => {
+  const text = "// handoff-copy-lint: off\nconst FROM = \"Rummlee never ships.\";\n// handoff-copy-lint: on\nRummlee never ships.";
+  const hits = lintText(text, "x");
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].line, 4);
+});
+
 test("the canonical wording passes", () => {
   const ok = [
     "Official store handoff first. A public place is the backup. Person to person is optional. Nothing ships.",

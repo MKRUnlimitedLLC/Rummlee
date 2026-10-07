@@ -33,10 +33,28 @@ function isTest(path) {
 
 export function lintText(text, file) {
   const hits = [];
-  text.split(/\r?\n/).forEach((line, index) => {
+  const lines = text.split(/\r?\n/);
+  let off = false;
+  lines.forEach((line, index) => {
+    // Only for code that rewrites legacy stored rows: `handoff-copy-lint: off` ... `handoff-copy-lint: on`.
+    if (line.includes("handoff-copy-lint: off")) off = true;
+    if (line.includes("handoff-copy-lint: on")) {
+      off = false;
+      return;
+    }
+    if (off) return;
     for (const { re, use } of RETIRED) {
       const m = line.match(re);
-      if (m) hits.push({ file, line: index + 1, found: m[0], use });
+      if (m) {
+        hits.push({ file, line: index + 1, found: m[0], use });
+        continue;
+      }
+      // Copy wrapped across two source lines ("an official handoff\n location").
+      const next = lines[index + 1];
+      if (next === undefined) continue;
+      const joined = `${line.trimEnd()} ${next.trimStart()}`;
+      const j = joined.match(re);
+      if (j && !next.match(re)) hits.push({ file, line: index + 1, found: j[0], use });
     }
   });
   return hits;
