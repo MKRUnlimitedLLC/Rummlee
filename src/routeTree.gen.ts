@@ -408,6 +408,7 @@ export interface RootRouteChildren {
   CorporateRoute: typeof CorporateRoute
   DeskRoute: typeof DeskRoute
   FeesRoute: typeof FeesRoute
+  FilmsRoute: typeof FilmsRoute
   HandoffRoute: typeof HandoffRoute
   InboxRoute: typeof InboxRoute
   InvestorsRoute: typeof InvestorsRoute

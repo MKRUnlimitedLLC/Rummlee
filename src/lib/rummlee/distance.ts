@@ -1,24 +1,5 @@
 import { placeName } from "./format";
-
-const POINT: Record<string, [number, number]> = {
-  "Park Slope, Brooklyn": [40.671, -73.977],
-  "Silver Lake, Los Angeles": [34.087, -118.27],
-  "Pasadena, Los Angeles": [34.147, -118.144],
-  "East Austin, Austin": [30.263, -97.72],
-  "Lincoln Park, Chicago": [41.921, -87.647],
-  "Naperville, Chicago": [41.75, -88.153],
-  "Capitol Hill, Seattle": [47.625, -122.322],
-  "Decatur, Atlanta": [33.775, -84.296],
-  "LoHi, Denver": [39.759, -105.011],
-  "Bethesda, DC": [38.984, -77.095],
-  "Arlington, DC": [38.88, -77.106],
-  "Plano, Dallas": [33.019, -96.698],
-  "Cambridge, Boston": [42.374, -71.11],
-  "Brookline, Boston": [42.332, -71.121],
-  "Scottsdale, Phoenix": [33.494, -111.926],
-  "West Fargo, Fargo–Moorhead": [46.877, -96.9],
-  "Uptown, Minneapolis": [44.948, -93.298],
-};
+import { SAMPLE_POINT as POINT } from "./places.ts";
 
 /** Street of the handoff spot. Shown only after someone pays. */
 export const SPOT_ADDRESS: Record<string, string> = {

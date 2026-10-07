@@ -344,7 +344,7 @@ function ListingPage() {
             </p>
             {lastCity() && lastCity() !== "all" && cityOf(listing.neighborhood) !== lastCity() ? (
               <p className="rounded-xl bg-primary-soft px-3 py-2 text-sm text-fg">
-                Pickup is in {cityOf(listing.neighborhood)}, not {lastCity()}. City chips on Browse only show that metro.
+                Pickup is in {cityOf(listing.neighborhood)}, not {lastCity()}.
               </p>
             ) : null}
           </div>

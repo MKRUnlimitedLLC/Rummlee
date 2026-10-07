@@ -7,9 +7,10 @@ import { PatentPending } from "@/components/patent-pending";
 import { WaitlistForm } from "@/components/launch-forms";
 import { Input } from "@/components/ui/input";
 import { bootstrapPublic } from "@/lib/rummlee/server";
-import { CATEGORIES, CITIES, HAULS, HOLD_LINE } from "@/lib/rummlee/constants";
+import { CATEGORIES, HAULS, HOLD_LINE } from "@/lib/rummlee/constants";
 import { lastCity, rememberCity } from "@/lib/rummlee/draft";
 import { cityOf } from "@/lib/rummlee/format";
+import { cityForQuery, isListedCity, listingInPlace, nearestSampleCity, placeSuggestions } from "@/lib/rummlee/places";
 import { isSamplePartnerSpot, publicSpotHint, sampleStoreEyebrow } from "@/lib/rummlee/sample-store";
 import type { HandoffSpot } from "@/lib/rummlee/types";
 import { cn } from "@/lib/utils";
@@ -31,13 +32,79 @@ function Home() {
   const signedIn = isPending ? Boolean(data?.signedIn) : Boolean(user);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
-  const [city, setCity] = useState<string | null>(null);
-  const cityTouched = useRef(false);
+  const [placeQuery, setPlaceQuery] = useState("");
+  const [nearCity, setNearCity] = useState<string | null>(null);
+  const [locNote, setLocNote] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
+  const locateGen = useRef(0);
+  const applyPosition = (pos: GeolocationPosition, gen: number) => {
+    if (gen !== locateGen.current) return;
+    const city = nearestSampleCity(pos.coords.latitude, pos.coords.longitude);
+    setLocating(false);
+    setPlaceQuery("");
+    if (!city) {
+      setNearCity(null);
+      setLocNote("No samples near you. Search a city or neighborhood.");
+      rememberCity("all");
+      return;
+    }
+    setNearCity(city);
+    setLocNote(null);
+    rememberCity(city);
+  };
+  const locate = (silent: boolean) => {
+    const gen = ++locateGen.current;
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      if (!silent) setLocNote("This browser can’t share a location. Search a city or neighborhood.");
+      return;
+    }
+    setLocating(true);
+    setLocNote(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => applyPosition(pos, gen),
+      () => {
+        if (gen !== locateGen.current) return;
+        setLocating(false);
+        if (!silent) setLocNote("Location is off. Search a city or neighborhood.");
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300_000 },
+    );
+  };
   useEffect(() => {
-    if (cityTouched.current) return;
     const saved = lastCity();
-    setCity(saved && saved !== "all" ? saved : "all");
+    if (saved && saved !== "all" && isListedCity(saved)) {
+      setPlaceQuery(saved);
+      return;
+    }
+    const gen = ++locateGen.current;
+    void (async () => {
+      try {
+        if (!navigator.permissions?.query) return;
+        const status = await navigator.permissions.query({ name: "geolocation" });
+        if (status.state !== "granted" || gen !== locateGen.current) return;
+      } catch {
+        return;
+      }
+      if (!navigator.geolocation || gen !== locateGen.current) return;
+      setLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => applyPosition(pos, gen),
+        () => {
+          if (gen !== locateGen.current) return;
+          setLocating(false);
+        },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300_000 },
+      );
+    })();
   }, []);
+  const showAllSamples = () => {
+    locateGen.current += 1;
+    setPlaceQuery("");
+    setNearCity(null);
+    setLocNote(null);
+    setLocating(false);
+    rememberCity("all");
+  };
   const [haul, setHaul] = useState<string>("all");
   const [size, setSize] = useState<string>("all");
   const [storeOnly, setStoreOnly] = useState(false);
@@ -46,9 +113,12 @@ function Home() {
   const listings = useMemo(() => {
     if (!data?.listings) return [];
     const query = q.trim().toLowerCase();
+    const place = placeQuery.trim();
+    const cityLock = place ? null : nearCity;
     const filtered = data.listings.filter((l) => {
       if (cat !== "all" && l.category !== cat) return false;
-      if (city && city !== "all" && cityOf(l.neighborhood) !== city) return false;
+      if (cityLock && cityOf(l.neighborhood) !== cityLock) return false;
+      if (place && !listingInPlace(l.neighborhood, place)) return false;
       if (haul !== "all" && l.haul !== haul) return false;
       if (size !== "all" && (l.sizeLabel ?? "") !== size) return false;
       if (storeOnly && !l.handoffModes.includes("official")) return false;
@@ -62,11 +132,15 @@ function Home() {
         l.neighborhood.toLowerCase().includes(query)
       );
     });
-    if (city !== "Fargo–Moorhead") return filtered;
+    const fargo =
+      cityLock === "Fargo–Moorhead" ||
+      cityForQuery(place) === "Fargo–Moorhead" ||
+      place.toLowerCase().includes("fargo");
+    if (!fargo) return filtered;
     const contractor = (l: (typeof filtered)[number]) =>
       l.category === "outdoor" || l.haul === "truck" ? 0 : 1;
     return [...filtered].sort((a, b) => contractor(a) - contractor(b));
-  }, [data?.listings, q, cat, city, haul, size, storeOnly, lotOk]);
+  }, [data?.listings, q, cat, placeQuery, nearCity, haul, size, storeOnly, lotOk]);
 
   const sizeOptions = useMemo(() => {
     if (!data?.listings) return [];
@@ -92,6 +166,20 @@ function Home() {
       <LaunchChoices />
 
       <div className="mt-6 space-y-3">
+        <PlaceFinder
+          query={placeQuery}
+          nearCity={nearCity}
+          note={locNote}
+          locating={locating}
+          onQuery={(value) => {
+            locateGen.current += 1;
+            setLocating(false);
+            setPlaceQuery(value);
+            const city = cityForQuery(value);
+            if (city) rememberCity(city);
+          }}
+          onLocate={() => locate(false)}
+        />
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -113,31 +201,6 @@ function Home() {
               }}
             >
               {c.label}
-            </Chip>
-          ))}
-        </div>
-        <div className="-mx-4 flex flex-wrap gap-2 px-4 pb-1 md:mx-0">
-          <Chip
-            active={city === "all"}
-            onClick={() => {
-              cityTouched.current = true;
-              setCity("all");
-              rememberCity("all");
-            }}
-          >
-            Nationwide
-          </Chip>
-          {CITIES.map((c) => (
-            <Chip
-              key={c}
-              active={city === c}
-              onClick={() => {
-                cityTouched.current = true;
-                setCity(c);
-                rememberCity(c);
-              }}
-            >
-              {c}
             </Chip>
           ))}
         </div>
@@ -187,19 +250,11 @@ function Home() {
         {listings.length === 0 ? (
           <div className="rounded-2xl bg-surface px-4 py-10 text-center shadow-[var(--shadow-card)]">
             <p className="text-muted">
-              {!city || city === "all" ? "Nothing matched those filters." : `Nothing in ${city} this weekend.`}
+              {placeQuery.trim() || nearCity ? "No samples there." : "Nothing matched those filters."}
             </p>
-            {city && city !== "all" ? (
-              <button
-                type="button"
-                className="mt-3 text-sm font-medium text-primary-ink"
-                onClick={() => {
-                  cityTouched.current = true;
-                  setCity("all");
-                  rememberCity("all");
-                }}
-              >
-                Show every city
+            {placeQuery.trim() || nearCity ? (
+              <button type="button" className="mt-3 text-sm font-medium text-primary-ink" onClick={showAllSamples}>
+                Show all samples
               </button>
             ) : null}
           </div>
@@ -212,7 +267,7 @@ function Home() {
         )}
       </section>
 
-      <HandoffStrip spots={data.spots} city={city ?? "all"} />
+      <HandoffStrip spots={data.spots} place={placeQuery} nearCity={nearCity} />
     </main>
   );
 }
@@ -335,12 +390,22 @@ function LaunchChoices() {
 
 function HandoffStrip({
   spots,
-  city,
+  place,
+  nearCity,
 }: {
   spots: HandoffSpot[];
-  city: string;
+  place: string;
+  nearCity: string | null;
 }) {
-  const partners = spots.filter((s) => s.kind === "partner" && (city === "all" || s.area.includes(city))).slice(0, 8);
+  const query = place.trim();
+  const partners = spots
+    .filter((s) => {
+      if (s.kind !== "partner") return false;
+      if (query) return listingInPlace(s.area, query);
+      if (nearCity) return cityOf(s.area) === nearCity;
+      return true;
+    })
+    .slice(0, 8);
   if (partners.length === 0) return null;
   const allSamples = partners.every((sp) => isSamplePartnerSpot(sp.id));
   return (
@@ -392,6 +457,105 @@ function Perk({
       <Icon className="mb-2 size-4 text-primary-ink" strokeWidth={1.8} />
       <p className="text-sm font-medium text-fg">{title}</p>
       <p className="mt-0.5 text-sm leading-snug text-muted">{body}</p>
+    </div>
+  );
+}
+
+function PlaceFinder({
+  query,
+  nearCity,
+  note,
+  locating,
+  onQuery,
+  onLocate,
+}: {
+  query: string;
+  nearCity: string | null;
+  note: string | null;
+  locating: boolean;
+  onQuery: (value: string) => void;
+  onLocate: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const suggestions = placeSuggestions(query);
+  const place = query.trim();
+  const exact = suggestions.some((item) => item.toLowerCase() === place.toLowerCase());
+  const showSuggestions = open && suggestions.length > 0 && !exact;
+  let status: string | null = null;
+  if (locating) status = "Checking what’s near you…";
+  else if (place.length >= 2 && suggestions.length === 0) status = "No sample place matches that.";
+  else if (!place && nearCity) status = `Near you · ${nearCity}. Samples only.`;
+  else if (!place && note) status = note;
+  else if (!place) status = "Search a city or neighborhood, or use your location.";
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+        <div className="relative min-w-0 flex-1">
+          <Input
+            value={query}
+            onChange={(event) => {
+              onQuery(event.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setOpen(false);
+              if (event.key === "Enter" && showSuggestions && suggestions[0]) {
+                event.preventDefault();
+                onQuery(suggestions[0]);
+                setOpen(false);
+              }
+            }}
+            placeholder="Search a city or neighborhood"
+            aria-label="Search a city or neighborhood"
+            aria-autocomplete="list"
+            aria-expanded={showSuggestions}
+            aria-controls="place-suggestions"
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+          {showSuggestions ? (
+            <ul
+              id="place-suggestions"
+              role="listbox"
+              className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl bg-surface py-1 shadow-[var(--shadow-card)]"
+            >
+              {suggestions.map((item) => (
+                <li key={item} role="presentation">
+                  <button
+                    type="button"
+                    role="option"
+                    className="w-full px-3.5 py-2.5 text-left text-sm text-fg hover:bg-bg"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      onQuery(item);
+                      setOpen(false);
+                    }}
+                  >
+                    {item}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-fg sm:mt-0"
+          onClick={onLocate}
+          disabled={locating}
+        >
+          {locating ? "Finding you…" : "Use my location"}
+        </button>
+      </div>
+      {status ? (
+        <p className="text-sm text-muted" aria-live="polite">
+          {status}
+        </p>
+      ) : null}
     </div>
   );
 }
