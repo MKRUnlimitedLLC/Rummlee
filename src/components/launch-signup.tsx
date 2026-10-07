@@ -70,7 +70,7 @@ export function LaunchSignup() {
           id="launch-title"
           className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]"
         >
-          {handoff ? "Be an Official Handoff Location" : "Be the first to sign up"}
+          {handoff ? "Be an official store" : "Be the first to sign up"}
         </h2>
         <p
           id="launch-body"
@@ -111,7 +111,7 @@ export function LaunchSignup() {
               className="mt-3 w-full text-sm font-medium text-primary-ink"
               onClick={() => setMode("handoff")}
             >
-              Be a handoff location
+              Be an official store
             </button>
           </>
         )}

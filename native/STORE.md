@@ -41,7 +41,7 @@ Camera / photo usage strings are in Info.plist. Encryption: No.
 
 Review notes for Apple:
 
-> Rummlee is a neighborhood resale marketplace. Buyers and sellers never share a home address. Handoff is at official partner stores (primary), public places (secondary), or person-to-person. Sign in with email. Test account: create one in-app. Privacy: rummlee.com/privacy. Delete account: You → delete.
+> Rummlee is a neighborhood resale marketplace. Buyers and sellers never share a home address. Handoff is at an official store first, a public place as backup, or person-to-person (optional). Nothing ships. Sign in with email. Test account: create one in-app. Privacy: rummlee.com/privacy. Delete account: You → delete.
 
 
 ## Android (Play Console)
@@ -55,8 +55,8 @@ Package `com.mkrunlimited.rummlee`. Privacy URL https://rummlee.com/privacy. Upl
 Capture from rummlee.com on an iPhone 15/16 frame and a Pixel frame:
 
 1. Home — “The good stuff, before Saturday.”
-2. Listing detail with partner-store pickup
-3. Sales / partner stores
+2. Listing detail with official store handoff
+3. Sales / official stores
 4. Sell form
 5. Privacy copy on You
 

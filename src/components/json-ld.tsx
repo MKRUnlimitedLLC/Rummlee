@@ -8,7 +8,7 @@ const GRAPH = {
       url: "https://rummlee.com/",
       logo: "https://rummlee.com/icon-512.png",
       description:
-        "Pre-launch local marketplace. Neighbors sell used household items. Pickup is at an official handoff location. Nothing ships.",
+        "Pre-launch local marketplace. Neighbors sell used household items. Official store handoff first. Nothing ships.",
       foundingLocation: {
         "@type": "Place",
         address: {

@@ -5,7 +5,7 @@ Do **not** reuse the last 15 personas (Maya, Priya, Jordan, etc.). New ages, cit
 **Live:** https://rummlee.com  
 Hard-refresh or a private window. Phone first, laptop if they can.
 
-**Beta:** No real items. No real money. Sign in (Google, X, or email). Wallet is **test credits**. Nothing ships. Meet at a **handoff location**. A **handle**, never a home address.
+**Beta:** No real items. No real money. Sign in (Google, X, or email). Wallet is **test credits**. Nothing ships. Meet at an **official store handoff**. A **handle**, never a home address.
 
 **What just changed (don’t tell them the answer — see if they notice):**
 - City chips actually filter. Brooklyn has a cream loveseat. Denver has a truck dresser. Naperville has kids clothes. Phoenix has a ladder with a parking lot.
@@ -51,7 +51,7 @@ Hey — Rummlee is in closed beta. I’d like 15–25 minutes of your honest fir
 https://rummlee.com
 Phone first, then a laptop if you have one. Hard-refresh or a private window.
 
-This is a test. No real items. No real money. Sign in (Google, X, or email). You’ll get fake wallet credits. Pay is simulated. Nothing ships. You would meet at a handoff location — never a home address. Neighbors see a handle, not your name.
+This is a test. No real items. No real money. Sign in (Google, X, or email). You’ll get fake wallet credits. Pay is simulated. Nothing ships. You would meet at an official store handoff — never a home address. Neighbors see a handle, not your name.
 
 Please do the numbered tasks below in order. Don’t try to “get it right.” If you’re stuck for more than a minute, write that down and skip.
 

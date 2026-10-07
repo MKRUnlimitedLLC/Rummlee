@@ -241,7 +241,7 @@ function Home() {
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Sample listings</h2>
-            <p className="text-sm text-muted">Not for sale. Nothing is live until a handoff location is open.</p>
+            <p className="text-sm text-muted">Not for sale. Nothing is live until an official store is open.</p>
           </div>
           <Link to="/sales" className="shrink-0 text-sm font-medium text-primary-ink">
             All sales
@@ -287,8 +287,8 @@ function GuestHero() {
       </div>
       <div className="space-y-4 p-5">
         <p className="text-pretty text-muted">
-          Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Pickup will be at an
-          official handoff location, not a stranger’s house. Nothing ships.
+          Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Official store handoff
+          first, not a stranger’s house. Nothing ships.
         </p>
         <p className="text-sm">
           <Link to="/films" className="font-medium text-primary-ink underline-offset-4 hover:underline">
@@ -299,7 +299,7 @@ function GuestHero() {
         <div className="grid gap-3 sm:grid-cols-3">
           <Perk icon={CalendarDays} title="First to know" body="Updates and the launch. One email. We don’t sell the address." />
           <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors see a handle. Email, legal name, and home stay off the listing." />
-          <Perk icon={Store} title="Official handoff location" body="A store holds the package. A public place is the backup. Private handoff only if you both want it." />
+          <Perk icon={Store} title="Official store handoff" body="A store holds the package. A public place is the backup. Private handoff only if you both want it." />
         </div>
         <p className="text-center text-xs text-subtle">
           <Link to="/privacy" className="underline-offset-4 hover:underline">
@@ -344,7 +344,7 @@ function SignedHero() {
       </p>
       <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">Nothing is for sale yet</h1>
       <p className="mt-1 text-sm font-medium text-primary-ink">Patent pending</p>
-      <p className="mt-1 text-sm text-muted">These listings are samples. Pickup will be at a handoff location. Nothing ships.</p>
+      <p className="mt-1 text-sm text-muted">These listings are samples. Official store handoff first. Nothing ships.</p>
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
         {HOLD_LINE}
       </p>
@@ -373,7 +373,7 @@ function LaunchChoices() {
         )}
       </div>
       <div className="flex flex-col rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)]">
-        <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Be a handoff location</h2>
+        <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Be an official store</h2>
         <p className="mt-1 text-sm text-muted">
           A shop that can hold a paid item for pickup. The application is a short form. Asking is free. It is not a signed store.
         </p>
@@ -381,7 +381,7 @@ function LaunchChoices() {
           to="/handoff"
           className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-fg"
         >
-          Apply to be a handoff location
+          Apply to be an official store
         </Link>
       </div>
     </section>
@@ -412,7 +412,7 @@ function HandoffStrip({
     <section className="mt-6">
       <div className="mb-3 flex items-end justify-between">
         <div>
-          <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Handoff locations</h2>
+          <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Official stores</h2>
           {allSamples ? (
             <p className="text-sm text-muted">Sample names. No store has signed.</p>
           ) : null}

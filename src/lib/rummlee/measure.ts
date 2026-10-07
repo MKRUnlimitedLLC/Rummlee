@@ -68,7 +68,7 @@ const META_PIXEL_ID = /^\d{15,16}$/;
 export const META_PIXEL_SRC = "https://connect.facebook.net/en_US/fbevents.js";
 export const META_PAGE_VIEW = "PageView";
 export const META_LEAD = "Lead";
-/** Official Handoff Location is an application, not a completed account signup. */
+/** An official store application is an application, not a completed account signup. */
 export const META_HANDOFF_APPLY = "HandoffApply";
 
 export function metaPixelId(raw: string | undefined): string | null {

@@ -104,7 +104,7 @@ export function ownershipSuccess(): string {
 }
 
 export function handoffSuccess(city: string): string {
-  return `Thanks — we’ll be in touch about Official Handoff Location for ${city}.`;
+  return `Thanks — we’ll be in touch about becoming an official store in ${city}.`;
 }
 
 function collapse(raw: string | null | undefined) {

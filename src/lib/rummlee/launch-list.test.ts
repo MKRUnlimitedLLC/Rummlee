@@ -115,7 +115,7 @@ test("handoff requires the shop fields and an email or a phone", () => {
   if (!phoneOnly.ok) return;
   assert.equal(
     phoneOnly.message,
-    "Thanks — we’ll be in touch about Official Handoff Location for Fargo.",
+    "Thanks — we’ll be in touch about becoming an official store in Fargo.",
   );
   assert.equal(phoneOnly.message, handoffSuccess("Fargo"));
   assert.equal(phoneOnly.record.path, "handoff_location");

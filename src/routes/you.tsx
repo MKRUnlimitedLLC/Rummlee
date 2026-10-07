@@ -741,11 +741,11 @@ function How() {
           listing.
         </li>
         <li>
-          <strong>Handoff locations.</strong> Official store, public place, or in person — the seller chooses which
+          <strong>Handoffs.</strong> Official store first, public place as backup, or person to person — the seller chooses which
           to offer. Scan to confirm. The seller is paid after both of you do.
         </li>
         <li>
-          <strong>Address after you pay.</strong> Until then, a rough distance. Official partner store, public handoff location, or private handoff. Rummlee never ships.
+          <strong>Address after you pay.</strong> Until then, a rough distance. Official store first, public place as backup, or person-to-person handoff. Nothing ships.
         </li>
       </ul>
     </section>

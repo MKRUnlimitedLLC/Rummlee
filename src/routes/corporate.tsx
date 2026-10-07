@@ -671,7 +671,7 @@ function LaunchEmails() {
     <section className="mt-8 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
       <h2 className="font-display text-xl">Launch list</h2>
       <p className="mt-1 text-sm text-muted">
-        Staff-only CSV of waitlist notes, Official Handoff Location inquiries, and ownership-interest notes. Path is waitlist, handoff_location, or ownership_interest. UTM columns sit at the end and stay empty when the visit had none. Older email-only rows stay, with those fields empty and path waitlist.
+        Staff-only CSV of waitlist notes, official store inquiries, and ownership-interest notes. Path is waitlist, handoff_location, or ownership_interest. UTM columns sit at the end and stay empty when the visit had none. Older email-only rows stay, with those fields empty and path waitlist.
       </p>
       <div className="mt-3">
         <Button type="button" size="sm" disabled={launch.isPending} onClick={() => launch.mutate()}>

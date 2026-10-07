@@ -9,7 +9,7 @@ export const Route = createFileRoute("/about")({
       {
         name: "description",
         content:
-          "Pre-launch local marketplace from Fargo, North Dakota. Pickup at an official handoff location. Nothing ships. Handoff method patent pending.",
+          "Pre-launch local marketplace from Fargo, North Dakota. Official store handoff first. Nothing ships. Handoff method patent pending.",
       },
     ],
   }),
@@ -41,7 +41,7 @@ function About() {
           <p>
             Rummlee is not open. The listings are samples. No card is charged. No store has signed. A store can{" "}
             <Link to="/handoff" className="font-medium text-primary-ink underline-offset-4 hover:underline">
-              apply to be an official handoff location
+              apply to be an official store
             </Link>
             . An application is not a signed store.
           </p>
@@ -59,7 +59,7 @@ function About() {
         <nav className="mt-3 text-xs text-subtle" aria-label="Footer">
           <Link to="/" className="underline-offset-4 hover:underline">Home</Link>
           <span className="mx-2">·</span>
-          <Link to="/handoff" className="underline-offset-4 hover:underline">Handoff location</Link>
+          <Link to="/handoff" className="underline-offset-4 hover:underline">Official store</Link>
           <span className="mx-2">·</span>
           <Link to="/investors" className="underline-offset-4 hover:underline">Investors</Link>
           <span className="mx-2">·</span>

@@ -13,7 +13,7 @@ import appCss from "../styles.css?url";
 const APP_NAME = "Rummlee";
 const DEFAULT_TITLE = "Rummlee — The good stuff, before Saturday";
 const DEFAULT_DESCRIPTION =
-  "Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Pickup will be at an official handoff location. Nothing ships. Handoff method patent pending.";
+  "Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Official store handoff first. Nothing ships. Handoff method patent pending.";
 const SITE_URL = "https://rummlee.com/";
 const OG_IMAGE = "https://rummlee.com/og.jpg";
 

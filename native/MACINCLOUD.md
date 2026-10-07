@@ -69,6 +69,6 @@ Encryption question: **No** (already set in the project).
 
 Review notes if Apple asks (TestFlight external only):
 
-> Rummlee is a neighborhood resale marketplace in beta. Listings are sample items. Pay is simulated test credits — no real money. Buyers and sellers never share a home address. Handoff is at official partner stores (primary), public places (secondary), or person-to-person. Sign in with email. Privacy: rummlee.com/privacy. Delete account: You → delete.
+> Rummlee is a neighborhood resale marketplace in beta. Listings are sample items. Pay is simulated test credits — no real money. Buyers and sellers never share a home address. Handoff is at an official store first, a public place as backup, or person-to-person (optional). Nothing ships. Sign in with email. Privacy: rummlee.com/privacy. Delete account: You → delete.
 
 When TestFlight is on your iPhone, tell Grok “TestFlight is in” and we do Android / Play next.

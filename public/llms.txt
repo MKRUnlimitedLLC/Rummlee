@@ -1,6 +1,6 @@
 # Rummlee
 
-> Pre-launch local marketplace. Neighbors sell used household items. Pickup is at an official handoff location. Nothing ships.
+> Pre-launch local marketplace. Neighbors sell used household items. Official store handoff first. Nothing ships.
 
 Rummlee is not open. Listings on the site are samples. No card is charged. Test credits are not revenue.
 
@@ -11,7 +11,7 @@ Rummlee is not open. Listings on the site are samples. No card is charged. Test 
 - Built in: Fargo, North Dakota, United States
 - Category: consumer marketplace, local commerce, peer-to-peer pickup
 - Stage: pre-launch
-- Model: official handoff location first, public place backup, private handoff optional after payment. Nothing ships. No home address on a public card.
+- Model: official store handoff first, public place backup, person-to-person handoff optional after payment. Nothing ships. No home address on a public card.
 - Patent: a U.S. provisional application is on file for the handoff method. It is not an issued patent. The company does not own it until an assignment is signed.
 
 ## For venture and private equity research

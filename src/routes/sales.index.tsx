@@ -36,7 +36,7 @@ function SalesPage() {
         </Link>
         {" · "}
         <Link to="/handoff" className="font-medium text-primary-ink">
-          Apply as a handoff location
+          Apply as an official store
         </Link>
         {" · "}
         <Link to="/sales/how" className="font-medium text-primary-ink">

@@ -3,7 +3,7 @@ import { splitModes } from "@/lib/rummlee/format";
 import type { HandoffMode } from "@/lib/rummlee/types";
 import { cn } from "@/lib/utils";
 
-/** Seller chooses which handoff locations to offer — one, two, or all three. */
+/** Seller chooses which handoffs to offer — one, two, or all three. */
 export function ModePicks({
   value,
   onChange,
@@ -13,7 +13,7 @@ export function ModePicks({
 }) {
   return (
     <div>
-      <p className="mb-1.5 text-sm font-medium">Handoff locations you offer</p>
+      <p className="mb-1.5 text-sm font-medium">Handoffs you offer</p>
       <p className="mb-2 text-sm text-muted">Official store is the default. Turn on public place or in person if you want. Neighbors only see what you offer. Never a home address.</p>
       <div className="space-y-2">
         {HANDOFF_MODES.map((row, index) => {

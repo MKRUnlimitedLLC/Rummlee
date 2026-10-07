@@ -100,7 +100,7 @@ test("equipment under $2,500 is parked for the de minimis election", () => {
     category: "equipment",
     amountCents: 250_001,
     hasReceipt: true,
-    businessPurpose: "Counter scanner and display for a partner store",
+    businessPurpose: "Counter scanner and display for an official store",
     paidBy: "company",
   });
   assert.equal(large.ok, true);

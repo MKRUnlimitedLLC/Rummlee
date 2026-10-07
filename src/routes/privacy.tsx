@@ -13,7 +13,7 @@ function Privacy() {
       <LegalSection title="The short version">
         <p>
           Neighbors see a handle, a neighborhood you pick, and the listing. They do not see your legal name, email, or
-          home address. Pickup is at a handoff location the seller offers: official store, public place, and/or in person.
+          home address. Pickup is at a handoff the seller offers: official store first, public place as backup, or person to person.
         </p>
       </LegalSection>
 
