@@ -38,7 +38,7 @@ function Privacy() {
           </li>
           <li>
             <strong>Listings.</strong> Titles, descriptions, prices, photos you upload, sale dates, and how you want to
-            hand off (an official partner store, a public place, or optional person to person). The lowest price stays
+            hand off (an official store first, a public place as backup, or optional person to person). The lowest price stays
             off the public listing. A Rummlee +++ member can use a limited Reveal to see it. Photo fill, when it is
             on, sends that photo to suggest a title and category. It is off during beta. It does not set your price.
           </li>
@@ -70,7 +70,7 @@ function Privacy() {
       <LegalSection title="Who sees what">
         <p>
           Other people see your handle, the neighborhood you chose, your listings, and messages you send them. They do
-          not see your email, legal name, or wallet. Listings show an official partner store or a public place, not a home address.
+          not see your email, legal name, or wallet. Listings show an official store handoff or a public place, not a home address.
           An in-person meetup note is shown only after you pay. Accepting an offer does not show it. Pickup codes are only for the
           two people on that order. The store counter sees a package number, not a name. If you leave a rejected package, the resale does not
           show your handle. A listing note is public once other neighbors

@@ -98,7 +98,7 @@ function Investors() {
         <p>There is no public market for the shares. Any later round, price, or percent is not stated here.</p>
       </LegalSection>
       <LegalSection title="At a glance">
-        <p>Category: pre-launch consumer marketplace. Local pickup. No shipping.</p>
+        <p>Category: consumer marketplace in beta. Nothing is for sale. Official store handoff first. Nothing ships.</p>
         <p>Entity: Rummlee Corp, a North Dakota corporation. Intended as a national product.</p>
         <p>Stage: test only. No card is charged. No store is signed. No user count, revenue, round size, or valuation is published.</p>
         <p>
