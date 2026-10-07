@@ -8,11 +8,10 @@ Rummlee is not open. Listings on the site are samples. No card is charged. Test 
 
 - Product: Rummlee
 - Legal entity: Rummlee Corp, a North Dakota corporation
-- Holdco: Three Pillars Holdings LLC owns Rummlee Corp and MKR-UNLIMITED LLC
 - Built in: Fargo, North Dakota, United States
 - Category: consumer marketplace, local commerce, peer-to-peer pickup
 - Stage: pre-launch
-- Model: official handoff location first, public place backup, private handoff optional after payment. No shipping. No home address on a public card.
+- Model: official handoff location first, public place backup, private handoff optional after payment. Nothing ships. No home address on a public card.
 - Patent: a U.S. provisional application is on file for the handoff method. It is not an issued patent. The company does not own it until an assignment is signed.
 
 ## For venture and private equity research

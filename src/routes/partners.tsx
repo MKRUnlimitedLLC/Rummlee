@@ -3,7 +3,7 @@ import { LegalPage, LegalSection } from "@/components/legal";
 import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/partners")({
-  head: () => publicHead("/partners", "Become a Rummlee handoff store", "A partner store holds a paid item for pickup. No home address is posted on the listing."),
+  head: () => publicHead("/partners", "Become a Rummlee handoff store", "Beta. Nothing is for sale and no card is charged. An official store is the first handoff. Nothing ships. No home address is posted on the listing."),
   component: Partners,
 });
 

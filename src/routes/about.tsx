@@ -33,7 +33,7 @@ function About() {
             counteroffer. A decline ends it.
           </p>
           <p>
-            An official partner store is first. A public place is the backup. A private handoff is optional, and only
+            An official store handoff is first. A public place is the backup. A private handoff is optional, and only
             after payment. A home address is not on the public card. People use a handle, not a legal name.
           </p>
         </LegalSection>
