@@ -100,7 +100,7 @@ export async function renderExplainPage(): Promise<string> {
     <ul>
       <li><strong>Nothing ships.</strong> There is no box in the mail.</li>
       <li><strong>It is not a garage-sale app.</strong> We don’t put a street on a public listing, and we don’t ask people to meet at a house.</li>
-      <li><strong>A store has not agreed</strong> just because the app talks about a partner counter.</li>
+      <li><strong>A store has not agreed</strong> just because the app talks about an official store.</li>
     </ul>
   </section>
   <section class="slide">
@@ -114,7 +114,7 @@ export async function renderExplainPage(): Promise<string> {
     <p class="kicker">Handoff</p>
     <h2>Three ways. One of them comes first.</h2>
     <div class="row three">
-      <article class="card first"><h3>Official store</h3><p>The main way. A partner counter holds a boxed item. You and the other person stay anonymous there.</p></article>
+      <article class="card first"><h3>Official store</h3><p>The main way. The store counter holds a boxed item. You and the other person stay anonymous there.</p></article>
       <article class="card"><h3>Public place</h3><p>The backup. A public spot, not a house.</p></article>
       <article class="card"><h3>In person</h3><p>Only if the seller offers it, and only after you pay. Over 50 lb, or not in a box, is in person only.</p></article>
     </div>

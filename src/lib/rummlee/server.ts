@@ -1980,7 +1980,7 @@ export const sendOffer = createServerFn({ method: "POST" })
         insert into messages (id, listing_id, from_id, to_id, body)
         values (
           ${crypto.randomUUID()}, ${listingId}, ${item.seller_id}, ${context.userId},
-          ${"Yes. Pay to hold it, then we’ll confirm at the handoff location."}
+          ${"Yes. Pay to hold it, then we’ll confirm at the handoff."}
         )
       `;
     }
@@ -2096,7 +2096,7 @@ export const respondOffer = createServerFn({ method: "POST" })
       insert into messages (id, listing_id, from_id, to_id, body)
       values (
         ${crypto.randomUUID()}, ${offer.listing_id}, ${context.userId}, ${offer.buyer_id},
-        ${"Yes. Pay to hold it, then we’ll confirm at the handoff location."}
+        ${"Yes. Pay to hold it, then we’ll confirm at the handoff."}
       )
     `;
     return { ok: true };
@@ -2261,13 +2261,13 @@ export const buyNow = createServerFn({ method: "POST" })
     const modes = splitModes(item.handoff_modes);
     if (meet === "person") {
       if (!modes.includes("person")) {
-        throw new Error("In person handoff isn’t offered on this item. Pick another handoff location.");
+        throw new Error("In person handoff isn’t offered on this item. Pick another handoff.");
       }
       handoffType = "person";
       spotId = null;
     } else if (meet === "public") {
       if (!modes.includes("public")) {
-        throw new Error("Public place handoff isn’t offered on this item. Pick another handoff location.");
+        throw new Error("Public place handoff isn’t offered on this item. Pick another handoff.");
       }
       handoffType = "public";
       const wanted = data.handoffSpotId ?? null;
@@ -2287,10 +2287,10 @@ export const buyNow = createServerFn({ method: "POST" })
             limit 1
           `;
       spotId = fallback[0]?.id ?? null;
-      if (!spotId) throw new Error("No public place handoff in this neighborhood yet. Pick another handoff location.");
+      if (!spotId) throw new Error("No public place handoff in this neighborhood yet. Pick another handoff.");
     } else {
       if (!modes.includes("official")) {
-        throw new Error("Official store handoff isn’t offered on this item. Pick another handoff location.");
+        throw new Error("Official store handoff isn’t offered on this item. Pick another handoff.");
       }
     }
     const held = await sql<{ id: string }>`

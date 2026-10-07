@@ -164,7 +164,7 @@ function handoffLine(hit: Hit) {
   if (modes.includes("official")) parts.push(hit.spotName && hit.spotKind === "partner" ? hit.spotName : "Official store handoff");
   if (modes.includes("public")) parts.push("Public place handoff");
   if (modes.includes("person")) parts.push("In person handoff");
-  return parts.join(" · ") || "Handoff location";
+  return parts.join(" · ") || "Handoff";
 }
 
 function listingBody(hit: Hit) {

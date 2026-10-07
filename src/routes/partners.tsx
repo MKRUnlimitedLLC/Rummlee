@@ -3,7 +3,7 @@ import { LegalPage, LegalSection } from "@/components/legal";
 import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/partners")({
-  head: () => publicHead("/partners", "Become a Rummlee handoff store", "Beta. Nothing is for sale and no card is charged. An official store is the first handoff. Nothing ships. No home address is posted on the listing."),
+  head: () => publicHead("/partners", "Become an official Rummlee store", "Beta. Nothing is for sale and no card is charged. An official store is the first handoff. Nothing ships. No home address is posted on the listing."),
   component: Partners,
 });
 
@@ -34,7 +34,7 @@ function Partners() {
       <LegalSection title="If a package is lost">
         <p>
           Tell Rummlee the same day. Rummlee refunds the buyer. You do not pay the buyer yourself. During the pilot
-          there is no rent and no fee to be a handoff location.
+          there is no rent and no fee to be an official store.
         </p>
       </LegalSection>
       <LegalSection title="Hours and ending it">

@@ -28,7 +28,7 @@ export function isSamplePartnerSpot(id: string | null | undefined) {
   return Boolean(id && SAMPLE_PARTNER_SPOTS.has(id));
 }
 
-/** Homepage and sale cards. A seeded seller at a partner counter is still a sample. */
+/** Homepage and sale cards. A seeded seller at an official store is still a sample. */
 export function isSampleStoreCard(input: {
   handoffSpotId?: string | null;
   sellerId?: string | null;

@@ -63,12 +63,12 @@ function SaleDetail() {
       {data.sale.alwaysOn ? (
         <p className="mt-2 text-sm text-fg">
           Always on at the Fargo shelf. No store has signed to hold these. Half of what Rummlee receives is set
-          aside for charity. Rummlee never ships.
+          aside for charity. Nothing ships.
         </p>
       ) : onlineWindowLine(data.sale) ? (
         <p className="mt-2 text-sm font-medium text-fg">{onlineWindowLine(data.sale)}</p>
       ) : (
-        <p className="mt-2 text-sm text-muted">Online on Rummlee. Rummlee never ships.</p>
+        <p className="mt-2 text-sm text-muted">Online on Rummlee. Nothing ships.</p>
       )}
       {data.sale.alwaysOn ? null : liveWindowLine(data.sale) ? (
         <p className="mt-1 text-sm text-fg">{liveWindowLine(data.sale)} · Private handoff during these hours. The address shows after you pay.</p>

@@ -9,7 +9,7 @@ const PRODUCT: BriefSection[] = [
     title: "What Rummlee is",
     body: [
       "The good stuff, before Saturday. People list neighborhood finds for the city and the suburbs. Buyers pay in the app. Nothing ships.",
-      "The handoff is the product. A new listing starts at an official partner store. The seller can also offer a public place or a private handoff. Over 50 lb, not in a box, or a truck stays off the store counter and is in person only. The street or address shows after someone pays. Before that, a listing shows a rough distance, never a home address. Neighbors see a handle, not a legal name.",
+      "The handoff is the product. A new listing starts at an official store handoff. The seller can also offer a public place as backup or a person-to-person handoff. Over 50 lb, not in a box, or a truck stays off the store counter and is in person only. The street or address shows after someone pays. Before that, a listing shows a rough distance, never a home address. Neighbors see a handle, not a legal name.",
     ],
   },
   {

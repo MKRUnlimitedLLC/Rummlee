@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/fees")({
-  head: () => publicHead("/fees", "Rummlee fees", "What you pay to buy, sell, and use a partner store. The total is shown before you check out."),
+  head: () => publicHead("/fees", "Rummlee fees", "What you pay to buy, sell, and use an official store handoff. The total is shown before you check out."),
   loader: () => getFeeTable(),
   component: FeesPage,
 });

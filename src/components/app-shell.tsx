@@ -96,7 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             Get launch updates
           </Link>
           <Link to="/handoff" className="font-medium text-primary-ink">
-            Apply to be a handoff location
+            Apply to be an official store
           </Link>
         </p>
       </header>

@@ -3,7 +3,7 @@ import { LegalPage, LegalSection } from "@/components/legal";
 import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/terms")({
-  head: () => publicHead("/terms", "Rummlee terms", "House rules for listing, offering, and pickup. Rummlee never ships."),
+  head: () => publicHead("/terms", "Rummlee terms", "House rules for listing, offering, and pickup. Nothing ships."),
   component: Terms,
 });
 
@@ -16,7 +16,7 @@ function Terms() {
       <LegalSection title="The short version">
         <p>
           Rummlee is a local pre-sale for neighborhood, moving, and home clear-out sales. You deal under a handle.
-          Pickup is at a handoff location the seller offers — official store, public place, and/or in person. Rummlee never ships. No carriers, no postage, no delivery. A street address is not posted on a listing. A private meetup note, if the seller writes one, is shown only after someone pays. Do not put a home address in a message. You are responsible for what you list and what you buy.
+          Pickup is at a handoff the seller offers — official store first, public place as backup, or person to person. Nothing ships. No carriers, no postage, no delivery. A street address is not posted on a listing. A private meetup note, if the seller writes one, is shown only after someone pays. Do not put a home address in a message. You are responsible for what you list and what you buy.
         </p>
       </LegalSection>
 
@@ -43,7 +43,7 @@ function Terms() {
           store. The seller says whether a boxed item is packed as-is or in an outer box.
         </p>
         <p>
-          Meet at the handoff location the seller offered. Confirm pickup with the code so the hold can release. At an
+          Meet at the handoff the seller offered. Confirm pickup with the code so the hold can release. At an
           official store, the seller has 2 days to drop the package off. After the counter scans it in, the buyer has
           5 days to pick it up. Miss either window and the buyer is refunded. The counter sees a package number, not
           a name.

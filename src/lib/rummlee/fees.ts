@@ -308,7 +308,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "official_handoff_seller",
     label: "Official store, seller",
-    description: "Not charged. The seller fee does not change with the handoff location. Left at $0 so it can be turned back on without a code change.",
+    description: "Not charged. The seller fee does not change with the handoff. Left at $0 so it can be turned back on without a code change.",
     unit: "cents",
     percentBps: 0,
     amountCents: 0,
@@ -320,7 +320,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "public_handoff",
     label: "Public place handoff",
-    description: "Added at checkout when the buyer picks a public place handoff location.",
+    description: "Added at checkout when the buyer picks a public place handoff.",
     unit: "cents",
     percentBps: 0,
     amountCents: 0,
@@ -332,7 +332,7 @@ export const DEFAULT_FEES: FeeRow[] = [
   {
     id: "person_handoff",
     label: "In person handoff",
-    description: "Added at checkout when the buyer picks an in person handoff location.",
+    description: "Added at checkout when the buyer picks a person-to-person handoff.",
     unit: "cents",
     percentBps: 0,
     amountCents: 0,

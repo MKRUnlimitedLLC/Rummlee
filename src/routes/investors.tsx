@@ -36,8 +36,8 @@ function Investors() {
     >
       <LegalSection title="The company">
         <p>
-          Neighbors sell used household items to other neighbors. The buyer pays in the app. Pickup is at an official
-          handoff location first. A public place is the backup. A private handoff is optional, and only after payment.
+          Neighbors sell used household items to other neighbors. The buyer pays in the app. Official store
+          handoff first. A public place is the backup. A private handoff is optional, and only after payment.
           Nothing ships. The home address stays off the public card. People deal by a handle, not a legal name.
         </p>
         <p>
@@ -56,7 +56,7 @@ function Investors() {
         </p>
       </LegalSection>
       <LegalSection title="The product">
-        <p>Official handoff location first. The store holds the package. It is not the buyer or the seller.</p>
+        <p>Official store handoff first. The store holds the package. It is not the buyer or the seller.</p>
         <p>Money is meant to stay held until both sides confirm pickup. That hold is simulated while the product is in test.</p>
         <p>The seller sets an asking price and a private floor. The buyer can pay the ask or make one offer path.</p>
         <p>
@@ -76,7 +76,7 @@ function Investors() {
       </LegalSection>
       <LegalSection title="Where it stands">
         <p>Pre-launch. The product is in test. It is not an open marketplace. No card is charged. People use test credits.</p>
-        <p>No official handoff location is signed. A store can apply. An application is not a signed location.</p>
+        <p>No official store is signed. A store can apply. An application is not a signed store.</p>
         <p>This page does not state a user count, a revenue figure, a round size, or a valuation.</p>
         <p>
           Neighbors can{" "}
@@ -85,7 +85,7 @@ function Investors() {
           </Link>
           . A store can{" "}
           <Link to="/handoff" className="font-medium text-primary-ink">
-            apply to be an official handoff location
+            apply to be an official store
           </Link>
           .
         </p>

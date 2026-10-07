@@ -91,13 +91,13 @@ function ListingPage() {
   const meetChoices = [
     {
       id: "partner" as const,
-      label: sampleStore ? "Sample store (not signed)" : "Official partner store",
+      label: sampleStore ? "Sample store (not signed)" : "Official store handoff",
       hint: listing.distanceLabel ?? "Rough distance until you pay.",
       enabled: officialOk,
     },
     {
       id: "public" as const,
-      label: "Public handoff location",
+      label: "Public place handoff",
       hint: publicSpot ? (listing.distanceLabel ?? publicSpot.name) : "Seller didn’t offer this on this item.",
       enabled: publicOk,
     },
@@ -381,7 +381,7 @@ function ListingPage() {
             <Meta label="Sale" value={listing.saleName} />
           </dl>
           <span className="inline-flex items-center rounded-full bg-primary-soft px-3 py-1 text-sm font-medium text-primary-ink">
-            Handoff location
+            Official store handoff first
           </span>
           {data.bundleItems?.length ? (
             <ul className="space-y-1 text-base text-fg">
@@ -503,7 +503,7 @@ function ListingPage() {
       ) : (
         <section className="mt-5 space-y-4 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
           <h2 className="font-display text-xl font-semibold">Take it home</h2>
-          <p className="text-sm text-muted">Three steps. Handoff location, agree on a price, pay to hold it. One offer. One decline each ends it.</p>
+          <p className="text-sm text-muted">Three steps. Handoff, agree on a price, pay to hold it. One offer. One decline each ends it.</p>
           <DealSteps
             current={
               data.myOffer?.status === "accepted" || data.myOffer?.status === "countered"
@@ -513,8 +513,8 @@ function ListingPage() {
                   : 1
             }
           />
-          <p className="text-sm font-medium">1. Handoff location</p>
-          <p className="text-sm text-muted">Always a handoff. The address shows after you pay. Until then, a rough distance. Rummlee never ships.</p>
+          <p className="text-sm font-medium">1. Handoff</p>
+          <p className="text-sm text-muted">Always a handoff. The address shows after you pay. Until then, a rough distance. Nothing ships.</p>
           <div className="space-y-2">
             {meetChoices.map((choice, index) => {
               const on = selected === choice.id;
@@ -553,20 +553,20 @@ function ListingPage() {
           ) : selected === "partner" && listing.handoffSpotName ? (
             <div className="rounded-xl bg-bg px-3.5 py-3">
               <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">
-                {sampleStore ? "Sample store · not signed" : "Official partner store"}
+                {sampleStore ? "Sample store · not signed" : "Official store handoff"}
               </p>
               <p className="mt-1 font-medium">{listing.handoffSpotName}</p>
               <p className="text-sm text-muted">{listing.distanceLabel ?? listing.handoffSpotArea}</p>
             </div>
           ) : selected === "public" && publicSpot ? (
             <div className="rounded-xl bg-bg px-3.5 py-3">
-              <p className="text-sm font-medium uppercase tracking-wider text-subtle">Public handoff location</p>
+              <p className="text-sm font-medium uppercase tracking-wider text-subtle">Public place handoff</p>
               <p className="mt-1 font-medium">{publicSpot.name}</p>
               <p className="text-sm text-muted">{listing.distanceLabel ?? publicSpot.area}</p>
             </div>
           ) : selected === "person" ? (
             <p className="rounded-xl bg-bg px-3.5 py-3 text-sm text-muted">
-              Private handoff. {listing.distanceLabel ?? "The address shows after you pay."} Rummlee never ships.
+              Private handoff. {listing.distanceLabel ?? "The address shows after you pay."} Nothing ships.
             </p>
           ) : null}
           {officialOk && officialPay !== otherPay ? (

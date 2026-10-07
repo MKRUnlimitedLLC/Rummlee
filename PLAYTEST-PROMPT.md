@@ -14,14 +14,14 @@ Rummlee is up for another look: https://rummlee.com
 
 Please use your phone. Hard-refresh, or open a private window, so you get the testing notice. Tap I understand. Nothing listed is a real item. Pay is test credits, not a card.
 
-What it is: neighborhood stuff, offered this week. You deal as a handle. Meet at a handoff location — official store, public place, or in person. Never a home address. Nothing ships.
+What it is: neighborhood stuff, offered this week. You deal as a handle. Official store handoff first — public place as backup, or person to person. Never a home address. Nothing ships.
 
 Please do this, in order:
 
-1. Browse a city. Open the cream two-seat sofa. You should see handoff locations, not a home address, and no real name or email.
+1. Browse a city. Open the cream two-seat sofa. You should see handoff options, not a home address, and no real name or email.
 2. Take it home: Handoff, then Price, then Pay. Pay asking with test credits.
 3. On a different listing, send one offer under asking. You should not get a second offer on that same item. You can still pay asking.
-4. Sell something. Add a photo, an asking price, and the lowest you’ll take. That lowest stays hidden. Pick which handoff locations you offer. Publish it and confirm it shows on Browse.
+4. Sell something. Add a photo, an asking price, and the lowest you’ll take. That lowest stays hidden. Pick which handoffs you offer. Publish it and confirm it shows on Browse.
 5. From a second account, send an offer on that listing. On the first account, open Inbox. The only answers are Yes, Counteroffer, or Decline. One decline ends the offer.
 6. Open Fees. Then start a checkout and confirm the fee total can be expanded. Sales tax, if it shows, sits on its own line.
 
@@ -36,7 +36,7 @@ Please flag: a dead end, “what do I tap next,” haggling that won’t stop, o
 
 ## Fifteen-minute walk
 
-Offer this week. Meet at a handoff location. A handle, not a name.
+Offer this week. Official store handoff first. A handle, not a name.
 
 ### Buyer
 
@@ -50,7 +50,7 @@ Offer this week. Meet at a handoff location. A handle, not a name.
 
 ### Seller
 
-1. Sell. Photo, title, asking price, hidden lowest, handoff locations.
+1. Sell. Photo, title, asking price, hidden lowest, handoffs.
 2. Publish. Find it on Browse.
 3. Second account sends one offer.
 4. Inbox: Yes, Counteroffer, or Decline. One decline ends it. After a decline they can still pay asking.

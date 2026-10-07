@@ -481,7 +481,7 @@ function NewListingPage() {
         </div>
 
         <div>
-          <Label htmlFor="spot">Handoff location</Label>
+          <Label htmlFor="spot">Handoff</Label>
           <select
             id="spot"
             className="h-11 w-full rounded-lg bg-surface px-3 text-base shadow-[0_0_0_1px_rgba(22,20,18,0.1)]"
@@ -655,7 +655,7 @@ function NewListingPage() {
                 haul: line.haul,
               }) ? (
                 <p className="mt-1 text-sm text-fg">
-                  In person only. An official store can’t take this. You meet as handles. Rummlee never ships.
+                  In person only. An official store can’t take this. You meet as handles. Nothing ships.
                 </p>
               ) : (
                 <p className="mt-1 text-sm text-muted">Over 50 lb, not in a box, or needs a truck stays off the official store counter.</p>
@@ -953,7 +953,7 @@ function SaleDates({
               rows={2}
             />
             <p className="mt-1 text-sm text-muted">
-              Shown only after someone pays for private handoff. Until then they see a rough distance, not the street. Rummlee never ships.
+              Shown only after someone pays for private handoff. Until then they see a rough distance, not the street. Nothing ships.
             </p>
           </div>
         </div>

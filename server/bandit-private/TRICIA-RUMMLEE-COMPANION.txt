@@ -32,11 +32,11 @@ What it is: a local pre-sale. The buyer pays before anyone drives. Money is held
 
 Privacy is the product. People use a handle, not a legal name, on listings. A home street never appears on Browse, a listing, or a sale card. A meetup note appears only after payment, and only for in-person handoff or for a sale that allows pickup at the event.
 
-Words: Neighborhood sale. Handoff location. Official store handoff. Public place handoff. In-person handoff.
+Words: Neighborhood sale. Handoff. Official store handoff. Public place handoff. In-person handoff.
 Never: porch, driveway, meet at my house, garage-sale app.
-Never ships.
+Nothing ships.
 
-Rank: official partner store first, public place as backup, in person only if the seller turns it on.
+Rank: official store first, public place as backup, in person only if the seller turns it on.
 Marketed hardest to women in cities and suburbs. The marketplace is for everyone. Do not write copy that says only women may use it.
 
 A sale:
@@ -74,7 +74,7 @@ Trust and enforcement:
 - Researchers apply, pick categories, one active item, 15 minutes then a hold request. They may ask the seller for another photo. Pay is $4.60 if the seller accepts ($18.40/hour for 15 minutes, highest 2026 U.S. minimum wage). Bonus $2.50 if the item sells in the top half of their range. Bonus $2.50 if it sells at full asking. Seller pays $7.99 to ask. +++ includes 5 asks a month. More can be bought one at a time.
 
 +++ also: unlimited sale days, no item cap, seller fee 6%, five “reveal the lowest price” uses a month, early look at items being prepared with no price, and overtime (a get-rid-of-it price on unsold items, visible to +++ only).
-Plus alerts: categories, handoff locations, or upcoming in-person sales. Not a live tracker.
+Plus alerts: categories, handoffs, or upcoming in-person sales. Not a live tracker.
 
 Photo fill ($0.99, suggests title and category, does not set price) is off in beta.
 

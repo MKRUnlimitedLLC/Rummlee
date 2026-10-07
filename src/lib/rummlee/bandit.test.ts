@@ -68,8 +68,8 @@ test("unknown questions are refused instead of invented", () => {
 
 test("handoff order comes from the modes and never a home address", () => {
   const answer = answerBandit("Where do we meet?", null);
-  assert.match(answer, /Official partner store first/);
-  assert.match(answer, /Public handoff location second/);
+  assert.match(answer, /Official store handoff first/);
+  assert.match(answer, /Public place handoff second/);
   assert.match(answer, /Private handoff last/);
   assert.match(answer, /Never a home address on a listing/);
   assert.equal(answer.includes("Park Slope"), false);

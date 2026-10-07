@@ -147,7 +147,7 @@ export function parseSpotKind(raw: string | null | undefined): SpotKind | null {
 export function spotKindLabel(kind: SpotKind | string | null | undefined) {
   if (kind === "partner") return "Official store handoff";
   if (kind === "public") return "Public place handoff";
-  return "Handoff location";
+  return "Handoff";
 }
 
 export function cityOf(neighborhood: string) {
@@ -271,4 +271,4 @@ export function fitsOfficialCounter(input: { pack?: string | null; weightLbs?: n
 }
 
 export const PERSON_ONLY_LINE =
-  "In person only. Over 50 lb, not in a box, or needs a truck. You meet as handles. Rummlee never ships.";
+  "In person only. Over 50 lb, not in a box, or needs a truck. You meet as handles. Nothing ships.";

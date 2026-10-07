@@ -25,7 +25,7 @@ function Support() {
 
       <LegalSection title="Safety">
         <p>
-          Meet at a handoff location the seller offers — official store, public place, or in person. Don’t share your
+          Meet at the handoff the seller offers — official store first, public place as backup, or person to person. Don’t share your
           real name, home address, or the pickup code with anyone who isn’t on that order. Leave if you feel off, and
           don’t confirm.
         </p>

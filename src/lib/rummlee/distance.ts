@@ -56,7 +56,7 @@ export function roughDistance(fromNeighborhood: string | null | undefined, toNei
   return `${roughMiles(milesBetween(from, to))} · ${there}`;
 }
 
-/** Official partner stores. Used only to check “close,” then thrown away. */
+/** Official stores. Used only to check “close,” then thrown away. */
 export const PARTNER_POINT: Record<string, [number, number]> = {
   "partner-slope": [40.668, -73.98],
   "partner-silverlake": [34.098, -118.26],

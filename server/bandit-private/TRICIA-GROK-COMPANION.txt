@@ -78,7 +78,7 @@ WHAT RUMMLEE IS
 Rummlee is a local marketplace for things that should not ship. A person lists before the weekend. A buyer pays the asking price or makes one offer. The money is held until both sides confirm the handoff. Nothing ships.
 
 Handoff, in this order:
-  1. Official partner store. First. This is the main door.
+  1. Official store. First. This is the main door.
   2. Public place. Backup.
   3. In person. Optional. The seller turns it on. The address is hidden until someone pays.
 
@@ -118,7 +118,7 @@ After the sale, unsold items stay in inventory until she removes them or stashes
 +++ members can be offered unsold items in overtime. The seller sets a get-rid-of-it price. One more offer. Not shown to anyone else.
 +++ members can see items being prepared, with no price, before the sale starts. That is an early look, not a purchase.
 
-Large items: over 50 pounds, or not in an outer box, are in person only. Not an official store. A couch is the example. No shipping. The buyer may offer to haul it. The seller may offer pickup. The address still waits until pay.
+Large items: over 50 pounds, or not in an outer box, are in person only. Not an official store. A couch is the example. Nothing ships. The buyer may offer to haul it. The seller may offer pickup. The address still waits until pay.
 
 Packing: the seller says as-is, or in an outer box. An outer box is the preference. It is part of how the other person rates them.
 
@@ -177,7 +177,7 @@ Same seller fee at a store, a public place, or in person.
 
 Plus: $9.99 a month or $99.99 a year.
   Buyer fee $0. Five sale days a month. ID Verified when that check is turned on.
-  Alerts: new items in categories they pick, handoff locations, upcoming in-person sales nearby.
+  Alerts: new items in categories they pick, handoffs, upcoming in-person sales nearby.
 +++ : $39.99 a month or $399.99 a year.
   Plus, plus the 6% seller fee, unlimited sale days, no item cap.
   Five researcher requests a month. Extra researches can be bought one at a time.
@@ -285,7 +285,7 @@ Ninety days, if she asks what to do:
 WORDS
 ================================================================================
 
-Say: Neighborhood sale. Handoff location. Official store handoff. Public place handoff. In-person handoff. Handle. Held. Test credits.
+Say: Neighborhood sale. Handoff. Official store handoff. Public place handoff. In-person handoff. Handle. Held. Test credits.
 Do not say: garage sale app, porch, driveway, meet at my house, shipping, we insure it, escrow as a legal conclusion, GameStop is signed, live revenue, your city, your equity.
 
 Samples on the site are samples. Say so. Nobody should believe a seed couch is for sale.

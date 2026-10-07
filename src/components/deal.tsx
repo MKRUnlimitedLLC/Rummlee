@@ -59,7 +59,7 @@ export function BuyerDealStatus({ offer }: { offer: Offer }) {
       <div className="rounded-2xl bg-primary-soft px-4 py-3">
         <p className="text-sm font-medium text-primary-ink">{offerHeadline(offer.status)}</p>
         <p className="mt-1 text-sm text-fg">
-          Agreed at {money(agreed)}. Pay to hold it — then meet at the handoff location.
+          Agreed at {money(agreed)}. Pay to hold it — then meet at the handoff.
         </p>
       </div>
     );

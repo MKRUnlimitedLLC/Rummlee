@@ -114,7 +114,7 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
           {listing.distanceLabel ?? listing.handoffSpotName ?? placeName(listing.neighborhood)}
         </p>
         <p className="text-base text-subtle">
-          {sampleStore ? "Sample store · no shop has signed" : listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : "Handoff location"}
+          {sampleStore ? "Sample store · no shop has signed" : listing.handoffSpotKind ? spotKindLabel(listing.handoffSpotKind) : "Handoff"}
           {" · "}@{listing.sellerHandle}
           {listing.sellerVerified ? (
             <>

@@ -87,7 +87,7 @@ export const scanAtCounter = createServerFn({ method: "POST" })
     const order = rows[0];
     if (!order) throw new Error("That code isn’t a Rummlee handoff.");
     if (order.handoff_type !== "official" || order.handoff_spot_id !== spotId) {
-      throw new Error("Wrong counter. This sale belongs at another handoff location.");
+      throw new Error("Wrong counter. This sale belongs at another official store.");
     }
     const side = order.seller_scan === code ? "seller" : "buyer";
     if (side === "seller") {
@@ -158,7 +158,7 @@ export const refuseAtCounter = createServerFn({ method: "POST" })
     const order = rows[0];
     if (!order) throw new Error("That code isn’t a Rummlee handoff.");
     if (order.handoff_type !== "official" || order.handoff_spot_id !== spotId) {
-      throw new Error("Wrong counter. This sale belongs at another handoff location.");
+      throw new Error("Wrong counter. This sale belongs at another official store.");
     }
     if (order.released_at || order.status !== "escrow") throw new Error("This package already left the counter.");
     const packageNo = order.package_no == null ? null : Number(order.package_no);
@@ -299,7 +299,7 @@ export const pingApproaching = createServerFn({ method: "POST" })
     `;
     const order = rows[0];
     if (!order) throw new Error("Pickup not found.");
-    if (order.handoff_type !== "official" || !order.spot_id) throw new Error("Only an official partner store gets this.");
+    if (order.handoff_type !== "official" || !order.spot_id) throw new Error("Only an official store handoff gets this.");
     if (order.status !== "escrow") throw new Error("This handoff isn’t on the way.");
     const role = order.buyer_id === context.userId ? "buyer" : order.seller_id === context.userId ? "seller" : null;
     if (!role) throw new Error("Not your handoff.");
@@ -363,7 +363,7 @@ export const onMyWay = createServerFn({ method: "POST" })
       kind: "on_way",
       title: "On the way",
       body: toStore
-        ? `@${handle} is on the way to the official partner store. No location was sent.`
+        ? `@${handle} is on the way to the official store. No location was sent.`
         : `@${handle} is on the way to the handoff. No location was sent.`,
       refId: order.id,
     });
