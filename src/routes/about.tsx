@@ -45,8 +45,7 @@ function About() {
         </LegalSection>
         <LegalSection title="Patent pending">
           <p>
-            Handoff method patent pending. A U.S. provisional application is on file. It is not an issued patent. The
-            company does not own it until an assignment is signed.
+            Handoff method patent pending. A U.S. provisional application is on file. It is not an issued patent. The application is assigned to Rummlee Corp.
           </p>
         </LegalSection>
       </div>

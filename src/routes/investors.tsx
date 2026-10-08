@@ -57,7 +57,7 @@ function Investors() {
         <p>The seller sets an asking price and a private lowest price. The buyer can pay the asking price or make one offer.</p>
         <p>
           Patent pending. A U.S. provisional application has been filed on the handoff method. It is not an issued
-          patent. The company does not own it until an assignment is signed.
+          patent. The application is assigned to Rummlee Corp.
         </p>
       </LegalSection>
       <LegalSection title="How the company expects to make money">
@@ -97,8 +97,7 @@ function Investors() {
         <p>Entity: Rummlee Corp, a North Dakota corporation. Intended as a national product.</p>
         <p>Stage: test only. No card is charged. No store is signed. No user count, revenue, round size, or valuation is published.</p>
         <p>
-          Patent: a U.S. provisional application is on file for the handoff method. It is not an issued patent. The
-          company does not own it until an assignment is signed.
+          Patent: a U.S. provisional application is on file for the handoff method. It is not an issued patent. The application is assigned to Rummlee Corp.
         </p>
       </LegalSection>
       <Request />

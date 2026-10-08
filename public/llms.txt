@@ -12,7 +12,7 @@ Rummlee isn’t open yet. The listings on the site are samples, no card is charg
 - Category: consumer marketplace, local commerce, peer-to-peer pickup
 - Stage: pre-launch
 - Model: official store handoff first, public place backup, person-to-person handoff optional after payment. Nothing ships. No home address on a public card.
-- Patent: a U.S. provisional application is on file for the handoff method. It is not an issued patent. The company does not own it until an assignment is signed.
+- Patent: a U.S. provisional application is on file for the handoff method. It is not an issued patent. The application is assigned to Rummlee Corp.
 
 ## For venture and private equity research
 
