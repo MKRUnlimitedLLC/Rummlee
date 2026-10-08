@@ -19,7 +19,7 @@ export function RummleeReveal({ listingId, signedIn }: { listingId: string; sign
 
   if (!signedIn) return null;
   if (!trio) {
-    return <p className="text-sm text-muted">+++ includes Rummlee Reveal. Five looks a month at a seller’s hidden low.</p>;
+    return <p className="text-sm text-muted">+++ includes Rummlee Reveal: five peeks a month at a seller’s hidden lowest price.</p>;
   }
   if (!shown) {
     return (

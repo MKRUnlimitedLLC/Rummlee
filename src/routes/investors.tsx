@@ -6,7 +6,7 @@ import { LegalPage, LegalSection } from "@/components/legal";
 
 const TITLE = "Rummlee for investors — pre-launch local marketplace";
 const DESCRIPTION =
-  "Rummlee Corp is a pre-launch consumer marketplace. Pickup at a store, nothing ships. Background for venture and private equity research. Not an offer of stock.";
+  "Rummlee Corp is a consumer marketplace getting ready to launch. Official store handoff first, and nothing ships. Background for venture and private equity research. Not an offer of stock.";
 
 export const Route = createFileRoute("/investors")({
   head: () => ({
@@ -31,34 +31,30 @@ export const Route = createFileRoute("/investors")({
 function Investors() {
   return (
     <LegalPage
-      title="A local marketplace. The package changes hands at a store."
-      lede="Rummlee is not open. This page is for people who invest in marketplaces, local retail, or consumer apps, including venture and private equity research. It is not an offer to sell stock, not a solicitation, and not a commitment to take money. October 2, 2026."
+      title="A local marketplace where the package changes hands at a store."
+      lede="Rummlee isn’t open yet. This page is background for people who invest in marketplaces, local retail, or consumer apps, including venture and private equity research. It isn’t an offer to sell stock, it isn’t a solicitation, and it isn’t a commitment to take money. October 2, 2026."
     >
       <LegalSection title="The company">
         <p>
-          Neighbors sell used household items to other neighbors. The buyer pays in the app. Official store
-          handoff first. A public place is the backup. A private handoff is optional, and only after payment.
-          Nothing ships. The home address stays off the public card. People deal by a handle, not a legal name.
+          Neighbors sell used household items to other neighbors, and the buyer pays in the app. Handoffs happen at an official store first, with a public place as the backup. Meeting person to person is optional, and only after payment. Nothing ships. Home addresses stay off the public card, and people go by a handle, not a legal name.
         </p>
         <p>
-          The company is Rummlee Corp, a North Dakota corporation. Questions about this page go to{" "}
+          The company is Rummlee Corp, a North Dakota corporation. Questions about this page? Write to{" "}
           <a className="font-medium text-primary-ink" href="mailto:investors@rummlee.com">
             investors@rummlee.com
           </a>
-          . Writing that address is not an offer of stock.
+          . Writing to that address isn’t an offer of stock.
         </p>
       </LegalSection>
       <LegalSection title="The problem">
         <p>
-          A driveway sale depends on weather, a Saturday, and strangers at the door. Local online listings often publish
-          a home address, or they push the conversation out of the app. Shipping marketplaces add a carrier and a fee
-          that does not fit a couch or a closet clean-out.
+          A driveway sale hangs on the weather, a free Saturday, and strangers at your door. Local listing sites often show a home address, or they push the conversation out of the app. Shipping marketplaces add a carrier and a fee, and that doesn’t work for a couch or a closet clean-out.
         </p>
       </LegalSection>
       <LegalSection title="The product">
-        <p>Official store handoff first. The store holds the package. It is not the buyer or the seller.</p>
-        <p>Money is meant to stay held until both sides confirm pickup. That hold is simulated while the product is in test.</p>
-        <p>The seller sets an asking price and a private floor. The buyer can pay the ask or make one offer path.</p>
+        <p>Official store handoff first. The store just holds the package. It isn’t the buyer or the seller.</p>
+        <p>The money is meant to stay on hold until both sides confirm pickup. For now that hold is simulated, since the product is still in testing.</p>
+        <p>The seller sets an asking price and a private lowest price. The buyer can pay the asking price or make one offer.</p>
         <p>
           Patent pending. A U.S. provisional application has been filed on the handoff method. It is not an issued
           patent. The company does not own it until an assignment is signed.
@@ -66,18 +62,17 @@ function Investors() {
       </LegalSection>
       <LegalSection title="How the company expects to make money">
         <p>
-          On a live transaction: a seller fee, a buyer fee, and a fee for each sale date. Memberships change what those
-          fees are and what is included. The public rate card is on{" "}
+          On a real sale, there’s a seller fee, a buyer fee, and a fee for each sale day. Memberships change those fees and what’s included. The public rate card is on{" "}
           <Link to="/fees" className="font-medium text-primary-ink">
             Fees
           </Link>
-          . Rates can change. This page is not a quote, and test activity is not revenue.
+          . Rates can change. This page isn’t a quote, and test activity isn’t revenue.
         </p>
       </LegalSection>
       <LegalSection title="Where it stands">
-        <p>Pre-launch. The product is in test. It is not an open marketplace. No card is charged. People use test credits.</p>
-        <p>No official store is signed. A store can apply. An application is not a signed store.</p>
-        <p>This page does not state a user count, a revenue figure, a round size, or a valuation.</p>
+        <p>We haven’t launched. The product is in testing, and the marketplace isn’t open. No card is charged. People use test credits.</p>
+        <p>No official store has signed. Stores can apply, but an application isn’t a signed store.</p>
+        <p>You won’t find a user count, a revenue figure, a round size, or a valuation on this page.</p>
         <p>
           Neighbors can{" "}
           <Link to="/" className="font-medium text-primary-ink">
@@ -91,11 +86,11 @@ function Investors() {
         </p>
       </LegalSection>
       <LegalSection title="Risks">
-        <p>There is no operating history and no revenue on this page to show. A private investment can be a total loss.</p>
-        <p>The model needs a store, buyers, and sellers in the same city. None of those is guaranteed.</p>
-        <p>Real card payments are not on. A payments company is planned to hold funds. It is not live.</p>
-        <p>Sales-tax and marketplace rules differ by state. They are not finished on this page.</p>
-        <p>There is no public market for the shares. Any later round, price, or percent is not stated here.</p>
+        <p>There’s no operating history, and there’s no revenue on this page to show. A private investment can be a total loss.</p>
+        <p>The model needs a store, buyers, and sellers in the same city, and none of that is guaranteed.</p>
+        <p>Real card payments aren’t turned on. The plan is for a payments company to hold funds, but that isn’t live.</p>
+        <p>Sales-tax and marketplace rules differ from state to state, and they aren’t worked out on this page.</p>
+        <p>There’s no public market for the shares. This page doesn’t state any later round, price, or percent.</p>
       </LegalSection>
       <LegalSection title="At a glance">
         <p>Category: consumer marketplace in beta. Nothing is for sale. Official store handoff first. Nothing ships.</p>
@@ -125,8 +120,7 @@ function Request() {
   return (
     <LegalSection title="Request information">
       <p>
-        Leave an email if you want to hear more, if there is something to say. A firm name is optional. We do not sell
-        the address. Writing you is not an offer of stock.
+        Leave your email if you’d like to hear more when there’s something to share. A firm name is optional. We don’t sell your email, and writing to you isn’t an offer of stock.
       </p>
       {done ? (
         <p role="status" className="rounded-2xl bg-bg p-4 text-pretty">

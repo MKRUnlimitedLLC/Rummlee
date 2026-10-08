@@ -179,7 +179,7 @@ async function debitWallet(sql: Awaited<ReturnType<typeof getSql>>, userId: stri
     where id = ${userId} and wallet_cents >= ${cents}
     returning id
   `;
-  if (!rows[0]) throw new Error("Not enough in the wallet for that.");
+  if (!rows[0]) throw new Error("There isn’t enough in your wallet for that.");
 }
 
 export async function optionalUserId() {
@@ -1523,7 +1523,7 @@ export const extendSale = createServerFn({ method: "POST" })
       from sales where id = ${data.saleId} and seller_id = ${context.userId}
     `;
     const sale = rows[0];
-    if (!sale) throw new Error("Sale not found.");
+    if (!sale) throw new Error("We can’t find that sale.");
     if (sale.always_on || sale.kind === "house") throw new Error("This sale stays up. It doesn’t need an extension.");
     const start = String(sale.starts_on).slice(0, 10);
     const end = String(sale.ends_on).slice(0, 10);
@@ -1583,7 +1583,7 @@ export const featureSale = createServerFn({ method: "POST" })
       where id = ${data.saleId} and seller_id = ${context.userId}
     `;
     const sale = rows[0];
-    if (!sale) throw new Error("Sale not found.");
+    if (!sale) throw new Error("We can’t find that sale.");
     if (sale.featured_until && new Date(sale.featured_until).getTime() > Date.now()) throw new Error("This sale is already featured.");
     const cents = flatFeeCents(await loadFees(sql), "feature_sale");
     const paid = await chargeSeller(sql, context.userId, cents, TEST_MODE ? "Feature this sale. Test credits, not real money." : "Feature this sale.", sale.id);
@@ -1605,7 +1605,7 @@ export const featureListing = createServerFn({ method: "POST" })
       where l.id = ${data.listingId} and l.seller_id = ${context.userId} and l.status = ${"live"}
     `;
     const item = rows[0];
-    if (!item) throw new Error("Listing not found.");
+    if (!item) throw new Error("We can’t find that listing.");
     if (item.featured_until && new Date(item.featured_until).getTime() > Date.now()) throw new Error("This item is already featured.");
     const cents = flatFeeCents(await loadFees(sql), "feature_item");
     const paid = await chargeSeller(sql, context.userId, cents, TEST_MODE ? "Feature this item. Test credits, not real money." : "Feature this item.", item.id);
@@ -1706,7 +1706,7 @@ export const addListing = createServerFn({ method: "POST" })
     const sale = await sql<{ id: string; seller_id: string; neighborhood: string }>`
       select id, seller_id, neighborhood from sales where id = ${data.saleId} and seller_id = ${context.userId}
     `;
-    if (!sale[0]) throw new Error("Sale not found.");
+    if (!sale[0]) throw new Error("We can’t find that sale.");
     if (me.plusTier !== "trio") {
       const have = await sql<{ n: number }>`
         select count(*)::int as n from listings where sale_id = ${data.saleId} and status <> ${"withdrawn"}
@@ -1862,7 +1862,7 @@ export const restockListing = createServerFn({ method: "POST" })
       where id = ${data.saleId} and seller_id = ${context.userId} and status = ${"live"}
     `;
     const sale = sales[0];
-    if (!sale) throw new Error("Sale not found.");
+    if (!sale) throw new Error("We can’t find that sale.");
     if (!sale.always_on && String(sale.ends_on).slice(0, 10) < isoToday()) {
       throw new Error("That sale has ended. Pick one that’s still on, or start a new sale.");
     }
@@ -2022,7 +2022,7 @@ export const respondOffer = createServerFn({ method: "POST" })
       where o.id = ${data.offerId}
     `;
     const offer = rows[0];
-    if (!offer) throw new Error("Offer not found.");
+    if (!offer) throw new Error("We can’t find that offer.");
     const isSeller = offer.seller_id === context.userId;
     const isBuyer = offer.buyer_id === context.userId;
     if (!isSeller && !isBuyer) throw new Error("Not your offer.");
@@ -2067,7 +2067,7 @@ export const respondOffer = createServerFn({ method: "POST" })
     }
     if (data.action === "decline") {
       if (isSeller && offer.status !== "pending") {
-        throw new Error("You already answered. One decline each.");
+        throw new Error("You already answered this one.");
       }
       if (isBuyer && offer.status === "pending") {
         /* buyer walks away before a reply — their one pass */
@@ -2115,7 +2115,7 @@ export const sendMessage = createServerFn({ method: "POST" })
       select id, seller_id, charity_split from listings where id = ${listingId}
     `;
     const item = listing[0];
-    if (!item) throw new Error("Listing not found.");
+    if (!item) throw new Error("We can’t find that listing.");
     if (item.charity_split) throw new Error("Rummlee shelf items don’t take questions. Pay asking if you want it.");
     const toId = item.seller_id === context.userId
       ? (
@@ -2126,7 +2126,7 @@ export const sendMessage = createServerFn({ method: "POST" })
         )[0]?.buyer_id
       : item.seller_id;
     if (!toId) throw new Error("No one to message yet.");
-    if (toId === context.userId) throw new Error("That’s you.");
+    if (toId === context.userId) throw new Error("That’s your own account.");
     assertStaysInApp(data.body);
     await sql`
       insert into messages (id, listing_id, from_id, to_id, body)
@@ -2261,7 +2261,7 @@ export const buyNow = createServerFn({ method: "POST" })
     const modes = splitModes(item.handoff_modes);
     if (meet === "person") {
       if (!modes.includes("person")) {
-        throw new Error("In person handoff isn’t offered on this item. Pick another handoff.");
+        throw new Error("Person-to-person handoff isn’t offered on this item. Pick another handoff.");
       }
       handoffType = "person";
       spotId = null;
@@ -2411,7 +2411,7 @@ export const confirmPickup = createServerFn({ method: "POST" })
       handoff_type: string;
     }>`select id, listing_id, buyer_id, seller_id, amount_cents, fee_cents, seller_fee_cents, status, pickup_code, buyer_confirmed, seller_confirmed, handoff_type from orders where id = ${data.orderId}`;
     const order = rows[0];
-    if (!order) throw new Error("Pickup not found.");
+    if (!order) throw new Error("We can’t find that pickup.");
     if (order.status !== "escrow") throw new Error("Already finished.");
     if (order.handoff_type === "official") {
       throw new Error("An official store closes when the counter scans the buyer code.");
@@ -2899,7 +2899,7 @@ export const submitRating = createServerFn({ method: "POST" })
       status: string;
     }>`select id, buyer_id, seller_id, status from orders where id = ${data.orderId}`;
     const order = rows[0];
-    if (!order) throw new Error("Pickup not found.");
+    if (!order) throw new Error("We can’t find that pickup.");
     if (order.status !== "picked_up") throw new Error("Rate after you both confirm pickup.");
     const isBuyer = order.buyer_id === context.userId;
     const isSeller = order.seller_id === context.userId;

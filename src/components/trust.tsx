@@ -90,8 +90,7 @@ export function RateHandoff({
     >
       <p className="font-medium">Rate @{otherHandle}</p>
       <p className="text-sm text-muted">
-        Thumbs up or down on each. Not stars. Comment is private — they never see it. A thumbs down can be
-        challenged.
+        Thumbs up or down on each one, not stars. Your comment is private, so they never see it. A thumbs down can be challenged.
       </p>
       {criteria.map((c) => (
         <div key={c.key}>

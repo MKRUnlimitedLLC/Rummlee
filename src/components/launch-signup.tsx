@@ -70,15 +70,15 @@ export function LaunchSignup() {
           id="launch-title"
           className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]"
         >
-          {handoff ? "Be an official store" : "Be the first to sign up"}
+          {handoff ? "Be an official store" : "Be the first to know"}
         </h2>
         <p
           id="launch-body"
           className="mt-3 text-pretty text-[15px] leading-relaxed text-muted"
         >
           {handoff
-            ? "Tell us about the shop. We’ll write if it fits a city we’re opening. No fee to ask, and no promise of exclusivity, payment, or a go-live date."
-            : "Rummlee launches soon. Leave an email and you’ll hear when real items go live in your city. What you see now is a sample. Nothing is for sale, and no card is charged."}
+            ? "Tell us about your shop. If it fits a city we’re opening, we’ll write back. It’s free to ask, but it isn’t a promise of exclusivity, payment, or a go-live date."
+            : "Rummlee launches soon. Leave your email and we’ll let you know when real items go live in your city. For now, everything here is a sample. Nothing is for sale, and no card is charged."}
         </p>
         {handoff ? (
           <div className="mt-5">

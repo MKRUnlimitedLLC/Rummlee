@@ -48,8 +48,7 @@ export function BuyerDealStatus({ offer }: { offer: Offer }) {
       <div className="rounded-2xl bg-primary-soft px-4 py-3">
         <p className="text-sm font-medium text-primary-ink">{offerHeadline(offer.status)}</p>
         <p className="mt-1 text-sm text-fg">
-          You offered {money(offer.amountCents)}. Their counteroffer is {money(agreed)}. Pay that, or decline — that ends
-          the offer. You can still pay asking.
+          You offered {money(offer.amountCents)}. Their counteroffer is {money(agreed)}. Pay that, or decline, which ends the offer. You can still pay asking.
         </p>
       </div>
     );
@@ -70,7 +69,7 @@ export function BuyerDealStatus({ offer }: { offer: Offer }) {
       <p className="mt-1 text-sm text-muted">
         {offer.declinedBy === "floor"
           ? "No deal on that offer. You can still pay asking."
-          : "Someone declined. The offer is over. You can still pay asking."}
+          : "Someone declined, so the offer’s done. You can still pay asking."}
       </p>
     </div>
   );
@@ -111,7 +110,7 @@ export function SellerOfferCard({
       </Link>
 
       {offer.status === "pending" ? (
-        <p className="mt-3 text-sm font-medium text-primary-ink">Yes, counteroffer, or decline. One decline ends it.</p>
+        <p className="mt-3 text-sm font-medium text-primary-ink">You can say yes, counteroffer, or decline. One decline ends it.</p>
       ) : offer.status === "countered" ? (
         <p className="mt-3 text-sm text-muted">Your counteroffer: {money(agreed)}. Waiting for them to pay or decline.</p>
       ) : offer.status === "accepted" ? (
@@ -146,7 +145,7 @@ export function SellerOfferCard({
           }}
         >
           <p className="text-sm font-medium">Counteroffer</p>
-          <p className="text-sm text-muted">Between your lowest and asking. They pay this, or decline.</p>
+          <p className="text-sm text-muted">Pick a number between your lowest and your asking price. They’ll pay it or decline.</p>
           <div className="flex gap-2">
             <Input
               inputMode="decimal"
@@ -193,7 +192,7 @@ export function OutgoingOfferCard({ offer }: { offer: Offer }) {
     offer.status === "accepted" || offer.status === "countered"
       ? `Pay ${money(agreed)} to hold it`
       : offer.status === "pending"
-        ? "Waiting — one answer left"
+        ? "Waiting on their one answer"
         : "Offer ended";
   return (
     <li>

@@ -144,7 +144,7 @@ export function WaitlistForm({
           />
         </div>
       </div>
-      <p className="text-sm text-muted">City or ZIP — at least one.</p>
+      <p className="text-sm text-muted">Add a city, a ZIP, or both.</p>
       <Honeypot value={company} onChange={setCompany} />
       <Button className="w-full" type="submit" disabled={pending}>
         {pending ? "Saving…" : "Notify me"}
@@ -306,7 +306,7 @@ export function HandoffForm({
           />
         </div>
       </div>
-      <p className="text-sm text-muted">Email or phone — at least one.</p>
+      <p className="text-sm text-muted">Add an email, a phone number, or both.</p>
       <div>
         <Label htmlFor={`${idPrefix}-why`}>
           Why you’d be a good handoff spot (optional)
@@ -341,8 +341,7 @@ export function HandoffForm({
         {pending ? "Sending…" : "Send"}
       </Button>
       <p className="text-sm text-muted">
-        No card. Asking is free. This is not a promise of exclusivity, payment,
-        or a go-live date.
+        No card needed, and it’s free to ask. This isn’t a promise of exclusivity, payment, or a go-live date.
       </p>
     </form>
   );
@@ -418,7 +417,7 @@ export function OwnershipForm({
         />
       </div>
       <div>
-        <Label htmlFor={`${idPrefix}-note`}>Brief note (optional)</Label>
+        <Label htmlFor={`${idPrefix}-note`}>A quick note (optional)</Label>
         <Textarea
           id={`${idPrefix}-note`}
           value={whyUs}
@@ -431,8 +430,7 @@ export function OwnershipForm({
         {pending ? "Sending…" : "Send"}
       </Button>
       <p className="text-sm text-muted">
-        No card. No phone. This is not a store application, and it is not a
-        promise of shares, an allocation, or a closing date.
+        No card and no phone number needed. This isn’t a store application, and it isn’t a promise of shares, an allocation, or a closing date.
       </p>
     </form>
   );

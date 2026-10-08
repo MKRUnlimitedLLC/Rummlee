@@ -30,7 +30,7 @@ function InboxPage() {
       void qc.invalidateQueries({ queryKey: ["inbox"] });
       if (vars.action === "accept") toast.success("You said yes. Waiting for them to pay.");
       else if (vars.action === "counter") toast.success("Counteroffer sent. Waiting for them to pay.");
-      else toast.success("Declined. The offer is over.");
+      else toast.success("Declined. That offer’s done.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -55,7 +55,7 @@ function InboxPage() {
   return (
     <main className="py-6">
       <h1 className="font-display text-3xl font-medium tracking-[-0.03em]">Inbox</h1>
-      <p className="mt-1 text-muted">One offer. Yes, counteroffer, or decline. One decline ends it.</p>
+      <p className="mt-1 text-muted">Each offer gets one answer: yes, a counteroffer, or a decline. One decline ends it.</p>
 
       {data.offersIn.length === 0 ? <PracticeSeller /> : null}
 
@@ -99,14 +99,14 @@ function InboxPage() {
                       ? " · Official store handoff"
                       : o.handoffType === "public"
                         ? " · Public place, or the handoff already offered. Not a home address."
-                        : " · In person handoff"}
+                        : " · Person-to-person handoff"}
                   </p>
                   <Link to="/pickup/$id" params={{ id: o.id }} className="text-base font-medium text-primary-ink">
-                    {o.status === "escrow" ? "Go pick up — code ready" : "View"}
+                    {o.status === "escrow" ? "Your code’s ready. Go pick it up" : "View"}
                   </Link>
                   {o.canLeave ? <DispositionChoice orderId={o.id} /> : null}
                   {o.disposition === "abandoned" ? (
-                    <p className="mt-1 text-sm text-muted">You left this. Rummlee can resell it. Your handle is not on the new listing.</p>
+                    <p className="mt-1 text-sm text-muted">You left this one. Rummlee can resell it, and your handle won’t be on the new listing.</p>
                   ) : null}
                   {o.disposition === "pickup" ? (
                     <p className="mt-1 text-sm text-muted">Hold for pickup. It’s still yours. Use your seller code at the official store.</p>
@@ -121,7 +121,7 @@ function InboxPage() {
       {data.pendingRates.length > 0 ? (
         <section className="mt-6 space-y-3">
           <h2 className="font-display text-xl">Rate a handoff</h2>
-          <p className="text-sm text-muted">Thumbs up or down. Comment is private. They can challenge a thumbs down.</p>
+          <p className="text-sm text-muted">Thumbs up or down. Your comment stays private, and they can challenge a thumbs down.</p>
           {data.pendingRates.map((p) => (
             <RateHandoff key={p.orderId} orderId={p.orderId} role={p.role} otherHandle={p.otherHandle} handoffType={p.handoffType} />
           ))}
@@ -130,8 +130,8 @@ function InboxPage() {
 
       {data.offersIn.length > 0 ? (
         <section className="mt-8">
-          <h2 className="font-display text-xl">Incoming — offers on your items</h2>
-          <p className="mt-1 text-sm text-muted">Yes, counteroffer, or decline. One decline ends the offer.</p>
+          <h2 className="font-display text-xl">Offers on your items</h2>
+          <p className="mt-1 text-sm text-muted">You can say yes, counteroffer, or decline. One decline ends the offer.</p>
           <ul className="mt-3 space-y-3">
             {data.offersIn.map((o) => (
               <SellerOfferCard
@@ -149,7 +149,7 @@ function InboxPage() {
 
       {data.offersOut.length > 0 ? (
         <section className="mt-8">
-          <h2 className="font-display text-xl">Outgoing — offers you sent</h2>
+          <h2 className="font-display text-xl">Offers you sent</h2>
           <ul className="mt-3 space-y-3">
             {data.offersOut.map((o) => (
               <OutgoingOfferCard key={o.id} offer={o} />
@@ -184,9 +184,9 @@ function PracticeSeller() {
   const [done, setDone] = useState<"yes" | "counter" | "decline" | null>(null);
   return (
     <section className="mt-6 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
-      <h2 className="font-display text-xl">Practice — not a real offer</h2>
+      <h2 className="font-display text-xl">Practice (not a real offer)</h2>
       <p className="mt-1 text-sm text-muted">
-        One account can try the seller buttons here. Nothing is listed, held, or charged.
+        Try out the seller buttons here. Nothing gets listed, held, or charged.
       </p>
       <p className="mt-3 font-medium">Sample lamp · asking $40 · offer $30</p>
       {done ? (

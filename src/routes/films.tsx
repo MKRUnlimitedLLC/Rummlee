@@ -46,7 +46,7 @@ export const Route = createFileRoute("/films")({
     publicHead(
       "/films",
       "Rummlee films",
-      "The good stuff, before Saturday. Pickup at a store. No one comes to your house. Not open yet.",
+      "The good stuff, before Saturday. Pick it up at an official store, so no one comes to your house. Rummlee isn’t open yet.",
     ),
   component: Films,
 });
@@ -60,7 +60,7 @@ function Films() {
       <p className="text-sm font-medium text-primary-ink">Rummlee</p>
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">Six ways in</h1>
       <p className="mt-2 max-w-xl text-pretty text-muted">
-        The good stuff, before Saturday. Pickup at a store. No one comes to your house. Not open yet.
+        The good stuff, before Saturday. Pick it up at an official store, so no one comes to your house. Rummlee isn’t open yet.
       </p>
       <div className="mt-5 flex flex-wrap gap-2">
         {FILMS.map((item) => (

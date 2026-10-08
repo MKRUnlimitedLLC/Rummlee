@@ -51,7 +51,7 @@ function ResearchPage() {
       setOpenId(res.id);
       void qc.invalidateQueries({ queryKey: ["research"] });
       void qc.invalidateQueries({ queryKey: ["me"] });
-      toast.success("Sent. Researchers who know that type get a ping.");
+      toast.success("Sent. Researchers who know that kind of thing will get a ping.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -60,7 +60,7 @@ function ResearchPage() {
     onSuccess: () => {
       setContractor(false);
       void qc.invalidateQueries({ queryKey: ["research"] });
-      toast.success("Application sent. Corporate reviews it. No pay until you’re approved.");
+      toast.success("Application sent. Our team will review it. There’s no pay until you’re approved.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -100,8 +100,7 @@ function ResearchPage() {
       <p className="text-sm font-medium text-primary-ink">Researchers</p>
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Don’t know what it is?</h1>
       <p className="mt-2 max-w-xl text-muted">
-        Add photos and a product type. An approved researcher in that area suggests what it is and a price range. You
-        accept or pass. The range is not your asking price, and it is not an appraisal. Pay is {money(data.askCents)}.
+        Add photos and a product type. An approved researcher in that area tells you what they think it is and suggests a price range. You accept or pass. The range isn’t your asking price, and it isn’t an appraisal. It costs {money(data.askCents)}.
         The researcher gets {money(data.payCents)} if you accept. If that item sells, they also get a bonus for a price
         in the top half of their range, and another if it sells at full asking. Both are on the fee table. +++ includes
         5 a month. After that, each one is {money(data.askCents)}.
@@ -169,8 +168,7 @@ function ResearchPage() {
         <h2 className="font-display text-xl">Researcher account</h2>
         <p className="mt-1 text-sm text-muted">
           This is 1099 contract work, not a job. An accepted write-up pays {money(data.payCents)}, priced as 15 minutes
-          at $18.40 an hour, the highest 2026 minimum wage. You pick the product types you know. A matching ask pings you. Research now starts 15 minutes.
-          One item at a time. After those 15 minutes you can hold it once, for 15 more. For 2026, a 1099-NEC is filed if
+          at $18.40 an hour, the highest 2026 minimum wage. You pick the product types you know. When a matching ask comes in, you get a ping. Tapping Research now starts a 15-minute clock. You work one item at a time, and you can hold it once for 15 more minutes. For 2026, a 1099-NEC is filed if
           the year reaches $2,000. We do not store a Social Security number here. Beta pay is test credits.
         </p>
         {account ? (
@@ -181,7 +179,7 @@ function ResearchPage() {
             </p>
           </div>
         ) : (
-          <p className="mt-3 text-sm text-muted">No application yet. The legal name on your account is the 1099 name.</p>
+          <p className="mt-3 text-sm text-muted">You haven’t applied yet. The legal name on your account is the name on your 1099.</p>
         )}
         {account?.status === "active" ? (
           <Button className="mt-3" variant="secondary" disabled={pause.isPending} onClick={() => pause.mutate()}>
@@ -193,7 +191,7 @@ function ResearchPage() {
             Resume
           </Button>
         ) : null}
-        {account?.status === "pending" ? <p className="mt-3 text-sm">Application is with corporate.</p> : null}
+        {account?.status === "pending" ? <p className="mt-3 text-sm">Your application is with our team.</p> : null}
         {!account || account.status === "denied" ? (
           <form
             className="mt-4 space-y-2"
@@ -239,7 +237,7 @@ function ResearchPage() {
         ) : null}
         {data.isResearcher ? (
           <ul className="mt-4 space-y-2">
-            {data.queue.length === 0 ? <li className="text-sm text-muted">No photos in your areas.</li> : null}
+            {data.queue.length === 0 ? <li className="text-sm text-muted">No photos in your areas right now.</li> : null}
             {data.queue.map((row) => (
               <li key={row.id}>
                 <button type="button" className="w-full rounded-2xl bg-bg px-4 py-3 text-left" onClick={() => setOpenId(row.id)}>
@@ -259,7 +257,7 @@ function ResearchPage() {
       <p className="mt-6 text-sm text-muted">
         Fees live on the{" "}
         <Link to="/fees" className="font-medium text-primary-ink">fee table</Link>
-        . When you accept a write-up, list the item yourself and set the price.
+        . When you accept a write-up, you list the item yourself and set the price.
       </p>
     </main>
   );
@@ -278,7 +276,7 @@ function Clock({ dueAt, held, paused }: { dueAt: string | null; held: boolean; p
   const sec = Math.floor((left % 60000) / 1000);
   return (
     <p className="text-sm font-medium">
-      {left === 0 ? "Time is up. Hold it once, or it goes back." : `${min}:${String(sec).padStart(2, "0")} left${held ? " · hold" : ""}`}
+      {left === 0 ? "Time’s up. Use your one hold, or it goes back." : `${min}:${String(sec).padStart(2, "0")} left${held ? " · hold" : ""}`}
     </p>
   );
 }

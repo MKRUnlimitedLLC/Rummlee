@@ -3,7 +3,7 @@ import { LegalPage, LegalSection } from "@/components/legal";
 import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/terms")({
-  head: () => publicHead("/terms", "Rummlee terms", "House rules for listing, offering, and pickup. Nothing ships."),
+  head: () => publicHead("/terms", "Rummlee terms", "The house rules for listing, making offers, and picking up. Nothing ships."),
   component: Terms,
 });
 
@@ -11,12 +11,11 @@ function Terms() {
   return (
     <LegalPage
       title="Terms"
-      lede="The house rules for listing, offering, and picking up on Rummlee. Updated October 6, 2026."
+      lede="The house rules for listing, making offers, and picking things up on Rummlee. Updated October 6, 2026."
     >
       <LegalSection title="The short version">
         <p>
-          Rummlee is a local pre-sale for neighborhood, moving, and home clear-out sales. You deal under a handle.
-          Pickup is at a handoff the seller offers — official store first, public place as backup, or person to person. Nothing ships. No carriers, no postage, no delivery. A street address is not posted on a listing. A private meetup note, if the seller writes one, is shown only after someone pays. Do not put a home address in a message. You are responsible for what you list and what you buy.
+          Rummlee lets you shop neighborhood, moving, and home clear-out sales before they start. You go by a handle. Pickup happens at a handoff the seller offers: an official store first, a public place as backup, or person to person. Nothing ships. No carriers, no postage, no delivery. A street address is not posted on a listing. A private meetup note, if the seller writes one, is shown only after someone pays. Do not put a home address in a message. You’re responsible for what you list and what you buy.
         </p>
       </LegalSection>
 
@@ -117,7 +116,7 @@ function Terms() {
         </p>
       </LegalSection>
 
-      <LegalSection title="The app as-is">
+      <LegalSection title="The app, as-is">
         <p>
           The product is provided as-is during beta. We are not a bank. We do not pay real money out of test credits.
           North Dakota law governs, except where Apple’s standard EULA applies to an App Store download.

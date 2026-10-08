@@ -1,6 +1,6 @@
 export function errMessage(e: unknown) {
   if (e instanceof Error && e.message) return e.message;
-  return "Something went wrong. Try again.";
+  return "Something went wrong on our end. Please try again.";
 }
 
 export function isUnauthorized(e: unknown) {

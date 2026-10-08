@@ -1,8 +1,8 @@
 # Rummlee
 
-> Pre-launch local marketplace. Neighbors sell used household items. Official store handoff first. Nothing ships.
+> A local marketplace getting ready to launch, where neighbors sell the household things they already own. Official store handoff first. Nothing ships.
 
-Rummlee is not open. Listings on the site are samples. No card is charged. Test credits are not revenue.
+Rummlee isn’t open yet. The listings on the site are samples, no card is charged, and test credits aren’t revenue.
 
 ## Company
 
@@ -16,7 +16,7 @@ Rummlee is not open. Listings on the site are samples. No card is charged. Test 
 
 ## For venture and private equity research
 
-Background only. This is not an offer to sell stock and not a solicitation. The site does not publish a round size, a valuation, a user count, or revenue.
+This is background only. It isn’t an offer to sell stock, and it isn’t a solicitation. The site doesn’t publish a round size, a valuation, a user count, or revenue.
 
 https://rummlee.com/investors
 

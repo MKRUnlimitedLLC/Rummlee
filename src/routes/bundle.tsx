@@ -51,7 +51,7 @@ function BundlePage() {
     mutationFn: () => createBuyerBundle({ data: { listingIds: picked, amountCents: cents(offer) } }),
     onSuccess: (res) => {
       if (res.status === "declined") {
-        toast.error("Under the lowest. No deal. You can still pay asking on each item.");
+        toast.error("That’s under the seller’s lowest, so no deal. You can still pay asking on each item.");
         return;
       }
       toast.success("Offer sent on the bundle. One counter, then it’s done.");
@@ -105,8 +105,8 @@ function BundlePage() {
       <h1 className="font-display text-2xl font-semibold">Bundle</h1>
       <p className="text-sm text-muted">
         {data.mine
-          ? "Pick your items. Set one asking price and one hidden lowest price. They leave the browse page until you take the bundle down."
-          : `Pick live items from @${data.sellerHandle}. One offer on the total. One decline ends it. The lowest prices stay hidden.`}
+          ? "Pick your items, then set one asking price and one hidden lowest price. They’ll come off the browse page until you take the bundle down."
+          : `Pick live items from @${data.sellerHandle}. You get one offer on the total, and one decline ends it. The lowest prices stay hidden.`}
       </p>
       {data.mine ? <SellerExample /> : null}
       <ul className="space-y-2">
@@ -147,7 +147,7 @@ function BundlePage() {
           <div>
             <Label htmlFor="bundle-floor">Lowest you’ll take</Label>
             <Input id="bundle-floor" inputMode="decimal" value={floor} onChange={(event) => setFloor(event.target.value)} placeholder="Same as asking if you skip this" />
-            <p className="mt-1 text-sm text-muted">Hidden. Can be lower than the items added together.</p>
+            <p className="mt-1 text-sm text-muted">Nobody sees this. It can be lower than the items added together.</p>
           </div>
           <Button className="w-full" disabled={picked.length < 2 || sellerBundle.isPending} onClick={() => sellerBundle.mutate()}>
             {sellerBundle.isPending ? "Publishing…" : "Publish bundle"}
@@ -166,7 +166,7 @@ function BundlePage() {
             {pay.isPending ? "Holding…" : `Pay ${money(total)} asking`}
           </Button>
           <p className="text-sm text-muted">
-            Pay asking uses the official store when every item is boxed and the weights add up to 50 lb or less. Otherwise the bundle is in person only.
+            If every item is boxed and the total weight is 50 lb or less, the bundle goes through the official store. Otherwise it’s in person only.
           </p>
         </div>
       )}
@@ -181,7 +181,7 @@ function SellerExample() {
   return (
     <section className="space-y-3 rounded-2xl bg-primary-soft px-4 py-4 text-sm text-fg">
       <h2 className="font-display text-lg font-semibold">Example</h2>
-      <p>A lamp is listed at $40. A chair is listed at $100. Together that is $140. You can ask less for the pair.</p>
+      <p>Say a lamp is listed at $40 and a chair at $100. Together that’s $140, but you can ask less for the pair.</p>
       <ol className="list-decimal space-y-2 pl-5">
         <li>List each item on its own first, with a photo, an asking price, and a lowest price.</li>
         <li>Open either listing and tap Bundle items from this sale.</li>

@@ -216,7 +216,7 @@ function SessionDrift() {
   if (!other || !handle) return null;
   return (
     <p className="border-t border-border/60 bg-primary-soft px-4 py-2 text-center text-sm text-fg">
-      This browser is signed in as @{handle}, not @{other}. Sign out if that isn’t you. A listing publishes as whoever is signed in.
+      This browser is signed in as @{handle}, not @{other}. If that isn’t you, sign out. Listings publish under whoever is signed in.
     </p>
   );
 }

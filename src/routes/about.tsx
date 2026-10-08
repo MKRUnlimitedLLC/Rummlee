@@ -9,7 +9,7 @@ export const Route = createFileRoute("/about")({
       {
         name: "description",
         content:
-          "Pre-launch local marketplace from Fargo, North Dakota. Official store handoff first. Nothing ships. Handoff method patent pending.",
+          "A local marketplace from Fargo, North Dakota, getting ready to launch. Official store handoff first. Nothing ships. Handoff method patent pending.",
       },
     ],
   }),
@@ -22,28 +22,25 @@ function About() {
       <p className="text-sm font-medium text-primary-ink">Rummlee</p>
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">About</h1>
       <p className="mt-2 max-w-2xl text-pretty text-muted">
-        The good stuff, before Saturday. Neighbors sell what they already own. Official store handoff first. A
-        public place is the backup. Nothing ships.
+        The good stuff, before Saturday. Rummlee is where neighbors sell the stuff they already own. Handoffs happen at an official store first, with a public place as the backup. Nothing ships.
       </p>
       <div className="mt-8 max-w-2xl space-y-6 text-sm leading-relaxed text-fg">
         <PatentPending className="text-sm text-fg" />
         <LegalSection title="How a sale works">
           <p>
-            The seller sets an asking price. The buyer pays that price, or makes one offer. The seller may send one
-            counteroffer. A decline ends it.
+            The seller picks an asking price. You can pay it, or make one offer. The seller can send back one counteroffer. If either of you says no, that’s the end of it.
           </p>
           <p>
-            An official store handoff is first. A public place is the backup. A private handoff is optional, and only
-            after payment. A home address is not on the public card. People use a handle, not a legal name.
+            Handoffs happen at an official store first. A public place is the backup. Meeting person to person is optional, and only after you’ve paid. Your home address never goes on the public card, and everyone goes by a handle, not a legal name.
           </p>
         </LegalSection>
-        <LegalSection title="Where it stands">
+        <LegalSection title="Where things stand">
           <p>
-            Rummlee is not open. The listings are samples. No card is charged. No store has signed. A store can{" "}
+            Rummlee isn’t open yet. The listings you see are samples, and no card gets charged. No store has signed on so far. If you run a shop, you can{" "}
             <Link to="/handoff" className="font-medium text-primary-ink underline-offset-4 hover:underline">
               apply to be an official store
             </Link>
-            . An application is not a signed store.
+            . Applying doesn’t make it a signed store.
           </p>
         </LegalSection>
         <LegalSection title="Patent pending">

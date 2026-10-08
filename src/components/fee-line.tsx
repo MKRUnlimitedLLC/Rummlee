@@ -113,7 +113,7 @@ export function CheckoutPay({
         {quote.salesTaxCents > 0
           ? "On asking, at this handoff. Not a Rummlee fee."
           : taxRow?.enabled
-            ? "None on this beta listing. A rate will show here when tax applies — never mixed into fees."
+            ? "None on this beta listing. When tax applies, the rate shows here, separate from fees."
             : "Not charged on this handoff."}
       </p>
       <p className="flex justify-between font-display text-xl font-semibold tracking-[-0.03em] text-primary-ink">
@@ -121,7 +121,7 @@ export function CheckoutPay({
         <span className="tabular-nums">{money(quote.youPayCents)}</span>
       </p>
       <p className="text-sm font-medium text-primary-ink">{HOLD_LINE}</p>
-      <p className="text-sm text-muted">Cancel before pickup and the test hold comes back. Nothing is final until both of you confirm.</p>
+      <p className="text-sm text-muted">Cancel before pickup and you get the test hold back. Nothing’s final until you both confirm.</p>
       {TEST_MODE ? <p className="text-sm text-muted">{TEST_PAY_NOTE}</p> : null}
       <SplitHint youPayCents={quote.youPayCents} />
       <p className="text-sm text-muted">
@@ -139,7 +139,7 @@ function SplitHint({ youPayCents }: { youPayCents: number }) {
   return (
     <div className="text-sm">
       <button type="button" className="font-medium text-primary-ink" onClick={() => setOpen((v) => !v)}>
-        Estimate a split — you still pay the full amount here
+        Estimate a split (you still pay the full amount here)
       </button>
       {open ? (
         <p className="mt-1 text-muted">

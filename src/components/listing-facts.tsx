@@ -49,8 +49,7 @@ export function ListingFacts({
     <section className="mt-5 space-y-3 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
       <h2 className="font-display text-xl font-semibold">Filled in by neighbors</h2>
       <p className="text-sm text-muted">
-        A blank the seller left. Brand, size, material, era, a flaw, or what’s included. It stays off the listing until
-        the seller approves it. Approve is +2 Rep for the neighbor. Decline is −2. Not a payout.
+        Know something the seller left blank, like the brand, size, material, era, a flaw, or what’s included? Fill it in. It stays off the listing until the seller approves it. An approval is +2 Rep for you, and a decline is −2. Rep isn’t a payout.
       </p>
       {approved.length > 0 ? (
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
