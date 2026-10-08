@@ -95,16 +95,16 @@ const STORE_TYPE_SET = new Set<string>(STORE_TYPES.map((item) => item.value));
 
 export function waitlistSuccess(city: string | null): string {
   if (city)
-    return `You’re on the list — we’ll email product updates, when Rummlee officially launches, and when ${city} opens.`;
-  return "You’re on the list — we’ll email product updates and when Rummlee officially launches.";
+    return `You’re on the list! We’ll email you with updates, when Rummlee officially launches, and when ${city} opens.`;
+  return "You’re on the list! We’ll email you with updates and when Rummlee officially launches.";
 }
 
 export function ownershipSuccess(): string {
-  return "Thanks — we’ll read it. This is interest only. It is not an offer, an allocation, or a closing date.";
+  return "Thanks, we’ll read it. This only records your interest. It isn’t an offer, an allocation, or a closing date.";
 }
 
 export function handoffSuccess(city: string): string {
-  return `Thanks — we’ll be in touch about becoming an official store in ${city}.`;
+  return `Thanks! We’ll be in touch about becoming an official store in ${city}.`;
 }
 
 function collapse(raw: string | null | undefined) {

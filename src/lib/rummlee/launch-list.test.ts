@@ -76,7 +76,7 @@ test("waitlist success covers updates and launch, and names the city when one wa
   if (!withCity.ok) return;
   assert.equal(
     withCity.message,
-    "You’re on the list — we’ll email product updates, when Rummlee officially launches, and when Fargo opens.",
+    "You’re on the list! We’ll email you with updates, when Rummlee officially launches, and when Fargo opens.",
   );
   assert.equal(withCity.message, waitlistSuccess("Fargo"));
   assert.equal(withCity.record.path, "waitlist");
@@ -96,7 +96,7 @@ test("waitlist success covers updates and launch, and names the city when one wa
   if (!zipOnly.ok) return;
   assert.equal(
     zipOnly.message,
-    "You’re on the list — we’ll email product updates and when Rummlee officially launches.",
+    "You’re on the list! We’ll email you with updates and when Rummlee officially launches.",
   );
   assert.equal(zipOnly.record.city, null);
   assert.equal(zipOnly.record.zip, "58102-1234");
@@ -115,7 +115,7 @@ test("handoff requires the shop fields and an email or a phone", () => {
   if (!phoneOnly.ok) return;
   assert.equal(
     phoneOnly.message,
-    "Thanks — we’ll be in touch about becoming an official store in Fargo.",
+    "Thanks! We’ll be in touch about becoming an official store in Fargo.",
   );
   assert.equal(phoneOnly.message, handoffSuccess("Fargo"));
   assert.equal(phoneOnly.record.path, "handoff_location");
@@ -246,7 +246,7 @@ test("ownership interest is a separate path and does not require a phone or addr
   assert.equal(parsed.message, ownershipSuccess());
   assert.equal(
     parsed.message,
-    "Thanks — we’ll read it. This is interest only. It is not an offer, an allocation, or a closing date.",
+    "Thanks, we’ll read it. This only records your interest. It isn’t an offer, an allocation, or a closing date.",
   );
   assert.equal(parsed.record.path, "ownership_interest");
   assert.notEqual(parsed.record.path, "handoff_location");

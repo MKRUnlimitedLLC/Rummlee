@@ -44,7 +44,7 @@ function Home() {
     setPlaceQuery("");
     if (!city) {
       setNearCity(null);
-      setLocNote("No samples near you. Search a city or neighborhood.");
+      setLocNote("We don’t have samples near you. Try searching a city or neighborhood.");
       rememberCity("all");
       return;
     }
@@ -55,7 +55,7 @@ function Home() {
   const locate = (silent: boolean) => {
     const gen = ++locateGen.current;
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      if (!silent) setLocNote("This browser can’t share a location. Search a city or neighborhood.");
+      if (!silent) setLocNote("This browser can’t share your location. Try searching a city or neighborhood instead.");
       return;
     }
     setLocating(true);
@@ -65,7 +65,7 @@ function Home() {
       () => {
         if (gen !== locateGen.current) return;
         setLocating(false);
-        if (!silent) setLocNote("Location is off. Search a city or neighborhood.");
+        if (!silent) setLocNote("Location’s turned off. Try searching a city or neighborhood instead.");
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300_000 },
     );
@@ -155,7 +155,7 @@ function Home() {
     return (
       <main className="py-16 text-center">
         <p className="font-display text-2xl font-semibold tracking-[-0.03em]">The good stuff, before Saturday.</p>
-        <p className="mt-2 text-sm text-muted">Listings are loading.</p>
+        <p className="mt-2 text-sm text-muted">Loading listings…</p>
       </main>
     );
   }
@@ -241,7 +241,7 @@ function Home() {
         <div className="mb-3 flex items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Sample listings</h2>
-            <p className="text-sm text-muted">Not for sale. Nothing is live until an official store is open.</p>
+            <p className="text-sm text-muted">Just samples for now. Nothing’s for sale until an official store opens.</p>
           </div>
           <Link to="/sales" className="shrink-0 text-sm font-medium text-primary-ink">
             All sales
@@ -250,7 +250,7 @@ function Home() {
         {listings.length === 0 ? (
           <div className="rounded-2xl bg-surface px-4 py-10 text-center shadow-[var(--shadow-card)]">
             <p className="text-muted">
-              {placeQuery.trim() || nearCity ? "No samples there." : "Nothing matched those filters."}
+              {placeQuery.trim() || nearCity ? "No samples there." : "Nothing matches those filters. Try turning one off."}
             </p>
             {placeQuery.trim() || nearCity ? (
               <button type="button" className="mt-3 text-sm font-medium text-primary-ink" onClick={showAllSamples}>
@@ -287,8 +287,7 @@ function GuestHero() {
       </div>
       <div className="space-y-4 p-5">
         <p className="text-pretty text-muted">
-          Rummlee isn’t open yet. Sign up to be first to know about updates and the launch. Official store handoff
-          first, not a stranger’s house. Nothing ships.
+          Rummlee isn’t open yet. Sign up and you’ll be the first to hear when it launches. You’ll hand things off at an official store first, not at a stranger’s house. Nothing ships.
         </p>
         <p className="text-sm">
           <Link to="/films" className="font-medium text-primary-ink underline-offset-4 hover:underline">
@@ -297,9 +296,9 @@ function GuestHero() {
         </p>
         <PatentPending className="text-sm text-muted" />
         <div className="grid gap-3 sm:grid-cols-3">
-          <Perk icon={CalendarDays} title="First to know" body="Updates and the launch. One email. We don’t sell the address." />
-          <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors see a handle. Email, legal name, and home stay off the listing." />
-          <Perk icon={Store} title="Official store handoff" body="A store holds the package. A public place is the backup. Private handoff only if you both want it." />
+          <Perk icon={CalendarDays} title="First to know" body="We’ll email you news and tell you when we launch. We don’t sell your email." />
+          <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors only see your handle. Your email, legal name, and home stay off the listing." />
+          <Perk icon={Store} title="Official store handoff" body="A store holds the package for you. A public place is the backup. Person to person only if you both want it." />
         </div>
         <p className="text-center text-xs text-subtle">
           <Link to="/privacy" className="underline-offset-4 hover:underline">
@@ -342,9 +341,9 @@ function SignedHero() {
         <CalendarDays className="size-4" strokeWidth={1.8} />
         Samples only
       </p>
-      <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">Nothing is for sale yet</h1>
+      <h1 className="mt-1 font-display text-2xl font-semibold tracking-[-0.03em]">Nothing’s for sale yet</h1>
       <p className="mt-1 text-sm font-medium text-primary-ink">Patent pending</p>
-      <p className="mt-1 text-sm text-muted">These listings are samples. Official store handoff first. Nothing ships.</p>
+      <p className="mt-1 text-sm text-muted">These listings are just samples for now. Official store handoff first. Nothing ships.</p>
       <p className="mt-3 inline-flex rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-primary-ink">
         {HOLD_LINE}
       </p>
@@ -362,9 +361,9 @@ function LaunchChoices() {
   return (
     <section id="waitlist" className="mt-6 grid scroll-mt-24 gap-4 sm:grid-cols-2">
       <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)]">
-        <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">When real items launch</h2>
+        <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Hear when real items launch</h2>
         <p className="mt-1 text-sm text-muted">
-          Leave an email. We’ll write when a city opens for real listings. Nothing is for sale yet. We don’t sell the address.
+          Nothing’s for sale yet, but leave your email and we’ll tell you when your city opens for real listings. We won’t sell it.
         </p>
         {joined ? (
           <p className="mt-3 rounded-2xl bg-primary-soft px-4 py-3 text-sm text-primary-ink">{joined}</p>
@@ -375,7 +374,7 @@ function LaunchChoices() {
       <div className="flex flex-col rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Be an official store</h2>
         <p className="mt-1 text-sm text-muted">
-          A shop that can hold a paid item for pickup. The application is a short form. Asking is free. It is not a signed store.
+          Run a shop that could hold a paid item until the buyer picks it up? The form is short and it’s free to ask. Applying isn’t the same as signing on.
         </p>
         <Link
           to="/handoff"
@@ -414,7 +413,7 @@ function HandoffStrip({
         <div>
           <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Official stores</h2>
           {allSamples ? (
-            <p className="text-sm text-muted">Sample names. No store has signed.</p>
+            <p className="text-sm text-muted">These are sample names. No store has signed on.</p>
           ) : null}
         </div>
         <Link to="/sales" className="text-sm font-medium text-primary-ink">
@@ -483,7 +482,7 @@ function PlaceFinder({
   const showSuggestions = open && suggestions.length > 0 && !exact;
   let status: string | null = null;
   if (locating) status = "Checking what’s near you…";
-  else if (place.length >= 2 && suggestions.length === 0) status = "No sample place matches that.";
+  else if (place.length >= 2 && suggestions.length === 0) status = "We don’t have a sample place by that name.";
   else if (!place && nearCity) status = `Near you · ${nearCity}. Samples only.`;
   else if (!place && note) status = note;
   else if (!place) status = "Search a city or neighborhood, or use your location.";

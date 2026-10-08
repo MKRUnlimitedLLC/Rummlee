@@ -38,7 +38,7 @@ function PickupPage() {
       toast.success(
         res.done
           ? "Handoff recorded. The seller is paid in 48 hours if there’s no problem. Test credits, not real money."
-          : "You’re marked. Waiting on the other person.",
+          : "You’re all set. Now we’re just waiting on the other person.",
       );
     },
     onError: (e) => toast.error(errMessage(e)),
@@ -59,7 +59,7 @@ function PickupPage() {
     onSuccess: () => {
       setProblem("");
       void qc.invalidateQueries({ queryKey: ["order", id] });
-      toast.success("Problem reported. The seller is not paid until support decides.");
+      toast.success("Got it. The seller won’t be paid until support looks into it and decides.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -84,7 +84,7 @@ function PickupPage() {
   return (
     <main className="mx-auto max-w-md py-8 text-center">
       <p className="text-sm font-medium uppercase tracking-wider text-primary-ink">
-        {cancelled ? "Closed" : done ? "Picked up" : "Held in escrow"}
+        {cancelled ? "Closed" : done ? "Picked up" : "Money on hold"}
       </p>
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">{order.listingTitle}</h1>
       <p className="mt-2 text-muted">
@@ -103,8 +103,8 @@ function PickupPage() {
             <PartyCode value={order.myScan} />
             <p className="mt-4 text-sm text-muted">
               {iAmBuyer
-                ? "Your buyer code. The counter scans it and shows a package number. Not your name."
-                : "Your seller code. The counter scans it and assigns a package number. Not your name."}
+                ? "This is your buyer code. The counter scans it and sees a package number, not your name."
+                : "This is your seller code. The counter scans it and gives it a package number, not your name."}
             </p>
           </>
         ) : (
@@ -120,7 +120,7 @@ function PickupPage() {
       {cancelled && !order.canLeave ? (
         <p className="mt-6 text-sm text-muted">
           {order.disposition === "abandoned"
-            ? "You left this. Rummlee can resell it in Fargo. Your handle is not on the new listing. You are not paid."
+            ? "You left this one. Rummlee can resell it in Fargo without your handle on it. You won’t be paid."
             : order.disposition === "pickup"
               ? "Hold for pickup. It’s still yours. Show your seller code at the official store."
               : "This handoff was cancelled. The buyer was refunded."}
@@ -131,12 +131,12 @@ function PickupPage() {
         <div className="mt-6 space-y-4">
           <p className="text-sm text-success">
             {order.disputeStatus === "open"
-              ? "You reported a problem. The seller is not paid until support decides."
+              ? "You reported a problem. The seller won’t be paid until support decides."
               : order.disputeStatus === "refunded"
                 ? "Support refunded this handoff. The seller was not paid."
                 : order.paidOutAt
                   ? "The 48-hour window passed. The seller has been paid in test credits."
-                  : "Handoff is done. The seller is paid 48 hours after this, unless the buyer reports a problem."}
+                  : "Handoff’s done. The seller gets paid 48 hours from now, unless the buyer reports a problem."}
           </p>
           {iAmBuyer && !order.paidOutAt && order.disputeStatus !== "open" && order.disputeStatus !== "refunded" ? (
             <form

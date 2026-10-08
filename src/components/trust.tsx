@@ -17,7 +17,7 @@ export function VerifiedBadge({ verified, className }: { verified?: boolean; cla
         "inline-flex items-center gap-0.5 text-sm font-medium text-primary-ink",
         className,
       )}
-      title="ID Verified. This is on their account. Rummlee does not keep a photo of their ID."
+      title="ID Verified. This is on their account. Rummlee doesn’t keep a photo of their ID."
     >
       <BadgeCheck className="size-4" strokeWidth={1.75} />
       ID Verified
@@ -90,8 +90,7 @@ export function RateHandoff({
     >
       <p className="font-medium">Rate @{otherHandle}</p>
       <p className="text-sm text-muted">
-        Thumbs up or down on each. Not stars. Comment is private — they never see it. A thumbs down can be
-        challenged.
+        Thumbs up or down on each one, not stars. Your comment is private, so they never see it. A thumbs down can be challenged.
       </p>
       {criteria.map((c) => (
         <div key={c.key}>

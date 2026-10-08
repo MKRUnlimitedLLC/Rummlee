@@ -23,7 +23,7 @@ function RecordsPage() {
   const send = useMutation({
     mutationFn: () => openCase({ data: { subject, body } }),
     onSuccess: () => {
-      toast.success("Support has it.");
+      toast.success("Sent. Support has it.");
       setSubject("");
       setBody("");
       void qc.invalidateQueries({ queryKey: ["statement"] });
@@ -47,7 +47,7 @@ function RecordsPage() {
       </section>
       <section className="mt-6 max-w-lg rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display text-xl">Ask support</h2>
-        <p className="mt-1 text-sm text-muted">A missing pickup, a fee, or a tax line. We answer on the corporate desk.</p>
+        <p className="mt-1 text-sm text-muted">Something off with a pickup, a fee, or a tax line? Tell us here and support will answer.</p>
         <form
           className="mt-3 space-y-3"
           onSubmit={(e) => {

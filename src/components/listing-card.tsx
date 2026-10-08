@@ -83,18 +83,18 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
           <p className="text-base font-medium text-fg">{listing.sizeLabel}</p>
         ) : null}
         <p className={cn("font-semibold tracking-[-0.03em] text-primary-ink", shown == null ? "text-base" : "font-display text-2xl")}>
-          {shown == null ? "Price when the sale starts" : money(shown)}
+          {shown == null ? "Price shows when the sale starts" : money(shown)}
         </p>
         {listing.overtimeCents && !listing.priceHidden ? <p className="text-base text-muted">Get rid of it · was {money(listing.priceCents)}</p> : null}
         {listing.sellerId.startsWith("seed-") ? (
           <p className="text-base font-medium text-primary-ink">
-            Sample. Not a real item.{sampleStore ? " Not a signed store." : ""}
+            Sample, not a real item.{sampleStore ? " Not a signed store." : ""}
           </p>
         ) : sampleStore ? (
           <p className="text-base font-medium text-primary-ink">Sample store. Not signed.</p>
         ) : null}
         {listing.status === "held" ? (
-          <p className="text-base font-medium text-fg">Held by someone else. Pick another.</p>
+          <p className="text-base font-medium text-fg">Someone else is holding this one. Try another.</p>
         ) : null}
         {feeHint ? (
           <p className="text-base text-muted">About {money(youPay)} with fee</p>

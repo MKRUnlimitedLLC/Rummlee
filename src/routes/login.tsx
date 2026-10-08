@@ -23,12 +23,12 @@ function Login() {
     try {
       if (mode === "up") {
         const res = await authClient.signUp.email({ email, password, name: "Neighbor" });
-        if (res.error) throw new Error(res.error.message ?? "Could not create account");
+        if (res.error) throw new Error(res.error.message ?? "We couldn’t create your account. Try again.");
         window.location.assign("/welcome");
         return;
       } else {
         const res = await authClient.signIn.email({ email, password });
-        if (res.error) throw new Error(res.error.message ?? "Could not sign in");
+        if (res.error) throw new Error(res.error.message ?? "We couldn’t sign you in. Check your email and password.");
         const me = await getMe().catch(() => null);
         if (!me?.me.profileComplete) {
           window.location.assign("/welcome");
@@ -45,10 +45,9 @@ function Login() {
   return (
     <main className="mx-auto max-w-sm py-10">
       <Wordmark className="mb-8 justify-center" />
-      <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Sign in or create account</h1>
+      <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Sign in or create an account</h1>
       <p className="mt-2 text-pretty text-muted">
-        Browse free. Sign in to offer, list, or pay. You deal as a handle. Meet at an official store handoff — never a home
-        address.
+        Browsing is free. Sign in when you want to make an offer, list something, or pay. You’ll go by a handle, and handoffs start at an official store, never at a home address.
       </p>
 
       <div className="mt-8 space-y-2">
@@ -65,7 +64,7 @@ function Login() {
             </Button>
           ))
         ) : (
-          <p className="text-sm text-muted">Sign-in is disabled.</p>
+          <p className="text-sm text-muted">Sign-in is turned off right now.</p>
         )}
       </div>
 
@@ -93,7 +92,7 @@ function Login() {
           />
         </div>
         <Button type="submit" className="w-full" disabled={busy}>
-          {busy ? "Working…" : mode === "up" ? "Create account" : "Sign in with email"}
+          {busy ? "One sec…" : mode === "up" ? "Create account" : "Sign in with email"}
         </Button>
       </form>
 

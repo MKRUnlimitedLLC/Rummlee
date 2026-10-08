@@ -53,9 +53,9 @@ function YouPage() {
       toast.success(
         res.isPremium
           ? res.plusPlan === "year"
-            ? `${name} on for a year. Buyer fee is $0. The seller fee stays.`
-            : `${name} on for a month. Buyer fee is $0. The seller fee stays.`
-          : "Subscription off. Buyer fee is 5% again. The seller fee stays.",
+            ? `${name} is on for a year. Your buyer fee is $0. The seller fee still applies.`
+            : `${name} is on for a month. Your buyer fee is $0. The seller fee still applies.`
+          : "Subscription’s off. Your buyer fee is back to 5%. The seller fee still applies.",
       );
     },
     onError: (e) => toast.error(errMessage(e)),
@@ -147,7 +147,7 @@ function YouPage() {
       void qc.invalidateQueries({ queryKey: ["me"] });
       setChallengeId(null);
       setChallengeNote("");
-      toast.success("Challenge in. Neighbors won’t see that thumbs down while we look. They never see the comment.");
+      toast.success("Got your challenge. Neighbors won’t see that thumbs down while we look into it, and they never see the comment.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -169,7 +169,7 @@ function YouPage() {
       link.download = res.filename;
       link.click();
       URL.revokeObjectURL(link.href);
-      toast.success("Download started. Other people are handles only.");
+      toast.success("Your download started. Everyone else shows up as a handle only.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -187,12 +187,12 @@ function YouPage() {
     return (
       <GuestGate
         title="You"
-        body="Your handle, wallet, and neighborhood live here. Neighbors see the handle — never your real name."
+        body="Your handle, wallet, and neighborhood live here. Neighbors only see your handle, never your real name."
       >
         <ul className="mt-6 space-y-2 text-sm text-muted">
           <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">A handle, not your name</li>
           <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
-            Wallet — test credits until both confirm
+            Wallet: test credits, held until you both confirm
           </li>
           <li className="rounded-2xl bg-surface px-4 py-3 shadow-[var(--shadow-card)]">
             <Link to="/fees" className="font-medium text-primary-ink">
@@ -265,7 +265,7 @@ function YouPage() {
 
       <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <p className="font-medium">Text size</p>
-        <p className="mt-1 text-sm text-muted">Larger text stays on this phone. It does not change your account.</p>
+        <p className="mt-1 text-sm text-muted">Larger text is saved on this phone only. It doesn’t change your account.</p>
         <div className="mt-3">
           <ReadingChoice />
         </div>
@@ -290,16 +290,7 @@ function YouPage() {
         <div className="mt-4 rounded-xl bg-bg px-3 py-3">
           <p className="font-medium">Membership</p>
           <p className="mt-1 text-sm text-muted">
-            Standard seller fee is $3.99 or 12%, whichever is more. Plus is $1.99 or 8.5%. +++ is $3.99 or 6%. The buyer
-            fee is 5%, or $0 with Plus and +++. The seller fee is not waived, and it does not change for an official
-            store, a public place, or in person. Plus includes 5 sale days a month. +++ sale days are free, with 5
-            researcher requests, Reveal 5 times a month, and no item cap. Extra researches are $7.99. Unused researches
-            and Reveals don’t roll over. Extra Plus sale days are $2.99. A single sale still runs at most 14 days.
-            Before a sale closes you can add days. Feature one item for $1.99, or the whole sale for $4.99, until it
-            ends. If test credits don’t cover a sale day or a feature, the rest comes out of your next payout.
-            Plus and +++ can turn on alerts for new items and in-person sales. Nothing is sent until you pick a filter.
-            After a sale ends, the seller can set a get-rid-of-it price. +++ gets one more offer on that unsold item.
-            +++ can also see items being prepared, before the sale starts. The price stays hidden until the sale is on. Anyone with an account can favorite an item.
+            On Standard, the seller fee is $3.99 or 12%, whichever is more. On Plus it’s $1.99 or 8.5%, and on +++ it’s $3.99 or 6%. The buyer fee is 5%, or $0 with Plus and +++. The seller fee isn’t waived, and it’s the same for an official store, a public place, or in person. Plus includes 5 sale days a month. On +++, sale days are free, and you get 5 researcher requests, 5 Reveals a month, and no item cap. Extra researches are $7.99. Unused researches and Reveals don’t roll over. Extra Plus sale days are $2.99. A single sale can still run up to 14 days, and you can add days before it closes. Feature one item for $1.99, or the whole sale for $4.99, until it ends. If your test credits don’t cover a sale day or a feature, the rest comes out of your next payout. Plus and +++ members can turn on alerts for new items and in-person sales. We won’t send anything until you pick a filter. After a sale ends, the seller can set a get-rid-of-it price, and +++ members get one more offer on that unsold item. +++ members can also see items being prepared before a sale starts, with the price hidden until it’s on. Anyone with an account can favorite an item.
           </p>
           {me?.isPremium ? (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -340,9 +331,7 @@ function YouPage() {
       <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <p className="font-medium">ID Verified</p>
         <p className="mt-1 text-sm text-muted">
-          A badge on this account. Stripe Identity checks that the legal name matches the ID. Rummlee does not keep
-          the photo. Free with Plus, or a one-time fee if you are not on Plus. Off during beta. Capped at 50 successful
-          checks until we turn it up. One live account per ID. A new account does not clear thumbs.
+          A badge for this account. Stripe Identity checks that your legal name matches your ID, and Rummlee doesn’t keep the photo. It’s free with Plus, or a one-time fee if you’re not on Plus. It’s off during beta, and capped at 50 successful checks until we raise that. One live account per ID, and a new account doesn’t clear your thumbs.
         </p>
         {me?.verified ? (
           <p className="mt-3 text-sm text-fg">
@@ -357,7 +346,7 @@ function YouPage() {
                 : `Verify ID · ${formatFeeValue(feeById(DEFAULT_FEES, "id_verify") ?? DEFAULT_FEES[0])}`}
           </Button>
         ) : (
-          <p className="mt-3 text-sm text-fg">ID checks are off during beta. No badge until we turn this on.</p>
+          <p className="mt-3 text-sm text-fg">ID checks are off during beta, so there’s no badge until we turn them on.</p>
         )}
       </section>
 
@@ -374,8 +363,7 @@ function YouPage() {
         <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
           <h2 className="font-display text-xl">Thumbs down on you</h2>
           <p className="mt-1 text-sm text-muted">
-            You see that it happened. You never see their comment. Challenge it if it wasn’t fair — we’ll hide it from
-            neighbors while we look.
+            You can see that it happened, but never their comment. If it wasn’t fair, challenge it, and we’ll hide it from neighbors while we look into it.
           </p>
           <ul className="mt-3 space-y-3">
             {q.data.receivedDowns.map((d) => (
@@ -431,7 +419,7 @@ function YouPage() {
 
       <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <p className="font-medium">City and neighborhood</p>
-        <p className="mt-1 text-sm text-muted">Neighbors can see the neighborhood. Never a street.</p>
+        <p className="mt-1 text-sm text-muted">Neighbors can see your neighborhood, never your street.</p>
         <div className="mt-3 space-y-3">
           <div>
             <Label htmlFor="city">City</Label>
@@ -470,7 +458,7 @@ function YouPage() {
           </div>
         </div>
         <p className="mt-4 font-medium">Private</p>
-        <p className="mt-1 text-sm text-muted">Legal name and phone stay on this account. They are not on listings.</p>
+        <p className="mt-1 text-sm text-muted">Your legal name and phone stay on your account. They’re never on listings.</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <div>
             <Label htmlFor="first">Legal first name</Label>
@@ -581,8 +569,7 @@ function YouPage() {
       <section className="mt-10 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display text-xl">Account</h2>
         <p className="mt-2 text-sm text-muted">
-          Closing the account hides your handle and takes live listings down. Orders, fees, and tax records stay. Test
-          credits are not paid out. Thumbs stay with your ID. Email support@rummlee.com if you need the login back.
+          Closing your account hides your handle and takes your live listings down. Orders, fees, and tax records stay on file. Test credits aren’t paid out, and thumbs stay with your ID. If you need the login back, email support@rummlee.com.
         </p>
         <Button
           variant="secondary"
@@ -594,8 +581,7 @@ function YouPage() {
           {downloadMine.isPending ? "Preparing…" : "Download my data"}
         </Button>
         <p className="mt-2 text-sm text-muted">
-          A JSON file of your account, listings, offers, messages, and orders. Other neighbors are handles. No one
-          else’s email is in the file.
+          You’ll get a JSON file of your account, listings, offers, messages, and orders. Other neighbors show up as handles only, and nobody else’s email is in it.
         </p>
         {confirmDelete ? (
           <div className="mt-4 flex flex-wrap gap-2">
@@ -672,10 +658,10 @@ function SellerInventory({
     <section className="mt-8">
       <h2 className="font-display text-xl">Your inventory</h2>
       <p className="mt-1 text-sm text-muted">
-        When a sale ends, items nobody bought move here. Put one on your next sale, or remove it.
+        When a sale ends, anything that didn’t sell lands here. Put it on your next sale, or remove it.
       </p>
       {items.length === 0 ? (
-        <p className="mt-2 text-sm text-muted">Nothing waiting. Items still on a sale stay with that sale.</p>
+        <p className="mt-2 text-sm text-muted">Nothing here right now. Items still on a sale stay with that sale.</p>
       ) : (
         <ul className="mt-3 space-y-3">
           {items.map((item) => (
@@ -734,18 +720,16 @@ function How() {
       <h2 className="font-display text-xl font-semibold text-primary-ink">Why Rummlee</h2>
       <ul className="mt-3 space-y-3 text-sm text-fg">
         <li>
-          <strong>Offers before Saturday.</strong> Neighbors browse while you’re still editing the closet.
+          <strong>Offers before Saturday.</strong> Neighbors can browse while you’re still sorting the closet.
         </li>
         <li>
-          <strong>Privacy first.</strong> You deal as a handle. Real name, email, and home address never go on a
-          listing.
+          <strong>Privacy first.</strong> You go by a handle. Your real name, email, and home address never go on a listing.
         </li>
         <li>
-          <strong>Handoffs.</strong> Official store first, public place as backup, or person to person — the seller chooses which
-          to offer. Scan to confirm. The seller is paid after both of you do.
+          <strong>Handoffs.</strong> Official store first, public place as backup, or person to person. The seller picks which to offer. You both scan to confirm, and the seller gets paid after you do.
         </li>
         <li>
-          <strong>Address after you pay.</strong> Until then, a rough distance. Official store first, public place as backup, or person-to-person handoff. Nothing ships.
+          <strong>Address after you pay.</strong> Until then, you just see a rough distance. Nothing ships.
         </li>
       </ul>
     </section>

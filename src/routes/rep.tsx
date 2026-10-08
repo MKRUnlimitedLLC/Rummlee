@@ -29,10 +29,7 @@ function RepPage() {
       <p className="text-sm font-medium text-primary-ink">Rummlee Rep</p>
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Scoreboard</h1>
       <p className="mt-2 max-w-xl text-muted">
-        Everyone starts at 100. A finished buy or sale is +1 each. A seller gets +2 when the buyer says the item was
-        as listed, and +5 once for five official drop-offs with none refused. A neighbor gets +3 when others agree a
-        description is off, and −4 when they don’t. Filling a blank the seller left is +2 if the seller approves it,
-        and −2 if they decline it. The weekly board is this week’s points. It is not a cash contest. Handles only.
+        Everyone starts at 100. Each finished buy or sale is +1. Sellers get +2 when the buyer says the item was as listed, and a one-time +5 for five official store drop-offs with none refused. You get +3 when other neighbors agree a description is off, and −4 when they don’t. Filling in a blank the seller left is +2 if they approve it and −2 if they decline. The weekly board shows this week’s points. It isn’t a cash contest, and it’s handles only.
       </p>
       <section className="mt-6">
         <h2 className="font-display text-xl">Highest Rep</h2>
@@ -56,7 +53,7 @@ function RepPage() {
       </section>
       <section className="mt-8">
         <h2 className="font-display text-xl">This week</h2>
-        <p className="mt-1 text-sm text-muted">Points since seven days ago. The board is the reward.</p>
+        <p className="mt-1 text-sm text-muted">Points from the last seven days. A spot on the board is the only prize.</p>
         {week.length === 0 ? <p className="mt-3 text-sm text-muted">No points this week yet.</p> : null}
         <ul className="mt-3 space-y-2">
           {week.map((row, index) => (
@@ -98,7 +95,7 @@ function RepPage() {
         <Link to="/you" className="font-medium text-primary-ink">
           Your Rep
         </Link>{" "}
-        is on You. Points are not money.
+        is on You. Points aren’t money.
       </p>
     </main>
   );

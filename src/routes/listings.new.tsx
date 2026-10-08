@@ -160,10 +160,10 @@ function NewListingPage() {
   const publish = useMutation({
     mutationFn: async () => {
       if (!user?.id || meQ.data?.me?.id !== user.id) {
-        throw new Error("Sign in again, then publish. The listing has to be yours.");
+        throw new Error("Sign in again, then publish. The listing has to be under your account.");
       }
       const ready = draft.lines.filter((line) => line.title.trim() && line.photoUrl && dollarsToCents(line.price) >= MIN_PRICE_CENTS);
-      if (!ready.length && bringIds.length === 0) throw new Error("Each item needs a photo of that item and an asking price of at least $5.");
+      if (!ready.length && bringIds.length === 0) throw new Error("Each item needs its own photo and an asking price of at least $5.");
       if (ready.some((line) => line.photoUrl.startsWith("/listings/"))) {
         throw new Error("Use your own photo. Sample listing pictures can’t be reused.");
       }
@@ -260,7 +260,7 @@ function NewListingPage() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["me"] });
       setPublishNote(null);
-      toast.success("Test credits added. Not real money. You can publish now.");
+      toast.success("Test credits added (not real money). You can publish now.");
     },
     onError: (error) => {
       const message = errMessage(error);
@@ -338,7 +338,7 @@ function NewListingPage() {
     <main className="mx-auto max-w-lg py-6">
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">List it</h1>
       <p className="mt-1 text-muted">
-        Three short screens. Photo and asking first. Sale dates and handoffs next. Details last.
+        Three quick screens: photo and price first, then sale dates and handoffs, then the details.
       </p>
       <p className="mt-2 text-sm text-muted">
         <Link to="/sell" className="font-medium text-primary-ink">
@@ -431,7 +431,7 @@ function NewListingPage() {
         <div className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
           <Label htmlFor="paste">Paste a list</Label>
           <p className="mt-1 text-sm text-muted">
-            One item per line. Price at the end. Clothing: title · size · price. Up to {meQ.data?.me.plusTier === "trio" ? "no cap on +++" : PASTE_CAP}.
+            One item per line, with the price at the end. For clothing: title · size · price. Up to {meQ.data?.me.plusTier === "trio" ? "no cap on +++" : PASTE_CAP}.
           </p>
           <Textarea
             id="paste"
@@ -449,7 +449,7 @@ function NewListingPage() {
         <div className={cn(step === 2 ? "space-y-4" : "hidden")}>
         {draft.saleId ? (
           <p className="rounded-xl bg-primary-soft px-3 py-2 text-sm text-fg">
-            Adding to your current sale. Dates and sale-day fees already apply.
+            You’re adding to your current sale, so its dates and sale-day fees already apply.
           </p>
         ) : (
           <SaleDates
@@ -512,7 +512,7 @@ function NewListingPage() {
               </optgroup>
             ) : null}
           </select>
-          <p className="mt-1 text-sm text-muted">Official store is the default. Add public place or in person if you want. Never a home address.</p>
+          <p className="mt-1 text-sm text-muted">Official store is the default. Add a public place or in person if you want. Never a home address.</p>
         </div>
 
         <ModePicks
@@ -527,7 +527,7 @@ function NewListingPage() {
         {step === 1 && (meQ.data?.inventory.length ?? 0) > 0 ? (
           <fieldset className="space-y-2 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
             <legend className="px-1 text-sm font-medium">From your inventory</legend>
-            <p className="text-sm text-muted">Items nobody bought. Check the ones to put on this sale.</p>
+            <p className="text-sm text-muted">These are items that didn’t sell. Check the ones you want on this sale.</p>
             <ul className="space-y-2">
               {meQ.data?.inventory.map((item) => (
                 <li key={item.id}>
@@ -573,8 +573,7 @@ function NewListingPage() {
               </Button>
             ) : (
               <p className="text-sm text-muted">
-                Fill from this photo is $0.99 on every tier. It suggests the title, category, condition, and haul. You
-                still set the price and the weight. Off during beta.
+                Fill from this photo costs $0.99 on every plan. It suggests a title, category, condition, and haul. You still set the price and the weight. It’s off during beta.
               </p>
             )}
             <p className="text-sm text-muted">
@@ -637,7 +636,7 @@ function NewListingPage() {
                 ))}
               </div>
               <p className="mt-1 text-sm text-muted">
-                Prefer an outer box when it fits. As-is is for something a box would not help. Buyers rate this at the handoff.
+                Use an outer box when it fits. As-is is for things a box wouldn’t help. Buyers rate the packing at the handoff.
               </p>
             </div>
             <div>
@@ -658,7 +657,7 @@ function NewListingPage() {
                   In person only. An official store can’t take this. You meet as handles. Nothing ships.
                 </p>
               ) : (
-                <p className="mt-1 text-sm text-muted">Over 50 lb, not in a box, or needs a truck stays off the official store counter.</p>
+                <p className="mt-1 text-sm text-muted">Anything over 50 lb, not in a box, or needing a truck can’t go to the official store counter.</p>
               )}
             </div>
             </div>
@@ -672,7 +671,7 @@ function NewListingPage() {
                 onChange={(event) => updateLine(line.id, { floor: event.target.value })}
                 placeholder="Same as asking if you skip this"
               />
-              <p className="mt-1 text-sm text-muted">Hidden. Offers below this are a no. One decline from either of you ends the offer.</p>
+              <p className="mt-1 text-sm text-muted">This stays hidden. Offers below it are an automatic no. One decline from either of you ends the offer.</p>
             </div>
             </div>
             <div className={cn(step === 3 ? "space-y-3" : "hidden")}>
@@ -684,7 +683,7 @@ function NewListingPage() {
                 </p>
               </div>
             ) : (
-              <p className="text-sm text-muted">Add a photo of this item on screen 1 before you publish.</p>
+              <p className="text-sm text-muted">Go back to screen 1 and add a photo of this item before you publish.</p>
             )}
             <div>
               <Label htmlFor={`desc-${line.id}`}>Note</Label>
@@ -822,14 +821,14 @@ function NewListingPage() {
             Fees
           </Link>
           {" "}
-          only show here if you charge to list, and at checkout.
+          only show up here if listing costs something, and again at checkout.
         </p>
       </form>
 
       {saved && !user ? (
         <div className="mt-4 rounded-[24px] bg-primary-soft p-5">
           <p className="font-medium">Draft saved on this device.</p>
-          <p className="mt-1 text-sm text-muted">Draft on this device — sign in to publish.</p>
+          <p className="mt-1 text-sm text-muted">It’s saved on this device. Sign in to publish it.</p>
           <Button asChild className="mt-4 w-full">
             <Link to="/login">Sign in to publish</Link>
           </Button>
@@ -906,7 +905,7 @@ function SaleDates({
       </p>
       <div>
         <p className="text-sm font-medium">Online window</p>
-        <p className="mt-1 text-sm text-muted">Offers and pay-asking stay open these days. Default is Tuesday through Thursday.</p>
+        <p className="mt-1 text-sm text-muted">Offers and pay-asking are open on these days. It starts out as Tuesday through Thursday.</p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <DowSelect id="online-start" label="Online from" value={draft.onlineStartDow} onChange={(onlineStartDow) => onChange({ onlineStartDow })} />
           <DowSelect id="online-end" label="Online through" value={draft.onlineEndDow} onChange={(onlineEndDow) => onChange({ onlineEndDow })} />
@@ -924,7 +923,7 @@ function SaleDates({
           {draft.liveOn ? "Live in-person hours on" : "Add live in-person hours"}
         </button>
         <p className="mt-1 text-sm text-muted">
-          Optional. Neighbors see the days and hours, plus a rough distance. The address shows after they pay.
+          Optional. Neighbors see the days and hours plus a rough distance, and the address only after they pay.
         </p>
       </div>
       {draft.liveOn ? (
@@ -944,7 +943,7 @@ function SaleDates({
             </div>
           </div>
           <div>
-            <Label htmlFor="meetup">Private handoff address</Label>
+            <Label htmlFor="meetup">Person-to-person meetup address</Label>
             <Textarea
               id="meetup"
               value={draft.meetupNote}
@@ -953,12 +952,12 @@ function SaleDates({
               rows={2}
             />
             <p className="mt-1 text-sm text-muted">
-              Shown only after someone pays for private handoff. Until then they see a rough distance, not the street. Nothing ships.
+              Only shown after someone pays for a person-to-person handoff. Until then, they see a rough distance, not the street. Nothing ships.
             </p>
           </div>
         </div>
       ) : (
-        <p className="text-sm text-muted">Live hours off. This sale stays online for its whole run.</p>
+        <p className="text-sm text-muted">Live hours are off, so this sale stays online the whole time.</p>
       )}
     </div>
   );

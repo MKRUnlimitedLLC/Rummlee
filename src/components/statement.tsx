@@ -18,7 +18,7 @@ export function StatementView({ statement, staff }: { statement: Statement; staf
         {staff ? " · support view" : ""}
       </p>
       <p className="mt-1 text-sm text-muted">
-        Test credits, not a tax form. Federal 1099-K for 2026 is more than $20,000 and more than 200 payments, both.
+        These are test credits, not a tax form. For 2026, a federal 1099-K only applies once you go over both $20,000 and 200 payments.
         States can be stricter. This is a record, not advice.
       </p>
       {statement.form1099kWatch ? (

@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/fees")({
-  head: () => publicHead("/fees", "Rummlee fees", "What you pay to buy, sell, and use an official store handoff. The total is shown before you check out."),
+  head: () => publicHead("/fees", "Rummlee fees", "Here’s what it costs to buy, sell, and use an official store handoff. You’ll always see the total before you check out."),
   loader: () => getFeeTable(),
   component: FeesPage,
 });
@@ -43,7 +43,7 @@ function FeesPage() {
   return (
     <LegalPage
       title="Fees"
-      lede="Beta. Buyer fee is 5%, or $0 with Plus and +++. The seller pays $3.99 or 12% Standard, $1.99 or 8.5% Plus, and $3.99 or 6% +++. That fee is the same for an official store, a public place, or in person. Plus is 5 free sale days a month. +++ sale days are free. Feature one item or a whole sale until it ends. If test credits don’t cover a sale day or a feature, the rest comes out of the next payout. Sales tax is always listed on its own. Paid in test credits. No card is charged."
+      lede="We’re in beta, so everything is paid in test credits and no card is charged. The buyer fee is 5%, or $0 with Plus and +++. Sellers pay $3.99 or 12% on Standard, $1.99 or 8.5% on Plus, and $3.99 or 6% on +++. That’s the same whether you use an official store, a public place, or meet in person. Plus comes with 5 free sale days a month, and sale days on +++ are free. You can feature one item or a whole sale until it ends. If your test credits run short for a sale day or a feature, the rest comes out of your next payout. Sales tax is always listed on its own."
     >
       <TierCards fees={fees} />
       <div className="overflow-x-auto rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
@@ -72,7 +72,7 @@ function FeesPage() {
         </table>
       </div>
       <p className="mt-4 text-sm text-muted">
-        Checkout is the only other place a fee appears — on the listing, when you pay.{" "}
+        Besides this page, the only place you’ll see a fee is on the listing, when you pay.{" "}
         <Link to="/" className="font-medium text-primary-ink">
           Back to browse
         </Link>
@@ -100,12 +100,12 @@ function TierCards({ fees }: { fees: FeeRow[] }) {
     const rate = feeById(fees, tier === "trio" ? "seller_trio" : tier === "plus" ? "seller_plus" : "seller_payout");
     const sample = sellerFeeCents(fees, 4200, tier);
     const fallback = tier === "plus" ? "$1.99" : "$3.99";
-    return `${floor ? formatFeeValue(floor) : fallback} or ${rate ? formatFeeValue(rate) : "—"}, whichever is more. On a $42 item that is ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(sample / 100)}.`;
+    return `${floor ? formatFeeValue(floor) : fallback} or ${rate ? formatFeeValue(rate) : "—"}, whichever is more. On a $42 item, that’s ${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(sample / 100)}.`;
   };
   const tiers = [
     { name: "Standard", price: "$0", buyer: "5%", seller: seller(null), days: "$2.99 a day", extra: "ID check $4.99. Researcher $7.99. Photo fill $0.99. Feature an item $1.99 or a sale $4.99." },
-    { name: "Plus", price: `${month("premium_switch")} / month · ${month("plus_year")} / year`, buyer: "$0", seller: seller("plus"), days: "5 free a month, then $2.99", extra: "ID check included. Alerts for new items and in-person sales. Researcher $7.99. Photo fill $0.99. Feature an item $1.99 or a sale $4.99. Normal item cap." },
-    { name: "+++", price: `${month("trio_month")} / month · ${month("trio_year")} / year`, buyer: "$0", seller: seller("trio"), days: "Unlimited", extra: "No item cap. Plus alerts included. Early look at items before a sale starts, with no price until it’s on. After a sale ends, one overtime offer if the seller sets a get-rid-of-it price. 5 researches a month, then $7.99. Reveal 5 times a month. ID check included. Feature an item $1.99 or a sale $4.99." },
+    { name: "Plus", price: `${month("premium_switch")} / month · ${month("plus_year")} / year`, buyer: "$0", seller: seller("plus"), days: "5 free a month, then $2.99", extra: "ID check included. Alerts for new items and in-person sales. Researcher $7.99. Photo fill $0.99. Feature an item $1.99 or a sale $4.99. The usual item cap applies." },
+    { name: "+++", price: `${month("trio_month")} / month · ${month("trio_year")} / year`, buyer: "$0", seller: seller("trio"), days: "Unlimited", extra: "No item cap. Plus alerts are included. Get an early look at items before a sale starts (the price shows once it’s on). After a sale ends, you get one overtime offer if the seller sets a get-rid-of-it price. 5 researches a month, then $7.99. 5 Reveals a month. ID check included. Feature an item $1.99 or a sale $4.99." },
   ];
   return (
     <div className="mb-6 grid gap-3">

@@ -9,7 +9,7 @@ import { isSamplePartnerSpot, publicSpotHint, sampleStoreEyebrow } from "@/lib/r
 import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/sales/")({
-  head: () => publicHead("/sales", "Sample neighborhood sales", "Samples only. No store is taking a package. Nothing ships."),
+  head: () => publicHead("/sales", "Sample neighborhood sales", "These are sample sales for now. No store is taking packages, and nothing ships."),
   loader: () => bootstrapPublic(),
   component: SalesPage,
 });
@@ -30,7 +30,7 @@ function SalesPage() {
     <main className="py-6">
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Sample sales</h1>
       <p className="mt-1 text-muted">
-        These are samples. No store is taking a package, and nothing is for sale today. Nothing ships.{" "}
+        These are just samples. No store is taking packages, and nothing’s for sale right now. Nothing ships.{" "}
         <Link to="/" className="font-medium text-primary-ink">
           Be first to know
         </Link>
@@ -80,7 +80,7 @@ function SalesPage() {
       {signedPartners.length > 0 ? (
         <>
           <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Official store handoff</h2>
-          <p className="mt-1 text-sm text-muted">An official store handoff. Locker or pickup desk. Store hours, lit lot. Your address stays off the listing.</p>
+          <p className="mt-1 text-sm text-muted">A locker or pickup desk at an official store, open during store hours with a lit lot. Your address stays off the listing.</p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
             {signedPartners.map((sp) => (
               <SpotCard key={sp.id} spot={sp} featured />
@@ -92,7 +92,7 @@ function SalesPage() {
       {samplePartners.length > 0 ? (
         <>
           <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Sample stores</h2>
-          <p className="mt-1 text-sm text-muted">These names are samples. No store has signed. A shop is not holding a package.</p>
+          <p className="mt-1 text-sm text-muted">These are sample names. No store has signed, and no shop is holding a package.</p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
             {samplePartners.map((sp) => (
               <SpotCard key={sp.id} spot={sp} sample />
@@ -102,16 +102,16 @@ function SalesPage() {
       ) : null}
 
       <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Public place handoff</h2>
-      <p className="mt-1 text-sm text-muted">Park, library, or civic lot — if the seller offers it.</p>
+      <p className="mt-1 text-sm text-muted">A park, a library, or a civic lot, if the seller offers it.</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {publicSpots.map((sp) => (
           <SpotCard key={sp.id} spot={sp} />
         ))}
       </ul>
 
-      <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">In person handoff</h2>
+      <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Person-to-person handoff</h2>
       <p className="mt-1 text-sm text-muted">
-        No pinned map. If a seller offers it, you still meet as handles. A home address never goes on the listing.
+        There’s no pin on a map. If the seller offers it, you still meet as handles, and a home address never goes on the listing.
       </p>
     </main>
   );

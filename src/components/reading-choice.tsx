@@ -25,7 +25,7 @@ export function ReadingAsk({ placement = "overlay" }: { placement?: "overlay" | 
     >
       <div className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
         <p id="reading-title" className="text-base font-medium">How should this look?</p>
-        <p className="mt-1 text-sm text-muted">Larger text is easier to read. This stays on this phone. Change it anytime at the top, or on You.</p>
+        <p className="mt-1 text-sm text-muted">Larger text is easier to read. It’s saved on this phone, and you can change it anytime up top or on You.</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button type="button" className="min-h-11 rounded-xl bg-fg px-3 text-sm font-medium text-primary-fg" onClick={() => choose("simple")}>
             Larger text

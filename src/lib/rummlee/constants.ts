@@ -2,7 +2,7 @@ export const FEE_RATE = 0.05;
 export const PREMIUM_FEE_RATE = 0;
 export const MIN_PRICE_CENTS = 500;
 export const PASTE_CAP = 40;
-export const HOLD_LINE = "Money held until both confirm pickup.";
+export const HOLD_LINE = "Money stays on hold until you both confirm pickup.";
 
 /** Stripe Identity is wired and capped. Off for the beta. Do not flip this without an explicit go-ahead. */
 export const IDENTITY_ENABLED = false;
@@ -28,7 +28,7 @@ export const CHARITY_SHARE_BPS = 5000;
 /** Beta: full product until pay. Pay is simulated test credits — never a card or bank. Flip off only when real billing is live. */
 export const TEST_MODE = true;
 export const TEST_STARTER_CENTS = 20000;
-export const TEST_PAY_NOTE = "Beta — test credits. Not real money. No card is charged. Nothing ships.";
+export const TEST_PAY_NOTE = "Beta: test credits only, not real money. No card is charged. Nothing ships.";
 export const PLUS_SALE_DAYS_PER_MONTH = 5;
 /** +++ has no monthly cap. A single sale is still limited by MAX_SALE_DAYS. */
 export const TRIO_SALE_DAYS_PER_MONTH = null;
@@ -113,17 +113,17 @@ export const HANDOFF_MODES = [
   {
     id: "official",
     label: "Official store handoff",
-    hint: "An official Rummlee store. The street shows after someone pays. Before that, a rough distance.",
+    hint: "An official Rummlee store. Buyers see a rough distance until they pay, then the street.",
   },
   {
     id: "public",
     label: "Public place handoff",
-    hint: "Park, library, or civic lot. The street shows after someone pays. Before that, a rough distance.",
+    hint: "A park, library, or civic lot. Buyers see a rough distance until they pay, then the street.",
   },
   {
     id: "person",
-    label: "Private handoff",
-    hint: "You meet as handles. The address shows after someone pays. Before that, a rough distance. Nothing ships.",
+    label: "Person-to-person handoff",
+    hint: "You meet as handles. Buyers see a rough distance until they pay, then the address. Nothing ships.",
   },
 ] as const;
 

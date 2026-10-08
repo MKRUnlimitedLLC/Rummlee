@@ -42,7 +42,7 @@ export function PlusAlerts({ plus }: { plus: boolean }) {
       <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
         <p className="font-medium">Plus alerts</p>
         <p className="mt-1 text-sm text-muted">
-          Included with Plus and +++. Pick a category, an official store, or in-person sales in your city. Nothing is sent until you do.
+          Included with Plus and +++. Pick a category, an official store, or in-person sales in your city. We won’t send anything until you do.
         </p>
       </section>
     );
@@ -65,7 +65,7 @@ export function PlusAlerts({ plus }: { plus: boolean }) {
     <section className="mt-6 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
       <p className="font-medium">Plus alerts</p>
       <p className="mt-1 text-sm text-muted">
-        New items that match every filter you turn on. In-person sales notify once per sale, not once per item. The alert shows the title, price, city, and handoff. Never a street or a legal name. Morning digest is the default. Right away waits overnight, 9pm to 8am Central.
+        You’ll hear about new items that match every filter you turn on. For in-person sales, you get one alert per sale, not one per item. Alerts show the title, price, city, and handoff, never a street or a legal name. The morning digest is the default. Right-away alerts wait overnight, 9pm to 8am Central.
       </p>
       <label className="mt-3 flex items-center gap-2 text-sm">
         <input type="checkbox" checked={form.enabled} onChange={(e) => set({ enabled: e.target.checked })} />

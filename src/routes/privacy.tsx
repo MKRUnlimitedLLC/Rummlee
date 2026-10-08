@@ -9,11 +9,10 @@ export const Route = createFileRoute("/privacy")({
 
 function Privacy() {
   return (
-    <LegalPage title="Privacy" lede="Privacy is the product. What we keep, who sees it, and how you erase it. Updated October 4, 2026.">
+    <LegalPage title="Privacy" lede="Privacy is the product. Here’s what we keep, who sees it, and how you erase it. Updated October 4, 2026.">
       <LegalSection title="The short version">
         <p>
-          Neighbors see a handle, a neighborhood you pick, and the listing. They do not see your legal name, email, or
-          home address. Pickup is at a handoff the seller offers: official store first, public place as backup, or person to person.
+          Neighbors see your handle, the neighborhood you pick, and your listing. That’s it. They don’t see your legal name, your email, or your home address. Pickup happens at a handoff the seller offers: an official store first, a public place as backup, or person to person.
         </p>
       </LegalSection>
 
@@ -99,7 +98,7 @@ function Privacy() {
         </p>
       </LegalSection>
 
-      <LegalSection title="Who operates this">
+      <LegalSection title="Who runs Rummlee">
         <p>
           Rummlee Corp, a North Dakota corporation, operates the app. This page does not publish a street address, a
           legal name, or a personal mailbox. Privacy questions go to{" "}
@@ -127,7 +126,7 @@ function Privacy() {
         </p>
       </LegalSection>
 
-      <LegalSection title="Companies that process it for us">
+      <LegalSection title="Companies that handle data for us">
         <p>
           The company that hosts the app stores the account, the listings, and the photos so the product can run. A
           backup kept by that host can hold a copy until the backup ages out. During beta we do not send card numbers
@@ -149,7 +148,7 @@ function Privacy() {
         </p>
       </LegalSection>
 
-      <LegalSection title="State privacy rights">
+      <LegalSection title="Your state privacy rights">
         <p>
           You can download your data and delete the account from You, in any state. You can correct your neighborhood,
           alerts, and listings while the account is open. We do not sell personal information. If you allow
@@ -160,14 +159,14 @@ function Privacy() {
         </p>
       </LegalSection>
 
-      <LegalSection title="Changes">
+      <LegalSection title="If this page changes">
         <p>
           If this page changes, the date at the top changes. If we start collecting something we do not list here, the
           page will say so before we collect it.
         </p>
       </LegalSection>
 
-      <LegalSection title="Children">
+      <LegalSection title="Kids">
         <p>Rummlee is not directed at children under 13. Do not create an account for someone that young.</p>
       </LegalSection>
 

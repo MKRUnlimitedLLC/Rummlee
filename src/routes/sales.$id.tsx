@@ -62,8 +62,7 @@ function SaleDetail() {
       {data.sale.featured ? <p className="mt-1 text-sm font-medium text-primary-ink">Featured</p> : null}
       {data.sale.alwaysOn ? (
         <p className="mt-2 text-sm text-fg">
-          Always on at the Fargo shelf. No store has signed to hold these. Half of what Rummlee receives is set
-          aside for charity. Nothing ships.
+          Always on at the Fargo shelf. No store has signed on to hold these. Half of what Rummlee receives is set aside for charity. Nothing ships.
         </p>
       ) : onlineWindowLine(data.sale) ? (
         <p className="mt-2 text-sm font-medium text-fg">{onlineWindowLine(data.sale)}</p>
@@ -71,12 +70,12 @@ function SaleDetail() {
         <p className="mt-2 text-sm text-muted">Online on Rummlee. Nothing ships.</p>
       )}
       {data.sale.alwaysOn ? null : liveWindowLine(data.sale) ? (
-        <p className="mt-1 text-sm text-fg">{liveWindowLine(data.sale)} · Private handoff during these hours. The address shows after you pay.</p>
+        <p className="mt-1 text-sm text-fg">{liveWindowLine(data.sale)} · Person-to-person handoff during these hours. You’ll see the address after you pay.</p>
       ) : (
-        <p className="mt-1 text-sm text-muted">Online only for this run.</p>
+        <p className="mt-1 text-sm text-muted">This one’s online only.</p>
       )}
       {mine && data.meetupNote ? (
-        <p className="mt-2 text-sm text-muted">Your meetup note is hidden until someone pays for in-person handoff.</p>
+        <p className="mt-2 text-sm text-muted">Your meetup note stays hidden until someone pays for an in-person handoff.</p>
       ) : null}
       {mine && closing ? <ExtendAsk saleId={data.sale.id} dayFee={dayFee} featureFee={featureFee} featured={Boolean(data.sale.featured)} /> : null}
       {mine && !closing && !data.sale.alwaysOn ? (
@@ -121,7 +120,7 @@ function OvertimeList({
     <section className="mt-6 space-y-3 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]">
       <p className="font-medium">Overtime for +++</p>
       <p className="text-sm text-muted">
-        Unsold items only. Set a get-rid-of-it price and +++ members get one more offer under it, or they can pay that price. It is not shown to anyone else.
+        This is for unsold items only. Set a get-rid-of-it price, and +++ members can pay it or make one more offer under it. Nobody else sees it.
       </p>
       {listings.map((item) => (
         <OvertimeRow key={item.id} saleId={saleId} item={item} />
@@ -267,7 +266,7 @@ function FeatureAsk({ saleId, featureFee, featured }: { saleId: string; featureF
       <Button size="sm" variant="secondary" disabled={feature.isPending} onClick={() => feature.mutate()}>
         {feature.isPending ? "Featuring…" : `Feature this sale · ${featureFee}`}
       </Button>
-      <p className="mt-1 text-sm text-muted">Your items show first. Taken from test credits, then from the next payout.</p>
+      <p className="mt-1 text-sm text-muted">Your items show up first. It comes out of your test credits first, then your next payout.</p>
     </div>
   );
 }

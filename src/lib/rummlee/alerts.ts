@@ -163,7 +163,7 @@ function handoffLine(hit: Hit) {
   const parts: string[] = [];
   if (modes.includes("official")) parts.push(hit.spotName && hit.spotKind === "partner" ? hit.spotName : "Official store handoff");
   if (modes.includes("public")) parts.push("Public place handoff");
-  if (modes.includes("person")) parts.push("In person handoff");
+  if (modes.includes("person")) parts.push("Person-to-person handoff");
   return parts.join(" · ") || "Handoff";
 }
 
@@ -345,7 +345,7 @@ export async function notifyNewSale(sql: Sql, saleId: string) {
       alert.userId,
       alert.instant,
       sale.name,
-      `Private handoff · ${city}. About the distance until you pay. The address stays off this alert.`,
+      `Person-to-person handoff · ${city}. You’ll see a rough distance until you pay. The address stays off this alert.`,
       sale.id,
     );
   }

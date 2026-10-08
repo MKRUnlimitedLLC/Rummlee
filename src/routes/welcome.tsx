@@ -14,7 +14,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { publicHead } from "@/lib/rummlee/seo";
 
 export const Route = createFileRoute("/welcome")({
-  head: () => publicHead("/welcome", "Join Rummlee", "Create a handle. The good stuff, before Saturday. A street address is not part of the listing."),
+  head: () => publicHead("/welcome", "Join Rummlee", "Pick a handle and get started. The good stuff, before Saturday. Your street address never goes on a listing."),
   component: Welcome,
 });
 
@@ -68,7 +68,7 @@ function Welcome() {
       });
       const saved = await getMe();
       if (!saved.me.profileComplete) {
-        toast.error("Add a handle, neighborhood, legal name, and phone.");
+        toast.error("Please add a handle, neighborhood, legal name, and phone number.");
         setBusy(false);
         return;
       }
@@ -97,7 +97,7 @@ function Welcome() {
       <Wordmark className="mb-8 justify-center" />
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Set up your account</h1>
       <p className="mt-2 text-pretty text-muted">
-        Neighbors see @handle only. Your legal name and phone stay private. A street address is never on a public listing. If you offer an in-person handoff, that note is shown only after someone pays.
+        Neighbors only see your @handle. Your legal name and phone stay private. A street address is never on a public listing. If you offer an in-person handoff, that note is shown only after someone pays.
       </p>
       <form onSubmit={onSubmit} className="mt-8 space-y-3">
         <div>
@@ -137,11 +137,11 @@ function Welcome() {
             <Input id="last" autoComplete="family-name" value={last} onChange={(e) => setLast(e.target.value)} required />
           </div>
         </div>
-        <p className="text-sm text-muted">Private. Not on listings, cards, or messages.</p>
+        <p className="text-sm text-muted">Private. It never shows on listings, cards, or messages.</p>
         <div>
           <Label htmlFor="phone">Phone</Label>
           <Input id="phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-          <p className="mt-1 text-sm text-muted">Private. For handoff texts later. Neighbors do not see it.</p>
+          <p className="mt-1 text-sm text-muted">Private. We’ll use it for handoff texts later. Neighbors never see it.</p>
         </div>
         <Button type="submit" className="w-full" disabled={busy || meQ.isLoading}>
           {busy ? "Saving…" : "Continue"}

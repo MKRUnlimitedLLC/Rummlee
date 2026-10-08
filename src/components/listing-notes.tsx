@@ -57,8 +57,7 @@ export function ListingNotes({
     <section className="mt-5 space-y-3 rounded-[24px] bg-surface p-5 shadow-[var(--shadow-card)]">
       <h2 className="font-display text-xl font-semibold">Listing notes</h2>
       <p className="text-sm text-muted">
-        Like a community note. A miss stays hidden until 2 other neighbors mark it helpful. A note that neighbors call
-        unhelpful costs the writer Rummlee Rep. It does not remove the listing.
+        Kind of like a community note. If the description missed something, your note stays hidden until 2 other neighbors mark it helpful. Notes that neighbors call unhelpful cost the writer Rummlee Rep. A note doesn’t remove the listing.
       </p>
       {shown.map((note) => (
         <article key={note.id} className="rounded-2xl bg-primary-soft px-3 py-3 text-sm">
