@@ -100,7 +100,7 @@ function ResearchPage() {
       <p className="text-sm font-medium text-primary-ink">Researchers</p>
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Don’t know what it is?</h1>
       <p className="mt-2 max-w-xl text-muted">
-        Add photos and a product type. An approved researcher in that area tells you what they think it is and suggests a price range. You accept or pass. The range isn’t your asking price, and it isn’t an appraisal. It costs {money(data.askCents)}.
+        Add photos and a product type. An approved researcher nearby tells you what they think it is and suggests a price range. You accept or pass. The range isn’t your asking price, and it isn’t an appraisal. It costs {money(data.askCents)}.
         The researcher gets {money(data.payCents)} if you accept. If that item sells, they also get a bonus for a price
         in the top half of their range, and another if it sells at full asking. Both are on the fee table. +++ includes
         5 a month. After that, each one is {money(data.askCents)}.
@@ -169,7 +169,7 @@ function ResearchPage() {
         <p className="mt-1 text-sm text-muted">
           This is 1099 contract work, not a job. An accepted write-up pays {money(data.payCents)}, priced as 15 minutes
           at $18.40 an hour, the highest 2026 minimum wage. You pick the product types you know. When a matching ask comes in, you get a ping. Tapping Research now starts a 15-minute clock. You work one item at a time, and you can hold it once for 15 more minutes. For 2026, a 1099-NEC is filed if
-          the year reaches $2,000. We do not store a Social Security number here. Beta pay is test credits.
+          the year reaches $2,000. We don’t store a Social Security number here, and beta pay is in test credits.
         </p>
         {account ? (
           <div className="mt-3 text-sm">

@@ -78,7 +78,7 @@ export function LaunchSignup() {
         >
           {handoff
             ? "Tell us about your shop. If it fits a city we’re opening, we’ll write back. It’s free to ask, but it isn’t a promise of exclusivity, payment, or a go-live date."
-            : "Rummlee launches soon. Leave your email and we’ll let you know when real items go live in your city. For now, everything here is a sample. Nothing is for sale, and no card is charged."}
+            : "Rummlee launches soon. Leave your email and we’ll let you know when real items go live in your city. For now, everything here is a sample: nothing is for sale, and no card is charged."}
         </p>
         {handoff ? (
           <div className="mt-5">

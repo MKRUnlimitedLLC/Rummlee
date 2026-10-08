@@ -729,7 +729,7 @@ function How() {
           <strong>Handoffs.</strong> Official store first, public place as backup, or person to person. The seller picks which to offer. You both scan to confirm, and the seller gets paid after you do.
         </li>
         <li>
-          <strong>Address after you pay.</strong> Until then, you see a rough distance. Official store first, public place as backup, or person-to-person handoff. Nothing ships.
+          <strong>Address after you pay.</strong> Until then, you just see a rough distance. Nothing ships.
         </li>
       </ul>
     </section>

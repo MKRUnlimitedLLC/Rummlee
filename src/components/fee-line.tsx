@@ -90,7 +90,7 @@ export function CheckoutPay({
             </p>
           ) : null}
           <p className="text-sm text-muted">
-            The seller fee is the same for an official store, a public place, or in person. Plus and +++ remove the buyer fee. They do not remove the seller fee.{" "}
+            The seller fee is the same for an official store, a public place, or in person. Plus and +++ drop the buyer fee, but not the seller fee.{" "}
             <Link to="/fees" className="font-medium text-primary-ink">
               See tiers
             </Link>

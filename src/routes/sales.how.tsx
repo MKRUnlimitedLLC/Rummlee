@@ -39,7 +39,7 @@ function InPersonHowTo() {
           </p>
         </Step>
         <Step n="3" title="List the items">
-          <p>Add a photo, your asking price, and the lowest you’ll take. Nobody sees that lowest price.</p>
+          <p>Add a photo, your asking price, and the lowest you’ll take. That lowest price stays hidden.</p>
           <p>
             Official store handoff stays on, since that’s the main way. You can also offer a public place, and in person during your live hours. It’s up to you which ones to offer.
           </p>

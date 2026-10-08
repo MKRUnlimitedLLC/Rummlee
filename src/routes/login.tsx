@@ -47,7 +47,7 @@ function Login() {
       <Wordmark className="mb-8 justify-center" />
       <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">Sign in or create an account</h1>
       <p className="mt-2 text-pretty text-muted">
-        Browsing is free. Sign in when you want to make an offer, list something, or pay. You’ll go by a handle, and handoffs start at an official store, never a home address.
+        Browsing is free. Sign in when you want to make an offer, list something, or pay. You’ll go by a handle, and handoffs start at an official store, never at a home address.
       </p>
 
       <div className="mt-8 space-y-2">

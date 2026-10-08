@@ -88,7 +88,7 @@ export function ListingCard({ listing }: { listing: Listing; premium?: boolean }
         {listing.overtimeCents && !listing.priceHidden ? <p className="text-base text-muted">Get rid of it · was {money(listing.priceCents)}</p> : null}
         {listing.sellerId.startsWith("seed-") ? (
           <p className="text-base font-medium text-primary-ink">
-            Sample. Not a real item.{sampleStore ? " Not a signed store." : ""}
+            Sample, not a real item.{sampleStore ? " Not a signed store." : ""}
           </p>
         ) : sampleStore ? (
           <p className="text-base font-medium text-primary-ink">Sample store. Not signed.</p>

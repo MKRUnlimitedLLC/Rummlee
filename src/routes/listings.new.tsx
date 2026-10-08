@@ -671,7 +671,7 @@ function NewListingPage() {
                 onChange={(event) => updateLine(line.id, { floor: event.target.value })}
                 placeholder="Same as asking if you skip this"
               />
-              <p className="mt-1 text-sm text-muted">Nobody sees this. Offers below it are an automatic no. One decline from either of you ends the offer.</p>
+              <p className="mt-1 text-sm text-muted">This stays hidden. Offers below it are an automatic no. One decline from either of you ends the offer.</p>
             </div>
             </div>
             <div className={cn(step === 3 ? "space-y-3" : "hidden")}>

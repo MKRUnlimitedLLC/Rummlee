@@ -32,11 +32,11 @@ function Investors() {
   return (
     <LegalPage
       title="A local marketplace where the package changes hands at a store."
-      lede="Rummlee isn’t open yet. This page is background for people who invest in marketplaces, local retail, or consumer apps, including venture and private equity research. It isn’t an offer to sell stock, it isn’t a solicitation, and it isn’t a commitment to take money. October 2, 2026."
+      lede="Rummlee isn’t open yet. This page is background for people who invest in marketplaces, local retail, or consumer apps, including venture and private equity research. It’s not an offer to sell stock, a solicitation, or a commitment to take money. October 2, 2026."
     >
       <LegalSection title="The company">
         <p>
-          Neighbors sell used household items to other neighbors, and the buyer pays in the app. Handoffs happen at an official store first, with a public place as the backup. Meeting person to person is optional, and only after payment. Nothing ships. Home addresses stay off the public card, and people go by a handle, not a legal name.
+          Neighbors sell used household items to other neighbors, and the buyer pays in the app. The handoff happens at an official store first, with a public place as the backup. Meeting person to person is optional, and only after payment. Nothing ships. Home addresses stay off the public card, and people go by a handle, not a legal name.
         </p>
         <p>
           The company is Rummlee Corp, a North Dakota corporation. Questions about this page? Write to{" "}
@@ -70,7 +70,7 @@ function Investors() {
         </p>
       </LegalSection>
       <LegalSection title="Where it stands">
-        <p>We haven’t launched. The product is in testing, and the marketplace isn’t open. No card is charged. People use test credits.</p>
+        <p>We haven’t launched. The product is still in testing and the marketplace isn’t open, so people use test credits and no card is charged.</p>
         <p>No official store has signed. Stores can apply, but an application isn’t a signed store.</p>
         <p>You won’t find a user count, a revenue figure, a round size, or a valuation on this page.</p>
         <p>

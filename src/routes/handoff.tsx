@@ -21,7 +21,7 @@ function HandoffPage() {
       <p className="text-sm font-medium text-primary-ink">Rummlee</p>
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">Become an official store</h1>
       <p className="mt-2 max-w-2xl text-pretty text-muted">
-        Got a shop that could hold a paid item until the buyer comes for it? Tell us about it. If it fits a city we’re opening, we’ll write back. It’s free to ask. Just know this isn’t a promise of exclusivity, payment, or a go-live date. Questions? Write to{" "}
+        Got a shop that could hold a paid item until the buyer comes for it? Tell us about it. If it fits a city we’re opening, we’ll write back. It’s free to ask. Just so you know, it isn’t a promise of exclusivity, payment, or a go-live date. Questions? Write to{" "}
         <a className="font-medium text-primary-ink" href="mailto:stores@rummlee.com">
           stores@rummlee.com
         </a>

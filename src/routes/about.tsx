@@ -22,7 +22,7 @@ function About() {
       <p className="text-sm font-medium text-primary-ink">Rummlee</p>
       <h1 className="mt-1 font-display text-3xl font-medium tracking-[-0.03em]">About</h1>
       <p className="mt-2 max-w-2xl text-pretty text-muted">
-        The good stuff, before Saturday. Rummlee is where neighbors sell the stuff they already own. Handoffs happen at an official store first, with a public place as the backup. Nothing ships.
+        The good stuff, before Saturday. Rummlee is where neighbors sell stuff they already own. Official store handoff comes first, a public place is the backup, and nothing ships.
       </p>
       <div className="mt-8 max-w-2xl space-y-6 text-sm leading-relaxed text-fg">
         <PatentPending className="text-sm text-fg" />
@@ -40,7 +40,7 @@ function About() {
             <Link to="/handoff" className="font-medium text-primary-ink underline-offset-4 hover:underline">
               apply to be an official store
             </Link>
-            . Applying doesn’t make it a signed store.
+            . Applying isn’t the same as signing on.
           </p>
         </LegalSection>
         <LegalSection title="Patent pending">

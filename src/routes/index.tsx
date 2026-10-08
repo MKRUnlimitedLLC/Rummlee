@@ -287,7 +287,7 @@ function GuestHero() {
       </div>
       <div className="space-y-4 p-5">
         <p className="text-pretty text-muted">
-          Rummlee isn’t open yet. Sign up and you’ll be the first to hear when it launches. Handoffs happen at an official store first, not at a stranger’s house. Nothing ships.
+          Rummlee isn’t open yet. Sign up and you’ll be the first to hear when it launches. You’ll hand things off at an official store first, not at a stranger’s house. Nothing ships.
         </p>
         <p className="text-sm">
           <Link to="/films" className="font-medium text-primary-ink underline-offset-4 hover:underline">
@@ -296,7 +296,7 @@ function GuestHero() {
         </p>
         <PatentPending className="text-sm text-muted" />
         <div className="grid gap-3 sm:grid-cols-3">
-          <Perk icon={CalendarDays} title="First to know" body="News and the launch, sent to your inbox. We don’t sell your email." />
+          <Perk icon={CalendarDays} title="First to know" body="We’ll email you news and tell you when we launch. We don’t sell your email." />
           <Perk icon={EyeOff} title="A handle, not your name" body="Neighbors only see your handle. Your email, legal name, and home stay off the listing." />
           <Perk icon={Store} title="Official store handoff" body="A store holds the package for you. A public place is the backup. Person to person only if you both want it." />
         </div>
@@ -363,7 +363,7 @@ function LaunchChoices() {
       <div className="rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Hear when real items launch</h2>
         <p className="mt-1 text-sm text-muted">
-          Leave your email and we’ll let you know when your city opens for real listings. Nothing’s for sale yet, and we don’t sell your email.
+          Nothing’s for sale yet, but leave your email and we’ll tell you when your city opens for real listings. We won’t sell it.
         </p>
         {joined ? (
           <p className="mt-3 rounded-2xl bg-primary-soft px-4 py-3 text-sm text-primary-ink">{joined}</p>
@@ -374,7 +374,7 @@ function LaunchChoices() {
       <div className="flex flex-col rounded-2xl bg-surface p-5 shadow-[var(--shadow-card)]">
         <h2 className="font-display text-xl font-semibold tracking-[-0.03em]">Be an official store</h2>
         <p className="mt-1 text-sm text-muted">
-          Run a shop that could hold a paid item until the buyer picks it up? The form is short and it’s free to ask. Applying doesn’t make you a signed store.
+          Run a shop that could hold a paid item until the buyer picks it up? The form is short and it’s free to ask. Applying isn’t the same as signing on.
         </p>
         <Link
           to="/handoff"

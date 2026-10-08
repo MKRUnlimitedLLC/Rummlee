@@ -430,7 +430,7 @@ function ListingPage() {
           </section>
         ) : (
           <p className="mt-5 rounded-2xl bg-surface px-4 py-6 text-center text-muted shadow-[var(--shadow-card)]">
-            {listing.status === "held" ? "Someone’s already holding this. Your money would stay held until pickup." : listing.status === "outside" ? "The seller sold this outside Rummlee. No hold was taken." : listing.status === "abandoned" ? "Left with Rummlee. The first seller’s handle is not on a resale." : listing.status === "bundled" ? "This item is in a bundle." : "This one already sold."}
+            {listing.status === "held" ? "Someone’s already holding this one. Your money would stay on hold until pickup." : listing.status === "outside" ? "The seller sold this outside Rummlee. No hold was taken." : listing.status === "abandoned" ? "Left with Rummlee. The first seller’s handle is not on a resale." : listing.status === "bundled" ? "This item is in a bundle." : "This one already sold."}
           </p>
         )
       ) : mine ? (
@@ -598,7 +598,7 @@ function ListingPage() {
             <p className="text-sm text-muted">
               {overtime
                 ? "Pay the get-rid-of-it price, or send one offer under it. One decline ends the overtime offer."
-                : "Pay the asking price, or send one offer under it. Nobody sees the seller’s lowest price. One decline from either of you ends the offer."}
+                : "Pay the asking price, or send one offer under it. The seller’s lowest price stays hidden. One decline from either of you ends the offer."}
             </p>
           )}
 

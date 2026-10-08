@@ -38,7 +38,7 @@ function PickupPage() {
       toast.success(
         res.done
           ? "Handoff recorded. The seller is paid in 48 hours if there’s no problem. Test credits, not real money."
-          : "You’re confirmed. Now it’s up to the other person.",
+          : "You’re all set. Now we’re just waiting on the other person.",
       );
     },
     onError: (e) => toast.error(errMessage(e)),
@@ -59,7 +59,7 @@ function PickupPage() {
     onSuccess: () => {
       setProblem("");
       void qc.invalidateQueries({ queryKey: ["order", id] });
-      toast.success("Problem reported. The seller is not paid until support decides.");
+      toast.success("Got it. The seller won’t be paid until support looks into it and decides.");
     },
     onError: (e) => toast.error(errMessage(e)),
   });
@@ -131,7 +131,7 @@ function PickupPage() {
         <div className="mt-6 space-y-4">
           <p className="text-sm text-success">
             {order.disputeStatus === "open"
-              ? "You reported a problem. The seller is not paid until support decides."
+              ? "You reported a problem. The seller won’t be paid until support decides."
               : order.disputeStatus === "refunded"
                 ? "Support refunded this handoff. The seller was not paid."
                 : order.paidOutAt

@@ -80,7 +80,7 @@ function SalesPage() {
       {signedPartners.length > 0 ? (
         <>
           <h2 className="mt-10 font-display text-xl font-semibold tracking-[-0.03em]">Official store handoff</h2>
-          <p className="mt-1 text-sm text-muted">Hand off at an official store, at a locker or the pickup desk. Store hours and a lit lot, and your address stays off the listing.</p>
+          <p className="mt-1 text-sm text-muted">A locker or pickup desk at an official store, open during store hours with a lit lot. Your address stays off the listing.</p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
             {signedPartners.map((sp) => (
               <SpotCard key={sp.id} spot={sp} featured />

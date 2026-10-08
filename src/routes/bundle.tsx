@@ -147,7 +147,7 @@ function BundlePage() {
           <div>
             <Label htmlFor="bundle-floor">Lowest you’ll take</Label>
             <Input id="bundle-floor" inputMode="decimal" value={floor} onChange={(event) => setFloor(event.target.value)} placeholder="Same as asking if you skip this" />
-            <p className="mt-1 text-sm text-muted">Nobody sees this. It can be lower than the items added together.</p>
+            <p className="mt-1 text-sm text-muted">This stays hidden. It can be lower than the items added together.</p>
           </div>
           <Button className="w-full" disabled={picked.length < 2 || sellerBundle.isPending} onClick={() => sellerBundle.mutate()}>
             {sellerBundle.isPending ? "Publishing…" : "Publish bundle"}

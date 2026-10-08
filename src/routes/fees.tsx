@@ -43,7 +43,7 @@ function FeesPage() {
   return (
     <LegalPage
       title="Fees"
-      lede="We’re in beta. The buyer fee is 5%, or $0 with Plus and +++. Sellers pay $3.99 or 12% on Standard, $1.99 or 8.5% on Plus, and $3.99 or 6% on +++. The seller fee is the same whether you use an official store, a public place, or meet in person. Plus gives you 5 free sale days a month, and sale days on +++ are free. You can feature one item or a whole sale until it ends. If your test credits don’t cover a sale day or a feature, the rest comes out of your next payout. Sales tax is always listed on its own. Everything is paid in test credits, and no card is charged."
+      lede="We’re in beta, so everything is paid in test credits and no card is charged. The buyer fee is 5%, or $0 with Plus and +++. Sellers pay $3.99 or 12% on Standard, $1.99 or 8.5% on Plus, and $3.99 or 6% on +++. That’s the same whether you use an official store, a public place, or meet in person. Plus comes with 5 free sale days a month, and sale days on +++ are free. You can feature one item or a whole sale until it ends. If your test credits run short for a sale day or a feature, the rest comes out of your next payout. Sales tax is always listed on its own."
     >
       <TierCards fees={fees} />
       <div className="overflow-x-auto rounded-[24px] bg-surface shadow-[var(--shadow-card)]">
@@ -72,7 +72,7 @@ function FeesPage() {
         </table>
       </div>
       <p className="mt-4 text-sm text-muted">
-        The only other place you’ll see a fee is at checkout, on the listing, when you pay.{" "}
+        Besides this page, the only place you’ll see a fee is on the listing, when you pay.{" "}
         <Link to="/" className="font-medium text-primary-ink">
           Back to browse
         </Link>
